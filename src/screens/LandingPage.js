@@ -862,134 +862,158 @@ const EventCard = React.memo(({
             </TouchableOpacity>
           ) : null}
 
-          {/* Action bar — Item 51: accessible labels on all action buttons */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
+          {/* Action bar — Responsive, full-width with secondary tools toggle */}
+          <View style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
             <View style={styles.actionBar}>
-              <TouchableOpacity
-                style={[styles.actionBtn, { position: 'relative' }]}
-                onPress={() => {
-                  const canVibe = !!user && (isVibed || event.author_id !== user.id);
-                  if (canVibe) setLikeFx(f => ({ n: f.n + 1, kind: isVibed ? 'unlike' : 'like', burst: isVibed ? f.burst : Date.now() }));
-                  onVibe(id);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
-              >
-                <View style={{ position: 'relative' }}>
-                  <Pop trigger={likeFx.n} kind={likeFx.kind}>
-                    <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
+              <View style={styles.actionGroupLeft}>
+                {/* Vibe */}
+                <TouchableOpacity
+                  style={[styles.actionBtn, { position: 'relative' }]}
+                  onPress={() => {
+                    const canVibe = !!user && (isVibed || event.author_id !== user.id);
+                    if (canVibe) setLikeFx(f => ({ n: f.n + 1, kind: isVibed ? 'unlike' : 'like', burst: isVibed ? f.burst : Date.now() }));
+                    onVibe(id);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
+                >
+                  <View style={{ position: 'relative' }}>
+                    <Pop trigger={likeFx.n} kind={likeFx.kind}>
+                      <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
+                    </Pop>
+                    <ControlledGlitterBurst trigger={likeFx.burst} count={10} radius={26} colors={['#ef4444', '#fde047', '#ffffff']} enableHaptics={false} />
+                  </View>
+                  <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? "#ef4444" : muted }]} />
+                </TouchableOpacity>
+
+                {/* React */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onToggleSection(id, 'react')}
+                  accessibilityRole="button"
+                  accessibilityLabel="React to this event"
+                >
+                  <Pop trigger={userReaction || ''} kind="pop">
+                    {userReaction
+                      ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
+                      : <Feather name="smile" size={19} color={muted} />
+                    }
                   </Pop>
-                  <ControlledGlitterBurst trigger={likeFx.burst} count={10} radius={26} colors={['#ef4444', '#fde047', '#ffffff']} enableHaptics={false} />
+                  <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
+                </TouchableOpacity>
+
+                {/* Echo (Comments) */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onToggleSection(id, 'echo')}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
+                >
+                  <Feather name="message-circle" size={19} color={openSection === 'echo' ? primary : muted} />
+                  <Text style={[styles.actionCount, { color: openSection === 'echo' ? primary : muted }]}>{event.echo_count || 0}</Text>
+                </TouchableOpacity>
+
+                {/* Share */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onShare(event)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Share event: ${title}`}
+                >
+                  <Feather name="share-2" size={19} color={muted} />
+                </TouchableOpacity>
+
+                {/* More Tools Toggle */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onToggleSection(id, 'more')}
+                  accessibilityRole="button"
+                  accessibilityLabel="More event tools"
+                >
+                  <Feather name="more-horizontal" size={19} color={openSection === 'more' ? primary : muted} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Bookmark Button */}
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onBookmark(id)}
+                accessibilityRole="button"
+                accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+                  <Feather name="bookmark" size={19} color={isSaved ? primary : muted} />
+                  <GlitterBurst trigger={saveFx} size={90} colors={[primary, '#fde047', '#ffffff', '#a78bfa']} />
                 </View>
-                <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? "#ef4444" : muted }]} />
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'react')}
-                accessibilityRole="button"
-                accessibilityLabel="React to this event"
-              >
-                <Pop trigger={userReaction || ''} kind="pop">
-                  {userReaction
-                    ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
-                    : <Feather name="smile" size={19} color={muted} />
-                  }
-                </Pop>
-                <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'echo')}
-                accessibilityRole="button"
-                accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
-              >
-                <Feather name="message-circle" size={19} color={openSection === 'echo' ? primary : muted} />
-                <Text style={[styles.actionCount, { color: openSection === 'echo' ? primary : muted }]}>{event.echo_count || 0}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'gallery')}
-                accessibilityRole="button"
-                accessibilityLabel="View event gallery"
-              >
-                <Feather name="camera" size={19} color={openSection === 'gallery' ? primary : muted} />
-                <Text style={[styles.actionLabel, { color: openSection === 'gallery' ? primary : muted }]}>Gallery</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'pulse')}
-                accessibilityRole="button"
-                accessibilityLabel="View Pulse Schedule"
-              >
-                <Feather name="activity" size={19} color={openSection === 'pulse' ? primary : muted} />
-                <Text style={[styles.actionLabel, { color: openSection === 'pulse' ? primary : muted }]}>Pulse</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleRoute(event)}
-                accessibilityRole="button"
-                accessibilityLabel={isRoute ? 'Remove from journey' : 'Pin to your journey'}
-              >
-                <Feather
-                  name={isRoute ? "map-pin" : "plus-circle"}
-                  size={19}
-                  color={isRoute ? primary : muted}
-                />
-                <Text style={[styles.actionLabel, { color: isRoute ? primary : muted }]}>Journey</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'rate')}
-                accessibilityRole="button"
-                accessibilityLabel="Rate this event"
-              >
-                <Feather name="star" size={19} color={openSection === 'rate' ? primary : muted} />
-                <Text style={[styles.actionLabel, { color: openSection === 'rate' ? primary : muted }]}>Rate</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onShare(event)}
-                accessibilityRole="button"
-                accessibilityLabel={`Share event: ${title}`}
-              >
-                <Feather name="share-2" size={19} color={muted} />
-                <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionBtn} onPress={() => {
-                safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
-                if (user) onRsvpEvent(event);
-                else { PendingIntent.set('rsvp', { eventId: event.id, event }); onAuthRequired(); }
-              }}>
-                <Feather name="check-circle" size={19} color={muted} />
-                <Text style={[styles.actionLabel, { color: muted }]}>RSVP</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionBtn} onPress={() => onReportTarget({ id, type: 'event' })}>
-                <Feather name="flag" size={19} color={muted} />
-              </TouchableOpacity>
-
-              {isOwner && (
-                <TouchableOpacity style={styles.actionBtn} onPress={() => onEditEvent(event)}>
-                  <Feather name="edit-2" size={19} color={primary} />
-                </TouchableOpacity>
-              )}
-
-              {isOwner && (
-                <TouchableOpacity style={styles.actionBtn} onPress={() => onAdminEvent(event)}>
-                  <Feather name="bar-chart-2" size={19} color={primary} />
-                  <Text style={[styles.actionLabel, { color: primary }]}>Admin</Text>
-                </TouchableOpacity>
-              )}
             </View>
-          </ScrollView>
+
+            {/* Secondary actions tray */}
+            {openSection === 'more' && (
+              <View style={[styles.moreToolsTray, { borderTopColor: `${primary}15` }]}>
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: isRoute ? primary : 'rgba(255,255,255,0.12)', backgroundColor: isRoute ? `${primary}15` : 'transparent' }]}
+                  onPress={() => onToggleRoute(event)}
+                >
+                  <Feather name={isRoute ? "map-pin" : "plus-circle"} size={13} color={isRoute ? primary : muted} />
+                  <Text style={[styles.moreToolText, { color: isRoute ? primary : textColor }]}>{isRoute ? 'In Journey' : 'Journey'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onToggleSection(id, 'gallery')}
+                >
+                  <Feather name="camera" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: textColor }]}>Gallery</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onToggleSection(id, 'pulse')}
+                >
+                  <Feather name="activity" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: textColor }]}>Pulse</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onToggleSection(id, 'rate')}
+                >
+                  <Feather name="star" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: textColor }]}>Rate</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onReportTarget({ id, type: 'event' })}
+                >
+                  <Feather name="flag" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: muted }]}>Report</Text>
+                </TouchableOpacity>
+
+                {isOwner && (
+                  <TouchableOpacity
+                    style={[styles.moreToolPill, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}
+                    onPress={() => onEditEvent(event)}
+                  >
+                    <Feather name="edit-2" size={13} color={primary} />
+                    <Text style={[styles.moreToolText, { color: primary }]}>Edit</Text>
+                  </TouchableOpacity>
+                )}
+
+                {isOwner && (
+                  <TouchableOpacity
+                    style={[styles.moreToolPill, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}
+                    onPress={() => onAdminEvent(event)}
+                  >
+                    <Feather name="bar-chart-2" size={13} color={primary} />
+                    <Text style={[styles.moreToolText, { color: primary }]}>Admin</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
 
           {/* Collapsible sections — each in its own SafeSection */}
           {openSection === 'react' && (
@@ -3512,10 +3536,35 @@ const styles = StyleSheet.create({
   reactionCount: { fontSize: 11 },
 
   actionBarWrapper: { borderTopWidth: 1 },
-  actionBar: { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 12, gap: 20 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 50 },
+  actionBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10 },
+  actionGroupLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 4 },
   actionCount: { fontSize: 13, fontWeight: '800' },
   actionLabel: { fontSize: 10, fontWeight: '700' },
+
+  moreToolsTray: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  moreToolPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  moreToolText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
 
   lockInBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14, marginTop: 8, marginBottom: 4 },
   lockInBtnText: { fontSize: 11.5, fontWeight: '900', letterSpacing: 0.8 },
