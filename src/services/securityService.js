@@ -4,6 +4,7 @@
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { resilient } from '../utils/resilience';
+import { ThreatPreventionEngine } from './threatPreventionEngine';
 
 // Keys to redact — checked as substrings (case-insensitive) so variants are caught
 const SENSITIVE_KEY_FRAGMENTS = [
@@ -266,18 +267,33 @@ export const SecurityService = {
     return { allowed: true };
   },
 
-  // ── Payload integrity — prevent prototype pollution ─────────────────────
+  // ── Payload integrity & Threat Prevention Engine ────────────────────────
+  threatEngine: ThreatPreventionEngine,
+
+  /** Intercepts and validates inputs against SQLi, XSS, and PostgREST grammar breakouts */
+  guardInput(input, options = {}) {
+    return ThreatPreventionEngine.guard(input, options);
+  },
+
+  /** Deeply inspects an input and returns threat diagnostics */
+  analyzeThreat(input, options = {}) {
+    return ThreatPreventionEngine.analyze(input, options);
+  },
 
   /** Strip dangerous keys from any object before it touches the DB. */
-  sanitizePayload(obj) {
+  sanitizePayload(obj, options = {}) {
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
-    const dangerous = ['__proto__', 'constructor', 'prototype'];
-    const clean = {};
-    for (const [k, v] of Object.entries(obj)) {
-      if (dangerous.includes(k)) continue;
-      clean[k] = typeof v === 'object' && v !== null ? this.sanitizePayload(v) : v;
+    try {
+      return ThreatPreventionEngine.guard(obj, { strict: false, ...options });
+    } catch {
+      const dangerous = ['__proto__', 'constructor', 'prototype'];
+      const clean = {};
+      for (const [k, v] of Object.entries(obj)) {
+        if (dangerous.includes(k)) continue;
+        clean[k] = typeof v === 'object' && v !== null ? this.sanitizePayload(v) : v;
+      }
+      return clean;
     }
-    return clean;
   },
 
   // ── Auth guard helper ────────────────────────────────────────────────────
