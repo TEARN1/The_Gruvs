@@ -631,7 +631,7 @@ const MONTHS = [
 
 const TIMES = ['18:00', '19:00', '19:30', '20:00', '21:00', '14:00', '15:30', '17:00'];
 
-const allEvents = [];
+let allEvents = [];
 let eventCounter = 1;
 
 for (const cat of CATEGORIES) {
@@ -718,6 +718,18 @@ for (const cat of CATEGORIES) {
       eventCounter++;
     }
   }
+}
+
+// Merge high-voltage curated December events (Midrand, Tembisa, Ivory Park, Kempton Park, Centurion, surroundings)
+try {
+  const { DECEMBER_EVENTS } = require('./seed_december_events');
+  if (Array.isArray(DECEMBER_EVENTS) && DECEMBER_EVENTS.length > 0) {
+    const decIds = new Set(DECEMBER_EVENTS.map(e => e.id));
+    allEvents = [...DECEMBER_EVENTS, ...allEvents.filter(e => !decIds.has(e.id))];
+    console.log(`Merged ${DECEMBER_EVENTS.length} special December mega-events into catalog.`);
+  }
+} catch (e) {
+  console.warn('Could not load seed_december_events:', e.message);
 }
 
 console.log(`Generated ${allEvents.length} authentic Gauteng events across ${CATEGORIES.length} categories and ${MONTHS.length} months.`);
