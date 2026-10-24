@@ -83,6 +83,7 @@ import { EventAdminPanel }      from '../components/EventAdminPanel';
 import { EditEventModal }       from '../components/EditEventModal';
 import { RSVPConfirmModal }     from '../components/RSVPConfirmModal';
 import { ReportModal }          from '../components/ReportModal';
+import { QuickToolsSheet }      from '../components/QuickToolsSheet';
 import { EventMapView }         from '../components/EventMapView';
 import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './lazyScreens';
@@ -1130,6 +1131,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [ridesModalVisible, setRidesModalVisible] = useState(false);
   const [selectedCat, setSelectedCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [quickToolsVisible, setQuickToolsVisible] = useState(false);
   // ── Community Safety Alert (from The Resident) ────────────────────────────
   const [communityAlert, setCommunityAlert] = useState(null);
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -1310,6 +1314,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const handleBackButton = () => {
       if (selectedEvent) {
         setSelectedEvent(null);
+        return true;
+      }
+      if (quickToolsVisible) {
+        setQuickToolsVisible(false);
         return true;
       }
       if (routeModalVisible) {
@@ -2223,6 +2231,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             placeholder="Search events, scenes, venues..."
             placeholderTextColor={muted}
             value={searchQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 250)}
             onChangeText={setSearchQuery}
             onSubmitEditing={() => { if (searchQuery.trim()) saveSearch(searchQuery.trim()); }}
             returnKeyType="search"
@@ -2235,51 +2245,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </GlassView>
 
         <View style={[styles.headerActions, tightHeader && { gap: 6 }]}>
-          {/* Reels — opt-in entry while it's demoted from the tab bar */}
-          {onNavigateToReels && HIDDEN_TABS.includes('reels') && (
-            <TouchableOpacity
-              style={[styles.iconBtn, iconBox, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}
-              onPress={onNavigateToReels}
-              accessibilityRole="button"
-              accessibilityLabel="Reels"
-            >
-              <Feather name="film" size={16} color={primary} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.1)' }]}
-            onPress={() => setRouletteVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Vibe Roulette"
-          >
-            <Feather name="compass" size={16} color={textColor} />
-          </TouchableOpacity>
-          {feature('sensorySuite') && (
-            <TouchableOpacity
-              style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
-              onPress={() => setSensoryModalVisible(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Nightlife Sensory Suite"
-            >
-              <Feather name="zap" size={16} color="#00f2ff" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: '#f59e0b35' }]}
-            onPress={() => setCultureModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Culture & Heritage Artifacts"
-          >
-            <Feather name="award" size={16} color="#f59e0b" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
-            onPress={() => setRidesModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Resident Rides & Lifts"
-          >
-            <Feather name="navigation" size={16} color={primary} />
-          </TouchableOpacity>
           {Platform.OS === 'web' && (
             <TouchableOpacity
               style={[styles.iconBtn, iconBox, { backgroundColor: `${primary}18`, borderColor: `${primary}45` }]}
@@ -2291,8 +2256,18 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             </TouchableOpacity>
           )}
           <TouchableOpacity
+            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: `${primary}35` }]}
+            onPress={() => setQuickToolsVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Explore tools and quick actions"
+          >
+            <Feather name="grid" size={16} color={primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.postIconBtn, iconBox, { backgroundColor: primary, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
+            accessibilityRole="button"
+            accessibilityLabel="Drop a Gruv"
           >
             <Feather name="plus" size={18} color="#000" />
           </TouchableOpacity>
@@ -2301,7 +2276,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       <StoriesRow onAuthRequired={onAuthRequired} />
 
-      <CommunityStatsBar />
       <EcosystemUniverseBar primary={primary} textColor={textColor} muted={muted} />
 
       {!!user && (
@@ -2350,29 +2324,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {/* Visitor banner — only if no user */}
       {!user && <VisitorBanner onSignIn={onAuthRequired} primary={primary} muted={muted} textColor={textColor} />}
 
-      {/* Search history chips */}
-      <SearchHistoryBar
-        currentQuery={searchQuery}
-        onSelect={q => { setSearchQuery(q); setDebouncedQuery(q); }}
-        primary={primary}
-        muted={muted}
-      />
-
-      {/* Date filter strip */}
-      <DateFilterStrip
-        value={dateFilter}
-        onChange={(val, range) => { setDateFilter(val); setDateRange(range); }}
-        primary={primary}
-        muted={muted}
-      />
-
-      {/* Trending hashtags */}
-      <HashtagStrip
-        activeTag={activeHashtag}
-        onTagSelect={tag => { setActiveHashtag(tag); if (tag) setSearchQuery(`#${tag}`); else setSearchQuery(''); }}
-        primary={primary}
-        muted={muted}
-      />
+      {/* Search history chips — only rendered when actively searching */}
+      {(searchFocused || searchQuery.length > 0) && (
+        <SearchHistoryBar
+          currentQuery={searchQuery}
+          onSelect={q => { setSearchQuery(q); setDebouncedQuery(q); }}
+          primary={primary}
+          muted={muted}
+        />
+      )}
 
       <TonightAlert
         events={events}
@@ -2384,10 +2344,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         primary={primary}
       />
 
-      {/* Vibe Oracle (AI Prediction) — DISABLED */}
-
-      {/* Feed mode toggle — All / Upcoming / Following / Mine / Rides */}
-      <View style={{ flexDirection: 'row', marginHorizontal: 14, marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
+      {/* Primary Discovery Bar: Feed Mode Tabs + Filter Drawer Trigger + Layout Toggle */}
+      <View style={styles.filterControlRow}>
+        <View style={styles.feedModeTabs}>
           {[
             { key: 'upcoming', label: 'Upcoming', icon: 'calendar' },
             { key: 'all', label: 'For You', icon: 'home' },
@@ -2405,36 +2364,44 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   }
                   safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
                 }}
-                style={{
-                  flexDirection: 'row', alignItems: 'center', gap: 5,
-                  paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
-                  backgroundColor: active ? primary : 'rgba(255,255,255,0.06)',
-                  borderWidth: 1, borderColor: active ? primary : 'rgba(255,255,255,0.10)',
-                }}
+                style={[
+                  styles.modeTabPill,
+                  {
+                    backgroundColor: active ? primary : 'rgba(255,255,255,0.06)',
+                    borderColor: active ? primary : 'rgba(255,255,255,0.10)',
+                  }
+                ]}
               >
                 <Feather name={tab.icon} size={12} color={active ? '#000' : textColor} />
                 <Text style={{ fontSize: 12, fontWeight: '800', color: active ? '#000' : textColor }}>{tab.label}</Text>
               </TouchableOpacity>
             );
           })}
-          {/* Dedicated Rides Strategy Button */}
+        </View>
+
+        <View style={styles.filterActionsRight}>
+          {/* Filter Drawer Toggle with active filter dot */}
           <TouchableOpacity
             onPress={() => {
-              setRidesModalVisible(true);
+              setFiltersExpanded(prev => !prev);
               safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
             }}
             accessibilityRole="button"
-            accessibilityLabel="The Drop Rides & Resident Lifts"
-            style={{
-              flexDirection: 'row', alignItems: 'center', gap: 5,
-              paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
-              backgroundColor: `${primary}18`,
-              borderWidth: 1, borderColor: `${primary}45`,
-            }}
+            accessibilityLabel="Filter by date and hashtags"
+            style={[
+              styles.filterToggleBtn,
+              {
+                backgroundColor: (filtersExpanded || dateFilter !== 'any' || activeHashtag) ? `${primary}25` : 'rgba(255,255,255,0.06)',
+                borderColor: (filtersExpanded || dateFilter !== 'any' || activeHashtag) ? primary : 'rgba(255,255,255,0.10)',
+              }
+            ]}
           >
-            <Feather name="navigation" size={12} color={primary} />
-            <Text style={{ fontSize: 12, fontWeight: '800', color: primary }}>Rides</Text>
+            <Feather name="sliders" size={13} color={(filtersExpanded || dateFilter !== 'any' || activeHashtag) ? primary : textColor} />
+            {(dateFilter !== 'any' || activeHashtag) ? (
+              <View style={[styles.filterActiveDot, { backgroundColor: primary }]} />
+            ) : null}
           </TouchableOpacity>
+
           {/* List ⇄ Masonry (Pinterest) layout toggle */}
           <TouchableOpacity
             onPress={() => {
@@ -2445,16 +2412,51 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             }}
             accessibilityRole="button"
             accessibilityLabel={layoutType === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
-            style={{
-              marginLeft: 'auto', width: 34, height: 30, borderRadius: 15,
-              alignItems: 'center', justifyContent: 'center',
-              backgroundColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.06)',
-              borderWidth: 1, borderColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.10)',
-            }}
+            style={[
+              styles.layoutToggleBtn,
+              {
+                backgroundColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.06)',
+                borderColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.10)',
+              }
+            ]}
           >
-            <Feather name={layoutType === 'grid' ? 'list' : 'grid'} size={14} color={layoutType === 'grid' ? '#000' : textColor} />
+            <Feather name={layoutType === 'grid' ? 'list' : 'grid'} size={13} color={layoutType === 'grid' ? '#000' : textColor} />
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Expandable Filter Drawer (Date Range + Hashtags) */}
+      {(filtersExpanded || dateFilter !== 'any' || activeHashtag) && (
+        <View style={[styles.filterDrawer, { borderColor: `${primary}25` }]}>
+          <View style={styles.filterDrawerHeader}>
+            <Text style={[styles.filterDrawerTitle, { color: primary }]}>Filter Feed</Text>
+            {(dateFilter !== 'any' || activeHashtag) ? (
+              <TouchableOpacity
+                onPress={() => {
+                  setDateFilter('any');
+                  setDateRange(null);
+                  setActiveHashtag('');
+                  setSearchQuery('');
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: muted }}>Reset</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <DateFilterStrip
+            value={dateFilter}
+            onChange={(val, range) => { setDateFilter(val); setDateRange(range); }}
+            primary={primary}
+            muted={muted}
+          />
+          <HashtagStrip
+            activeTag={activeHashtag}
+            onTagSelect={tag => { setActiveHashtag(tag); if (tag) setSearchQuery(`#${tag}`); else setSearchQuery(''); }}
+            primary={primary}
+            muted={muted}
+          />
+        </View>
+      )}
 
       {/* Who to follow — suggested people, attractive cards */}
       {user && <SuggestedFollows />}
@@ -2633,61 +2635,108 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     // Masonry mode: one virtual item renders the whole Pinterest grid.
     if (id === '__masonry__') {
       return (
-        <MasonryFeed
-          events={feedData.filter(e => !e._header)}
-          onSelectEvent={(ev) => setSelectedEvent(ev)}
-          primary={primary}
-          textColor={textColor}
-        />
+        <View key="__masonry_container__">
+          {renderTrending()}
+          <MasonryFeed
+            events={feedData.filter(e => !e._header)}
+            onSelectEvent={(ev) => setSelectedEvent(ev)}
+            primary={primary}
+            textColor={textColor}
+          />
+          {mode === 'drop' && onNavigateToReels && feature('reelsRail') && (
+            <ReelsRail
+              onOpenReel={(reelId) => onNavigateToReels(reelId)}
+              primary={primary}
+              textColor={textColor}
+              muted={muted}
+            />
+          )}
+        </View>
       );
     }
+
+    const isTrendingSlot = index === (feedData.length === 1 ? 0 : 1);
+    const isReelsSlot = index === 3;
+    const isBirthdaySlot = index === 5;
+    const isGoOutSlot = index === 7;
+
     return (
-      <LazyCard eager={index < 3}>
-      <EventCard
-        event={event}
-        index={index}
-        user={user}
-        primary={primary}
-        surface={surface}
-        textColor={textColor}
-        muted={muted}
-        isVibed={myVibes.has(id)}
-        vibeCounts={vibeCounts}
-        isSaved={savedEvents.has(id)}
-        userReaction={reactions[id]}
-        crewCount={crewRsvpMap[id] || 0}
-        isHighlighted={highlightedId === id}
-        flashColor={reactionFlash[id]}
-        isRoute={routeEvents.some(re => re.id === id)}
-        isFollowing={followingSet.has(event.profiles?.id)}
-        checkins={eventCheckins[id]}
-        friendsGoingList={friendsByEvent.get(id)}
-        onAuthRequired={onAuthRequired}
-        onNavigateToServices={onNavigateToServices}
-        onSelectEvent={setSelectedEvent}
-        onEditEvent={setEditEvent}
-        onAdminEvent={setAdminEvent}
-        onRsvpEvent={setRsvpEvent}
-        onReportTarget={setReportTarget}
-        onSetReactorsEvent={(eventId) => { setReactorsEvent(eventId); setReactorsFilter('all'); fetchReactors(eventId); }}
-        onFetchCheckins={fetchEventCheckins}
-        onOpenViberProfile={openViberProfile}
-        onFollow={handleFollowFromFeed}
-        onImageTap={handleImageTap}
-        onImageLongPress={handleImageLongPress}
-        onCardPressIn={onCardPressIn}
-        onCardPressOut={onCardPressOut}
-        scaleValue={getCardScale(id)}
-        heartAnim={heartAnimRef.current[id]}
-        openSection={openSection[id]}
-        onVibe={handleVibe}
-        onBookmark={handleBookmark}
-        onReact={handleReact}
-        onShare={handleShare}
-        onToggleRoute={handleToggleRoute}
-        onToggleSection={toggleSection}
-      />
-      </LazyCard>
+      <View key={id || index}>
+        <LazyCard eager={index < 3}>
+          <EventCard
+            event={event}
+            index={index}
+            user={user}
+            primary={primary}
+            surface={surface}
+            textColor={textColor}
+            muted={muted}
+            isVibed={myVibes.has(id)}
+            vibeCounts={vibeCounts}
+            isSaved={savedEvents.has(id)}
+            userReaction={reactions[id]}
+            crewCount={crewRsvpMap[id] || 0}
+            isHighlighted={highlightedId === id}
+            flashColor={reactionFlash[id]}
+            isRoute={routeEvents.some(re => re.id === id)}
+            isFollowing={followingSet.has(event.profiles?.id)}
+            checkins={eventCheckins[id]}
+            friendsGoingList={friendsByEvent.get(id)}
+            onAuthRequired={onAuthRequired}
+            onNavigateToServices={onNavigateToServices}
+            onSelectEvent={setSelectedEvent}
+            onEditEvent={setEditEvent}
+            onAdminEvent={setAdminEvent}
+            onRsvpEvent={setRsvpEvent}
+            onReportTarget={setReportTarget}
+            onSetReactorsEvent={(eventId) => { setReactorsEvent(eventId); setReactorsFilter('all'); fetchReactors(eventId); }}
+            onFetchCheckins={fetchEventCheckins}
+            onOpenViberProfile={openViberProfile}
+            onFollow={handleFollowFromFeed}
+            onImageTap={handleImageTap}
+            onImageLongPress={handleImageLongPress}
+            onCardPressIn={onCardPressIn}
+            onCardPressOut={onCardPressOut}
+            scaleValue={getCardScale(id)}
+            heartAnim={heartAnimRef.current[id]}
+            openSection={openSection[id]}
+            onVibe={handleVibe}
+            onBookmark={handleBookmark}
+            onReact={handleReact}
+            onShare={handleShare}
+            onToggleRoute={handleToggleRoute}
+            onToggleSection={toggleSection}
+          />
+        </LazyCard>
+
+        {/* Content discovery interleaved into feed — ensures Event #1 is immediately above the fold */}
+        {isTrendingSlot && renderTrending()}
+
+        {isReelsSlot && mode === 'drop' && onNavigateToReels && feature('reelsRail') && (
+          <ReelsRail
+            onOpenReel={(reelId) => onNavigateToReels(reelId)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+          />
+        )}
+
+        {isBirthdaySlot && renderBirthdaySpotlight()}
+
+        {isGoOutSlot && mode === 'drop' && (
+          <GoOutNudge
+            events={events}
+            topEvent={trendingEvents[0] || null}
+            onHost={() => (user ? setPostModalVisible(true) : onAuthRequired())}
+            onExplore={onNavigateToServices}
+            onViewEvent={(ev) => setSelectedEvent(ev)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+          />
+        )}
+      </View>
     );
   }, [myVibes, vibeCounts, reactions, savedEvents, openSection, reactionFlash, routeEvents, crewRsvpMap,
       followingSet, highlightedId, eventCheckins, user, primary, surface, textColor, muted, mode,
@@ -2791,46 +2840,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         ListHeaderComponent={
           <>
             {renderHeader()}
-            {/* Max-reach reminder to enable phone notifications (shared 7-day
-                snooze with Chats/Pings, so it never double-nags). */}
-            {mode === 'drop' && (
-              <NotificationNudge primary={primary} surface={surface} textColor={textColor} muted={muted} />
-            )}
-            {/* The age gate fails open on an unknown birthday, so the only thing
-                closing it is asking. Self-hides once a DOB exists. */}
-            {mode === 'drop' && (
-              <BirthDateNudge primary={primary} surface={surface} textColor={textColor} muted={muted} />
-            )}
-            {renderTrending()}
-            {/* Reels on The Drop — video discovery starts in the feed */}
-            {mode === 'drop' && onNavigateToReels && feature('reelsRail') && (
-              <ReelsRail
-                onOpenReel={(reelId) => onNavigateToReels(reelId)}
-                primary={primary}
-                textColor={textColor}
-                muted={muted}
-              />
-            )}
-            {renderBirthdaySpotlight()}
-            {mode === 'drop' && (
-              <GoOutNudge
-                events={events}
-                topEvent={trendingEvents[0] || null}
-                onHost={() => (user ? setPostModalVisible(true) : onAuthRequired())}
-                onExplore={onNavigateToServices}
-                onViewEvent={(ev) => setSelectedEvent(ev)}
-                primary={primary}
-                textColor={textColor}
-                muted={muted}
-                surface={surface}
-              />
-            )}
-            {mode === 'drop' && (
-              <CrewJourneyPanel onEventPress={(ev) => {
-                const idx = events.findIndex(e => e.id === ev.id);
-                if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true });
-              }} />
-            )}
             {renderFeedHeader()}
           </>
         }
@@ -2888,6 +2897,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   <Text style={[styles.emptyBtnText, { color: primary }]}>{feedMode === 'mine' ? 'Post your first Gruv' : 'Drop the first Gruv'}</Text>
                 </TouchableOpacity>
               )}
+              {renderTrending()}
             </View>
           ) : null
         }
@@ -2942,6 +2952,21 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           />
         </SafeSection>
       )}
+      <QuickToolsSheet
+        visible={quickToolsVisible}
+        onClose={() => setQuickToolsVisible(false)}
+        onOpenRoulette={() => setRouletteVisible(true)}
+        onOpenSensory={() => setSensoryModalVisible(true)}
+        onOpenCulture={() => setCultureModalVisible(true)}
+        onOpenRides={() => setRidesModalVisible(true)}
+        onOpenReels={onNavigateToReels}
+        hasReels={!!onNavigateToReels}
+        hasSensory={feature('sensorySuite')}
+        primary={primary}
+        surface={surface}
+        textColor={textColor}
+        muted={muted}
+      />
       <TrendingModal
         visible={trendingModalVisible}
         onClose={() => setTrendingModalVisible(false)}
@@ -3309,6 +3334,85 @@ const styles = StyleSheet.create({
   catBar: { marginTop: 4 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
   pillText: { fontSize: 9, fontWeight: '800' },
+
+  // Streamlined Filter Bar & Drawer
+  filterControlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 14,
+    marginTop: 6,
+    marginBottom: 8,
+    gap: 8,
+  },
+  feedModeTabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    flex: 1,
+  },
+  modeTabPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterActionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterToggleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  filterActiveDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  layoutToggleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterDrawer: {
+    marginHorizontal: 14,
+    marginBottom: 8,
+    padding: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    gap: 6,
+  },
+  filterDrawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
+  filterDrawerTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
 
   // Visitor banner
   visitorBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginVertical: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
