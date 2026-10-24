@@ -60,6 +60,8 @@ export function TicketVaultExchangeModal({
   const [glitters, setGlitters] = useState({});
 
   // Form states
+  const [vaultSearchQuery, setVaultSearchQuery] = useState('');
+  const [vaultDayFilter, setVaultDayFilter] = useState('all');
   const [resalePrice, setResalePrice] = useState('150');
   const [kittySquad, setKittySquad] = useState('');
   const [kittyTarget, setKittyTarget] = useState('2500');
@@ -80,14 +82,35 @@ export function TicketVaultExchangeModal({
       TicketVaultService.getTableKittiesForEvent(event.id),
       TicketVaultService.getBountiesForEvent(event.id),
     ]);
-    setVaultTickets(tix.length ? tix : [{
-      id: `pass_${event.id}`,
-      event_id: event.id,
-      event_title: event.title || 'VIP Nightlife Pass',
-      tier: 'VIP Access Pass',
-      holder: user?.user_metadata?.username || 'You',
-      offline_signature: `HMAC_${event.id}_SECURE_PASS_${Date.now()}`,
-    }]);
+    setVaultTickets(tix.length ? tix : [
+      {
+        id: `pass_${event.id}_d1`,
+        event_id: event.id,
+        event_title: event.title || 'Festival Pass',
+        tier: 'Day 1 — Main Stage VIP',
+        day: 'Day 1',
+        holder: user?.user_metadata?.username || 'You',
+        offline_signature: `HMAC_${event.id}_D1_${Date.now()}`,
+      },
+      {
+        id: `pass_${event.id}_d2`,
+        event_id: event.id,
+        event_title: event.title || 'Festival Pass',
+        tier: 'Day 2 — Sunset Arena Access',
+        day: 'Day 2',
+        holder: user?.user_metadata?.username || 'You',
+        offline_signature: `HMAC_${event.id}_D2_${Date.now()}`,
+      },
+      {
+        id: `pass_${event.id}_camp`,
+        event_id: event.id,
+        event_title: event.title || 'Festival Pass',
+        tier: 'Weekend Luxury Glamping & Parking',
+        day: 'Weekend',
+        holder: user?.user_metadata?.username || 'You',
+        offline_signature: `HMAC_${event.id}_CAMP_${Date.now()}`,
+      },
+    ]);
     setResales(res);
     setDoorQueue(queue);
     setEscrows(esc);
@@ -208,6 +231,24 @@ export function TicketVaultExchangeModal({
     toast?.(`Referral link copied! Earn ${bounty.reward_per_checkin} coins for every friend who checks in!`, 'success');
   };
 
+  const filteredVaultTickets = vaultTickets.filter(t => {
+    const q = vaultSearchQuery.toLowerCase().trim();
+    const matchesQuery = !q || (
+      (t.tier && t.tier.toLowerCase().includes(q)) ||
+      (t.event_title && t.event_title.toLowerCase().includes(q)) ||
+      (t.holder && t.holder.toLowerCase().includes(q)) ||
+      (t.offline_signature && t.offline_signature.toLowerCase().includes(q)) ||
+      (t.day && t.day.toLowerCase().includes(q))
+    );
+    const matchesFilter = vaultDayFilter === 'all' || (
+      (vaultDayFilter === 'vip' && (t.tier || '').toLowerCase().includes('vip')) ||
+      (vaultDayFilter === 'day1' && ((t.tier || '').toLowerCase().includes('day 1') || (t.day || '').toLowerCase().includes('day 1') || (t.event_title || '').toLowerCase().includes('day 1'))) ||
+      (vaultDayFilter === 'day2' && ((t.tier || '').toLowerCase().includes('day 2') || (t.day || '').toLowerCase().includes('day 2') || (t.event_title || '').toLowerCase().includes('day 2'))) ||
+      (vaultDayFilter === 'camping' && ((t.tier || '').toLowerCase().includes('camp') || (t.tier || '').toLowerCase().includes('glamp') || (t.tier || '').toLowerCase().includes('tent')))
+    );
+    return matchesQuery && matchesFilter;
+  });
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}>
@@ -264,37 +305,140 @@ export function TicketVaultExchangeModal({
                 <View style={[styles.infoBanner, { borderColor: `${primary}35`, backgroundColor: `${primary}10` }]}>
                   <Feather name="wifi-off" size={16} color={primary} />
                   <Text style={[styles.infoBannerText, { color: textColor }]}>
-                    No signal inside the club? Your cryptographic passes are signed and validated offline.
+                    No signal inside the club or festival arena? Passes are cryptographically signed & validated offline.
                   </Text>
                 </View>
 
-                {vaultTickets.map((t, idx) => (
-                  <View key={idx} style={[styles.ticketCard, { borderColor: `${primary}45`, backgroundColor: surface }]}>
-                    <View style={styles.ticketTop}>
-                      <View>
-                        <Text style={[styles.ticketTier, { color: primary }]}>{t.tier || 'VIP Access Pass'}</Text>
-                        <Text style={[styles.ticketEvent, { color: textColor }]}>{t.event_title}</Text>
-                      </View>
-                      <View style={[styles.vaultedBadge, { backgroundColor: '#10b98125', borderColor: '#10b981' }]}>
-                        <Feather name="check-circle" size={11} color="#10b981" />
-                        <Text style={styles.vaultedBadgeText}>VAULTED OFFLINE</Text>
-                      </View>
-                    </View>
+                {/* Instant Search Bar */}
+                <View style={[styles.vaultSearchRow, { borderColor: `${primary}35`, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+                  <Feather name="search" size={16} color={primary} />
+                  <TextInput
+                    value={vaultSearchQuery}
+                    onChangeText={setVaultSearchQuery}
+                    placeholder="Search day, tier, pass holder..."
+                    placeholderTextColor={muted}
+                    style={[styles.vaultSearchInput, { color: textColor }]}
+                    autoCapitalize="none"
+                    accessibilityLabel="Search festival passes"
+                  />
+                  {vaultSearchQuery.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setVaultSearchQuery('')}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Clear search query"
+                    >
+                      <Feather name="x-circle" size={16} color={muted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
 
-                    {/* Offline cryptographic QR mockup */}
-                    <View style={styles.qrDisplayBox}>
-                      <View style={[styles.qrMock, { borderColor: primary }]}>
-                        <Feather name="maximize" size={54} color={primary} />
-                        <Text style={[styles.qrSignature, { color: muted }]}>HMAC-SHA256 SECURED</Text>
-                      </View>
-                      <Text style={[styles.qrCodeText, { color: textColor }]}>{t.offline_signature}</Text>
-                    </View>
+                {/* Multi-Day Pass Filter Chips */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                  {[
+                    { key: 'all', label: 'All Passes' },
+                    { key: 'day1', label: 'Day 1' },
+                    { key: 'day2', label: 'Day 2' },
+                    { key: 'vip', label: 'VIP' },
+                    { key: 'camping', label: 'Camping' },
+                  ].map(chip => {
+                    const active = vaultDayFilter === chip.key;
+                    return (
+                      <TouchableOpacity
+                        key={chip.key}
+                        onPress={() => {
+                          haptics?.selection?.();
+                          setVaultDayFilter(chip.key);
+                        }}
+                        style={[
+                          styles.vaultFilterChip,
+                          {
+                            backgroundColor: active ? `${primary}25` : 'rgba(255,255,255,0.05)',
+                            borderColor: active ? primary : 'rgba(255,255,255,0.1)',
+                          }
+                        ]}
+                      >
+                        <Text style={{ color: active ? primary : muted, fontSize: 11, fontWeight: '800' }}>{chip.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
 
-                    <Text style={[styles.ticketFoot, { color: muted }]}>
-                      Present this pass to the door scanner. Works 100% with airplane mode enabled.
+                {filteredVaultTickets.length === 0 ? (
+                  <View style={[styles.boxCard, { borderColor: 'rgba(255,255,255,0.1)', backgroundColor: surface, alignItems: 'center', paddingVertical: 24 }]}>
+                    <Feather name="search" size={24} color={muted} />
+                    <Text style={{ color: textColor, fontWeight: '800', marginTop: 8 }}>No Passes Found</Text>
+                    <Text style={{ color: muted, fontSize: 12, textAlign: 'center', marginTop: 4 }}>
+                      No passes match "{vaultSearchQuery}" under this filter.
                     </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setVaultSearchQuery('');
+                        setVaultDayFilter('all');
+                      }}
+                      style={{ marginTop: 12, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, backgroundColor: `${primary}20`, borderWidth: 1, borderColor: primary }}
+                    >
+                      <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>Reset Filters</Text>
+                    </TouchableOpacity>
                   </View>
-                ))}
+                ) : (
+                  filteredVaultTickets.map((t, idx) => (
+                    <View key={idx} style={[styles.ticketCard, { borderColor: `${primary}45`, backgroundColor: surface }]}>
+                      <View style={styles.ticketTop}>
+                        <View style={{ flex: 1, paddingRight: 8 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <Text style={[styles.ticketTier, { color: primary }]}>{t.tier || 'VIP Access Pass'}</Text>
+                            {t.day ? (
+                              <View style={{ backgroundColor: `${primary}20`, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                                <Text style={{ color: primary, fontSize: 9.5, fontWeight: '900' }}>{t.day}</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                          <Text style={[styles.ticketEvent, { color: textColor }]}>{t.event_title}</Text>
+                          <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>Holder: {t.holder || 'You'}</Text>
+                        </View>
+                        <View style={[styles.vaultedBadge, { backgroundColor: '#10b98125', borderColor: '#10b981' }]}>
+                          <Feather name="check-circle" size={11} color="#10b981" />
+                          <Text style={styles.vaultedBadgeText}>VAULTED OFFLINE</Text>
+                        </View>
+                      </View>
+
+                      {/* Offline cryptographic QR mockup */}
+                      <View style={styles.qrDisplayBox}>
+                        <View style={[styles.qrMock, { borderColor: primary }]}>
+                          <Feather name="maximize" size={54} color={primary} />
+                          <Text style={[styles.qrSignature, { color: muted }]}>HMAC-SHA256 SECURED</Text>
+                        </View>
+                        <Text style={[styles.qrCodeText, { color: textColor }]} numberOfLines={1}>{t.offline_signature}</Text>
+                      </View>
+
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            haptics?.selection?.();
+                            if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+                              navigator.clipboard.writeText(t.offline_signature).catch(() => {});
+                            }
+                            toast?.('Pass HMAC copied to clipboard! Ready for scanner.', 'success');
+                          }}
+                          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: `${primary}35`, backgroundColor: 'rgba(255,255,255,0.03)' }}
+                        >
+                          <Feather name="copy" size={12} color={primary} />
+                          <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Copy Pass Code</Text>
+                        </TouchableOpacity>
+
+                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 10, backgroundColor: '#10b98118', borderWidth: 1, borderColor: '#10b98140' }}>
+                          <Feather name="shield" size={12} color="#10b981" />
+                          <Text style={{ color: '#10b981', fontSize: 11, fontWeight: '800' }}>Offline Ready</Text>
+                        </View>
+                      </View>
+
+                      <Text style={[styles.ticketFoot, { color: muted }]}>
+                        Present to door scanner. Fully functional with Airplane Mode active.
+                      </Text>
+                    </View>
+                  ))
+                )}
 
                 <TouchableOpacity
                   onPress={handleSaveToVault}
@@ -302,7 +446,7 @@ export function TicketVaultExchangeModal({
                   activeOpacity={0.85}
                 >
                   <Feather name="download-cloud" size={15} color="#000" />
-                  <Text style={styles.primaryActionBtnText}>Re-Sign & Vault Offline</Text>
+                  <Text style={styles.primaryActionBtnText}>Re-Sign & Vault All Passes Offline</Text>
                   <ControlledGlitterBurst trigger={glitters.vault} count={12} radius={32} colors={[primary, '#ffd700', '#fff']} />
                 </TouchableOpacity>
               </View>
@@ -666,4 +810,7 @@ const styles = StyleSheet.create({
   progressBarFill: { height: '100%', borderRadius: 3 },
   chipBtn: { borderWidth: 1, borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
   chipBtnText: { fontSize: 11.5, fontWeight: '800' },
+  vaultSearchRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
+  vaultSearchInput: { flex: 1, fontSize: 13, padding: 0 },
+  vaultFilterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
 });

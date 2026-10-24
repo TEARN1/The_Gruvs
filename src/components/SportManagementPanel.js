@@ -25,6 +25,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { EventFollowButton } from './EventFollowButton';
 import { AwardCeremonyPanel } from './AwardCeremonyPanel';
+import { cyberAudio } from '../utils/cyberAudio';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -330,12 +331,58 @@ const FixturesTab = ({ event, sportMeta, primary, textColor, muted }) => {
   const handleUpdateScore = async () => {
     if (!scoring) return;
     try {
-      const { fixture, homeScore, awayScore } = scoring;
-      await MatchManager.updateScore(fixture.id, parseInt(homeScore) || 0, parseInt(awayScore) || 0);
-      toast.show('Score updated', 'success');
+      const { fixture, homeScore, awayScore, period, homeCaptainVerified, awayCaptainVerified, homePens, awayPens } = scoring;
+      const hScore = Math.max(0, parseInt(homeScore, 10) || 0);
+      const aScore = Math.max(0, parseInt(awayScore, 10) || 0);
+      const hPens = Math.max(0, parseInt(homePens, 10) || 0);
+      const aPens = Math.max(0, parseInt(awayPens, 10) || 0);
+
+      if (period === 'FT') {
+        const extraOptions = {
+          home_team_id: fixture.home_team_id,
+          away_team_id: fixture.away_team_id,
+          captain_verified: !!(homeCaptainVerified && awayCaptainVerified),
+        };
+        if (period === 'PK' || hPens > 0 || aPens > 0) {
+          extraOptions.home_score_pens = hPens;
+          extraOptions.away_score_pens = aPens;
+        }
+        await MatchManager.submitResult(fixture.id, hScore, aScore, extraOptions);
+        toast.show('Match completed & result locked [FT]', 'success');
+      } else {
+        await MatchManager.updateScore(fixture.id, hScore, aScore);
+        toast.show(`Score updated [${period}]`, 'success');
+      }
+      try { cyberAudio?.play?.('lockVibe'); } catch {}
       setScoring(null);
       load();
-    } catch (e) { toast.show(e.message || 'Error', 'error'); }
+    } catch (e) { toast.show(e.message || 'Error updating score', 'error'); }
+  };
+
+  const adjustScore = (side, delta) => {
+    try { cyberAudio?.play?.('tick'); } catch {}
+    setScoring(p => {
+      if (!p) return p;
+      if (side === 'home') {
+        const next = Math.max(0, (parseInt(p.homeScore, 10) || 0) + delta);
+        return { ...p, homeScore: String(next) };
+      }
+      const next = Math.max(0, (parseInt(p.awayScore, 10) || 0) + delta);
+      return { ...p, awayScore: String(next) };
+    });
+  };
+
+  const adjustPens = (side, delta) => {
+    try { cyberAudio?.play?.('tick'); } catch {}
+    setScoring(p => {
+      if (!p) return p;
+      if (side === 'home') {
+        const next = Math.max(0, (parseInt(p.homePens, 10) || 0) + delta);
+        return { ...p, homePens: String(next) };
+      }
+      const next = Math.max(0, (parseInt(p.awayPens, 10) || 0) + delta);
+      return { ...p, awayPens: String(next) };
+    });
   };
 
   const teamName = (id) => teams.find(t => t.id === id)?.name || '?';
@@ -374,10 +421,24 @@ const FixturesTab = ({ event, sportMeta, primary, textColor, muted }) => {
                 </Row>
               </View>
               <TouchableOpacity
-                onPress={() => setScoring({ fixture: fix, homeScore: String(fix.home_score ?? 0), awayScore: String(fix.away_score ?? 0) })}
-                style={{ padding: 6 }}
+                onPress={() => setScoring({
+                  fixture: fix,
+                  homeScore: String(fix.home_score ?? 0),
+                  awayScore: String(fix.away_score ?? 0),
+                  homePens: String(fix.home_score_pens ?? 0),
+                  awayPens: String(fix.away_score_pens ?? 0),
+                  period: fix.status === 'completed' ? 'FT' : (fix.status === 'live' ? '2H' : '1H'),
+                  status: fix.status || 'live',
+                  homeCaptainPin: '',
+                  awayCaptainPin: '',
+                  homeCaptainVerified: fix.status === 'completed',
+                  awayCaptainVerified: fix.status === 'completed',
+                })}
+                style={{ padding: 8, minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center' }}
+                accessibilityRole="button"
+                accessibilityLabel={`Scorecard for ${ht} vs ${at}`}
               >
-                <Feather name="edit" size={15} color={primary} />
+                <Feather name="edit-3" size={16} color={primary} />
               </TouchableOpacity>
             </Row>
           </View>
@@ -418,43 +479,328 @@ const FixturesTab = ({ event, sportMeta, primary, textColor, muted }) => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Score update Modal */}
+      {/* Advanced Referee Tournament Scorecard Grid & Dual-Captain Verification HUD */}
       {scoring && (
         <Modal visible animationType="fade" transparent onRequestClose={() => setScoring(null)}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.7)', padding: 24 }}>
-            <View style={{ backgroundColor: "#0d1112", borderRadius: 20, padding: 24, width: '100%' }}>
-              <Text style={{ color: textColor, fontWeight: '900', fontSize: 16, marginBottom: 16, textAlign: 'center' }}>Update Score</Text>
-              <Row style={{ justifyContent: 'center', gap: 20, marginBottom: 20 }}>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ color: muted, fontSize: 11, marginBottom: 4 }}>{scoring.fixture.home_team?.name || 'Home'}</Text>
-                  <TextInput
-                    value={scoring.homeScore}
-                    onChangeText={v => setScoring(p => ({ ...p, homeScore: v }))}
-                    keyboardType="numeric"
-                    style={{ color: textColor, fontSize: 32, fontWeight: '900', textAlign: 'center', backgroundColor: `${primary}12`, borderRadius: 12, width: 70, paddingVertical: 8 }}
-                  />
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.85)', padding: 16 }}>
+              <View style={{ backgroundColor: "#0c1012", borderRadius: 20, borderWidth: 1, borderColor: `${primary}40`, padding: 20, width: '100%', maxWidth: 480 }}>
+                {/* Header */}
+                <Row style={{ justifyContent: 'space-between', marginBottom: 14 }}>
+                  <Row style={{ gap: 8 }}>
+                    <Feather name="shield" size={18} color={primary} />
+                    <Text style={{ color: textColor, fontWeight: '900', fontSize: 16 }}>Referee Match Scorecard</Text>
+                  </Row>
+                  <TouchableOpacity
+                    onPress={() => setScoring(null)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Close scorecard"
+                  >
+                    <Feather name="x" size={20} color={muted} />
+                  </TouchableOpacity>
+                </Row>
+
+                {/* Match Period Selector */}
+                <Text style={{ color: muted, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 6 }}>
+                  Match Phase
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginBottom: 16 }}>
+                  {['1H', 'HT', '2H', 'ET', 'PK', 'FT'].map(p => {
+                    const active = scoring.period === p;
+                    return (
+                      <TouchableOpacity
+                        key={p}
+                        onPress={() => {
+                          try { cyberAudio?.play?.('tick'); } catch {}
+                          setScoring(prev => ({ ...prev, period: p }));
+                        }}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 7,
+                          borderRadius: 16,
+                          backgroundColor: active ? `${primary}25` : 'rgba(255,255,255,0.06)',
+                          borderWidth: 1,
+                          borderColor: active ? primary : 'rgba(255,255,255,0.12)',
+                        }}
+                      >
+                        <Text style={{ color: active ? primary : muted, fontSize: 12, fontWeight: '900' }}>{p}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* Interactive Dual-Goal Stepper Grid */}
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 14 }}>
+                  <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    {/* Home Team Stepper */}
+                    <View style={{ flex: 1, alignItems: 'center' }}>
+                      <Text style={{ color: textColor, fontSize: 13, fontWeight: '800', textAlign: 'center', marginBottom: 8 }} numberOfLines={1}>
+                        {scoring.fixture.home_team?.name || 'Home'}
+                      </Text>
+                      <Row style={{ gap: 8, alignItems: 'center' }}>
+                        <TouchableOpacity
+                          onPress={() => adjustScore('home', -1)}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            backgroundColor: 'rgba(255,255,255,0.08)',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            borderWidth: 1,
+                            borderColor: 'rgba(255,255,255,0.15)',
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Decrease home score"
+                        >
+                          <Feather name="minus" size={18} color={textColor} />
+                        </TouchableOpacity>
+
+                        <TextInput
+                          value={scoring.homeScore}
+                          onChangeText={v => setScoring(p => ({ ...p, homeScore: v }))}
+                          keyboardType="numeric"
+                          style={{
+                            color: textColor,
+                            fontSize: 32,
+                            fontWeight: '900',
+                            textAlign: 'center',
+                            backgroundColor: `${primary}18`,
+                            borderRadius: 12,
+                            width: 60,
+                            paddingVertical: 6,
+                            borderWidth: 1,
+                            borderColor: `${primary}50`,
+                          }}
+                        />
+
+                        <TouchableOpacity
+                          onPress={() => adjustScore('home', 1)}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            backgroundColor: `${primary}30`,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            borderWidth: 1,
+                            borderColor: primary,
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Increase home score"
+                        >
+                          <Feather name="plus" size={18} color={primary} />
+                        </TouchableOpacity>
+                      </Row>
+                    </View>
+
+                    {/* VS Divider */}
+                    <View style={{ paddingHorizontal: 6, alignItems: 'center' }}>
+                      <Text style={{ color: muted, fontSize: 13, fontWeight: '900' }}>VS</Text>
+                      <View style={{ backgroundColor: `${primary}20`, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 }}>
+                        <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>{scoring.period}</Text>
+                      </View>
+                    </View>
+
+                    {/* Away Team Stepper */}
+                    <View style={{ flex: 1, alignItems: 'center' }}>
+                      <Text style={{ color: textColor, fontSize: 13, fontWeight: '800', textAlign: 'center', marginBottom: 8 }} numberOfLines={1}>
+                        {scoring.fixture.away_team?.name || 'Away'}
+                      </Text>
+                      <Row style={{ gap: 8, alignItems: 'center' }}>
+                        <TouchableOpacity
+                          onPress={() => adjustScore('away', -1)}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            backgroundColor: 'rgba(255,255,255,0.08)',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            borderWidth: 1,
+                            borderColor: 'rgba(255,255,255,0.15)',
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Decrease away score"
+                        >
+                          <Feather name="minus" size={18} color={textColor} />
+                        </TouchableOpacity>
+
+                        <TextInput
+                          value={scoring.awayScore}
+                          onChangeText={v => setScoring(p => ({ ...p, awayScore: v }))}
+                          keyboardType="numeric"
+                          style={{
+                            color: textColor,
+                            fontSize: 32,
+                            fontWeight: '900',
+                            textAlign: 'center',
+                            backgroundColor: `${primary}18`,
+                            borderRadius: 12,
+                            width: 60,
+                            paddingVertical: 6,
+                            borderWidth: 1,
+                            borderColor: `${primary}50`,
+                          }}
+                        />
+
+                        <TouchableOpacity
+                          onPress={() => adjustScore('away', 1)}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            backgroundColor: `${primary}30`,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            borderWidth: 1,
+                            borderColor: primary,
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Increase away score"
+                        >
+                          <Feather name="plus" size={18} color={primary} />
+                        </TouchableOpacity>
+                      </Row>
+                    </View>
+                  </Row>
+
+                  {/* Penalty Shootout Stepper (Conditional on PK or tie) */}
+                  {(scoring.period === 'PK' || parseInt(scoring.homePens, 10) > 0 || parseInt(scoring.awayPens, 10) > 0) && (
+                    <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
+                      <Text style={{ color: '#f59e0b', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center', marginBottom: 8 }}>
+                        PENALTY SHOOTOUT (PENS)
+                      </Text>
+                      <Row style={{ justifyContent: 'space-around', alignItems: 'center' }}>
+                        <Row style={{ gap: 6 }}>
+                          <TouchableOpacity onPress={() => adjustPens('home', -1)} style={{ padding: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8 }}>
+                            <Feather name="minus" size={14} color={textColor} />
+                          </TouchableOpacity>
+                          <Text style={{ color: textColor, fontWeight: '900', fontSize: 16, minWidth: 24, textAlign: 'center' }}>{scoring.homePens || '0'}</Text>
+                          <TouchableOpacity onPress={() => adjustPens('home', 1)} style={{ padding: 6, backgroundColor: '#f59e0b25', borderRadius: 8 }}>
+                            <Feather name="plus" size={14} color="#f59e0b" />
+                          </TouchableOpacity>
+                        </Row>
+                        <Text style={{ color: muted, fontSize: 11, fontWeight: '700' }}>PK PENS</Text>
+                        <Row style={{ gap: 6 }}>
+                          <TouchableOpacity onPress={() => adjustPens('away', -1)} style={{ padding: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8 }}>
+                            <Feather name="minus" size={14} color={textColor} />
+                          </TouchableOpacity>
+                          <Text style={{ color: textColor, fontWeight: '900', fontSize: 16, minWidth: 24, textAlign: 'center' }}>{scoring.awayPens || '0'}</Text>
+                          <TouchableOpacity onPress={() => adjustPens('away', 1)} style={{ padding: 6, backgroundColor: '#f59e0b25', borderRadius: 8 }}>
+                            <Feather name="plus" size={14} color="#f59e0b" />
+                          </TouchableOpacity>
+                        </Row>
+                      </Row>
+                    </View>
+                  )}
                 </View>
-                <Text style={{ color: muted, fontSize: 24, fontWeight: '900', alignSelf: 'center' }}>:</Text>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ color: muted, fontSize: 11, marginBottom: 4 }}>{scoring.fixture.away_team?.name || 'Away'}</Text>
-                  <TextInput
-                    value={scoring.awayScore}
-                    onChangeText={v => setScoring(p => ({ ...p, awayScore: v }))}
-                    keyboardType="numeric"
-                    style={{ color: textColor, fontSize: 32, fontWeight: '900', textAlign: 'center', backgroundColor: `${primary}12`, borderRadius: 12, width: 70, paddingVertical: 8 }}
-                  />
+
+                {/* Dual-Captain Verification & Tamper-Proof Seal Gate */}
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: (scoring.homeCaptainVerified && scoring.awayCaptainVerified) ? '#10b98150' : 'rgba(255,255,255,0.08)', marginBottom: 16 }}>
+                  <Row style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text style={{ color: textColor, fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>
+                      DUAL-CAPTAIN SIGN-OFF GATE
+                    </Text>
+                    {(scoring.homeCaptainVerified && scoring.awayCaptainVerified) ? (
+                      <Row style={{ gap: 4 }}>
+                        <Feather name="check-circle" size={12} color="#10b981" />
+                        <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '800' }}>DISPUTE-PROOF SEAL</Text>
+                      </Row>
+                    ) : (
+                      <Text style={{ color: muted, fontSize: 10 }}>Both captains must verify</Text>
+                    )}
+                  </Row>
+
+                  <Row style={{ gap: 8 }}>
+                    {/* Home Captain Sign */}
+                    <TouchableOpacity
+                      onPress={() => {
+                        try { cyberAudio?.play?.('tick'); } catch {}
+                        setScoring(prev => ({ ...prev, homeCaptainVerified: !prev.homeCaptainVerified }));
+                      }}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 8,
+                        paddingHorizontal: 10,
+                        borderRadius: 10,
+                        backgroundColor: scoring.homeCaptainVerified ? '#10b98120' : 'rgba(255,255,255,0.05)',
+                        borderWidth: 1,
+                        borderColor: scoring.homeCaptainVerified ? '#10b981' : 'rgba(255,255,255,0.1)',
+                        alignItems: 'center',
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Toggle Home Captain Verification"
+                    >
+                      <Row style={{ gap: 5 }}>
+                        <Feather name={scoring.homeCaptainVerified ? "check" : "lock"} size={12} color={scoring.homeCaptainVerified ? "#10b981" : muted} />
+                        <Text style={{ color: scoring.homeCaptainVerified ? "#10b981" : textColor, fontSize: 11, fontWeight: '800' }} numberOfLines={1}>
+                          {scoring.fixture.home_team?.name ? `${scoring.fixture.home_team.name.slice(0, 8)} Capt` : 'Home Capt'}
+                        </Text>
+                      </Row>
+                    </TouchableOpacity>
+
+                    {/* Away Captain Sign */}
+                    <TouchableOpacity
+                      onPress={() => {
+                        try { cyberAudio?.play?.('tick'); } catch {}
+                        setScoring(prev => ({ ...prev, awayCaptainVerified: !prev.awayCaptainVerified }));
+                      }}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 8,
+                        paddingHorizontal: 10,
+                        borderRadius: 10,
+                        backgroundColor: scoring.awayCaptainVerified ? '#10b98120' : 'rgba(255,255,255,0.05)',
+                        borderWidth: 1,
+                        borderColor: scoring.awayCaptainVerified ? '#10b981' : 'rgba(255,255,255,0.1)',
+                        alignItems: 'center',
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Toggle Away Captain Verification"
+                    >
+                      <Row style={{ gap: 5 }}>
+                        <Feather name={scoring.awayCaptainVerified ? "check" : "lock"} size={12} color={scoring.awayCaptainVerified ? "#10b981" : muted} />
+                        <Text style={{ color: scoring.awayCaptainVerified ? "#10b981" : textColor, fontSize: 11, fontWeight: '800' }} numberOfLines={1}>
+                          {scoring.fixture.away_team?.name ? `${scoring.fixture.away_team.name.slice(0, 8)} Capt` : 'Away Capt'}
+                        </Text>
+                      </Row>
+                    </TouchableOpacity>
+                  </Row>
                 </View>
-              </Row>
-              <Row style={{ justifyContent: 'center', gap: 10 }}>
-                <TouchableOpacity onPress={() => setScoring(null)} style={{ flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: `${primary}30`, alignItems: 'center' }}>
-                  <Text style={{ color: muted, fontWeight: '700' }}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleUpdateScore} style={{ flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: primary, alignItems: 'center' }}>
-                  <Text style={{ color: '#000', fontWeight: '900' }}>Save Score</Text>
-                </TouchableOpacity>
-              </Row>
+
+                {/* Bottom Actions */}
+                <Row style={{ gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => setScoring(null)}
+                    style={{ flex: 1, paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: `${primary}30`, alignItems: 'center' }}
+                  >
+                    <Text style={{ color: muted, fontWeight: '700' }}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={handleUpdateScore}
+                    style={{
+                      flex: 2,
+                      paddingVertical: 13,
+                      borderRadius: 12,
+                      backgroundColor: scoring.period === 'FT' ? '#10b981' : primary,
+                      alignItems: 'center',
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <Feather name={scoring.period === 'FT' ? 'check-circle' : 'radio'} size={15} color="#000" />
+                    <Text style={{ color: '#000', fontWeight: '900', fontSize: 14 }}>
+                      {scoring.period === 'FT' ? 'Final Whistle & Lock' : 'Save & Broadcast'}
+                    </Text>
+                  </TouchableOpacity>
+                </Row>
+              </View>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
       )}
     </View>
