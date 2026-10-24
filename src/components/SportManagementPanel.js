@@ -678,7 +678,7 @@ export const SportManagementPanel = ({ event, primary, textColor, muted }) => {
   ];
 
   return (
-    <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+    <View style={{ paddingHorizontal: 16, paddingBottom: 16, maxWidth: 680, width: '100%', alignSelf: 'center' }}>
       {/* Sport badge + follow button */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <Text style={{ fontSize: 22 }}>{sportMeta.icon}</Text>
@@ -698,6 +698,7 @@ export const SportManagementPanel = ({ event, primary, textColor, muted }) => {
               <TouchableOpacity
                 key={t.key}
                 onPress={() => setTab(t.key)}
+                accessibilityRole="button"
                 style={{
                   flexDirection: 'row', alignItems: 'center', gap: 5,
                   paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, borderWidth: 1,
@@ -810,7 +811,7 @@ const MediaTab = ({ event, primary, textColor, muted }) => {
               accessibilityLabel={likedSet.has(item.id) ? 'Unlike' : 'Like'}
             >
               <Feather name="heart" size={20} color={likedSet.has(item.id) ? "#f43f5e" : muted} />
-              <Text style={{ color: muted, fontSize: 11, fontWeight: '700' }}>{item.likes_count || 0}</Text>
+              <Text style={{ color: muted, fontSize: 11, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{item.likes_count || 0}</Text>
             </TouchableOpacity>
           </View>
         </View>
