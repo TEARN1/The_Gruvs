@@ -212,13 +212,14 @@ export function TicketVaultExchangeModal({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}>
         <View style={[styles.sheetContainer, { backgroundColor: bg, borderColor: `${primary}35` }]}>
+          <View style={styles.notchHandle} />
           {/* Header */}
           <View style={[styles.headerRow, { borderBottomColor: `${primary}20` }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Feather name="shield" size={18} color={primary} />
               <Text style={[styles.headerTitle, { color: textColor }]}>Ops & Ticket Vault</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Close">
               <Feather name="x" size={20} color={muted} />
             </TouchableOpacity>
           </View>
@@ -609,8 +610,9 @@ export function TicketVaultExchangeModal({
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  sheetContainer: { maxHeight: '92%', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, overflow: 'hidden' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
+  sheetContainer: { maxHeight: '92%', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, overflow: 'hidden', width: '100%', maxWidth: 680, alignSelf: 'center' },
+  notchHandle: { width: 44, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.25)', alignSelf: 'center', marginTop: 10, marginBottom: 4 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
   headerTitle: { fontSize: 16, fontWeight: '900', letterSpacing: 0.3 },
   closeBtn: { padding: 4 },

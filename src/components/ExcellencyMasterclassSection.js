@@ -106,6 +106,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     marginVertical: 8,
     gap: 12,
+    maxWidth: 680,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',

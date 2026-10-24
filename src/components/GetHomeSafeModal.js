@@ -114,7 +114,7 @@ export function GetHomeSafeModal({ visible, onClose }) {
           <View style={s.header}>
             <Feather name="life-buoy" size={20} color={primary} />
             <Text style={[s.title, { color: textColor }]}>Get home safe</Text>
-            <TouchableOpacity onPress={onClose} accessibilityLabel="Close"><Feather name="x" size={22} color={muted} /></TouchableOpacity>
+            <TouchableOpacity onPress={onClose} accessibilityLabel="Close" accessibilityRole="button" hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}><Feather name="x" size={22} color={muted} /></TouchableOpacity>
           </View>
 
           {active ? (
@@ -230,8 +230,8 @@ export function GetHomeSafeModal({ visible, onClose }) {
 }
 
 const s = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: 18, paddingBottom: 30, maxHeight: '90%' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end', alignItems: 'center' },
+  sheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: 18, paddingBottom: 30, maxHeight: '90%', maxWidth: 620, width: '100%', alignSelf: 'center' },
   handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 14 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   title: { flex: 1, fontSize: 18, fontWeight: '900' },
@@ -254,7 +254,7 @@ const s = StyleSheet.create({
   cancelText: { fontSize: 12, fontWeight: '700' },
   countdownBox: { borderWidth: 1, borderRadius: 18, padding: 20, alignItems: 'center', gap: 4 },
   countdownLabel: { fontSize: 12, fontWeight: '700' },
-  countdown: { fontSize: 40, fontWeight: '900', letterSpacing: -1 },
+  countdown: { fontSize: 40, fontWeight: '900', letterSpacing: -1, fontVariant: ['tabular-nums'] },
   countdownSub: { fontSize: 12, textAlign: 'center', marginTop: 4 },
   fineprint: { fontSize: 11, lineHeight: 16, marginTop: 14 },
 });
