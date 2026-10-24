@@ -35,7 +35,7 @@ export const GetAppModal = ({
   initialPlatform = null,
 }) => {
   const env = useMemo(() => appInstallService.detectEnvironment(), [visible]);
-  const [activeTab, setActiveTab] = useState('ios');
+  const [activeTab, setActiveTab] = useState('apple');
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [copied, setCopied] = useState(false);
   const [installing, setInstalling] = useState(false);
@@ -43,15 +43,17 @@ export const GetAppModal = ({
   useEffect(() => {
     if (!visible) return;
     if (initialPlatform) {
-      setActiveTab(initialPlatform);
+      setActiveTab(initialPlatform === 'ios' ? 'apple' : initialPlatform);
     } else if (env.isIOS) {
-      setActiveTab('ios');
+      setActiveTab('apple');
     } else if (env.isAndroid) {
       setActiveTab('android');
     } else {
       setActiveTab('desktop');
     }
   }, [visible, initialPlatform, env.isIOS, env.isAndroid]);
+
+  const isAppleActive = activeTab === 'apple' || activeTab === 'ios';
 
   useEffect(() => {
     if (!visible || typeof window === 'undefined') return;
@@ -135,9 +137,9 @@ export const GetAppModal = ({
 
           {/* Platform Segmented Tabs */}
           <View style={styles.tabBar}>
-            <TouchableOpacity onPress={() => setActiveTab('ios')} style={[styles.tabBtn, activeTab === 'ios' && { backgroundColor: `${primary}20`, borderColor: primary }]} accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'ios' }}>
-              <Feather name="smartphone" size={14} color={activeTab === 'ios' ? primary : 'rgba(255,255,255,0.6)'} />
-              <Text style={[styles.tabBtnText, { color: activeTab === 'ios' ? primary : 'rgba(255,255,255,0.6)' }]}>Apple iOS</Text>
+            <TouchableOpacity onPress={() => setActiveTab('apple')} style={[styles.tabBtn, isAppleActive && { backgroundColor: `${primary}20`, borderColor: primary }]} accessibilityRole="tab" accessibilityState={{ selected: isAppleActive }}>
+              <Feather name="smartphone" size={14} color={isAppleActive ? primary : 'rgba(255,255,255,0.6)'} />
+              <Text style={[styles.tabBtnText, { color: isAppleActive ? primary : 'rgba(255,255,255,0.6)' }]}>Apple iOS</Text>
               {env.isIOS && <View style={[styles.devicePill, { backgroundColor: primary }]}><Text style={styles.devicePillText}>YOU</Text></View>}
             </TouchableOpacity>
 
@@ -177,7 +179,7 @@ export const GetAppModal = ({
             )}
 
             {/* TAB 1: APPLE (iOS & iPadOS) */}
-            {activeTab === 'ios' && (
+            {isAppleActive && (
               <View style={styles.sectionWrap}>
                 <View style={styles.benefitCard}>
                   <Text style={styles.benefitTitle}>🍎 Instant iOS Web App (Fastest & Zero Bloat)</Text>
