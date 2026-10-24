@@ -40,6 +40,7 @@ import { SurveyCard } from '../components/SurveyCard';
 import { MealCard } from '../components/MealCard';
 import { MealDetailModal } from '../components/MealDetailModal';
 import { MealService } from '../services/mealService';
+import { appInstallService } from '../services/appInstallService';
 import { fx } from '../styles/webFx';
 
 // Module-level StyleSheets below (hero, cg, et) size from the window at load.
@@ -1078,26 +1079,50 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Text style={[styles.headerSub, { color: primary }]}>DISCOVER YOUR NEXT GRUV</Text>
             </View>
           </View>
-          <TouchableOpacity
-            onPress={() => setScoutOpen(true)}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 20,
-              borderWidth: 1.2,
-              borderColor: `${primary}45`,
-              backgroundColor: `${primary}15`,
-              ...(Platform.OS === 'web' ? { boxShadow: `0 0 14px ${primary}25` } : {}),
-            }}
-            activeOpacity={0.85}
-            accessibilityLabel="Open Talent Scout leaderboard"
-          >
-            <Feather name="award" size={14} color={primary} />
-            <Text style={{ color: primary, fontWeight: '900', fontSize: 12, letterSpacing: 0.5 }}>Scout</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {Platform.OS === 'web' && (
+              <TouchableOpacity
+                onPress={() => appInstallService.openModal()}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  borderWidth: 1.2,
+                  borderColor: `${primary}45`,
+                  backgroundColor: `${primary}15`,
+                  ...(Platform.OS === 'web' ? { boxShadow: `0 0 10px ${primary}20` } : {}),
+                }}
+                activeOpacity={0.85}
+                accessibilityLabel="Download and install The Gruvs App for Apple or Android"
+              >
+                <Feather name="download" size={13} color={primary} />
+                <Text style={{ color: primary, fontWeight: '900', fontSize: 11.5, letterSpacing: 0.5 }}>Get App</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => setScoutOpen(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 20,
+                borderWidth: 1.2,
+                borderColor: `${primary}45`,
+                backgroundColor: `${primary}15`,
+                ...(Platform.OS === 'web' ? { boxShadow: `0 0 14px ${primary}25` } : {}),
+              }}
+              activeOpacity={0.85}
+              accessibilityLabel="Open Talent Scout leaderboard"
+            >
+              <Feather name="award" size={14} color={primary} />
+              <Text style={{ color: primary, fontWeight: '900', fontSize: 12, letterSpacing: 0.5 }}>Scout</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search bar — neo-glass capsule */}

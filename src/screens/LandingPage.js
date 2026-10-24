@@ -73,6 +73,7 @@ import { ReactPicker } from '../components/ReactPicker';
 import { GlitterBurst } from '../components/GlitterBurst';
 import { SuggestedFollows } from '../components/SuggestedFollows';
 import { GoOutNudge } from '../components/GoOutNudge';
+import { appInstallService } from '../services/appInstallService';
 import birthdaySpotlight from '../services/birthdaySpotlight';
 // ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
 import { PostEventModal }       from '../components/PostEventModal';
@@ -2279,6 +2280,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           >
             <Feather name="navigation" size={16} color={primary} />
           </TouchableOpacity>
+          {Platform.OS === 'web' && (
+            <TouchableOpacity
+              style={[styles.iconBtn, iconBox, { backgroundColor: `${primary}18`, borderColor: `${primary}45` }]}
+              onPress={() => appInstallService.openModal()}
+              accessibilityRole="button"
+              accessibilityLabel="Download and install The Gruvs App for Apple or Android"
+            >
+              <Feather name="download" size={16} color={primary} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.postIconBtn, iconBox, { backgroundColor: primary, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}

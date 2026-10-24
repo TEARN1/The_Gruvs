@@ -25,6 +25,7 @@ import { ToastProvider, useToast } from './src/components/ToastNotification';
 import { CallProvider } from './src/context/CallContext';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { InstallAppBanner } from './src/components/InstallAppBanner';
+import { appInstallService } from './src/services/appInstallService';
 import { useWebAppUpdate, reloadForUpdate } from './src/hooks/useWebAppUpdate';
 import { LandingPage } from './src/screens/LandingPage';
 // Hooks from these modules are used at shell level — keep eager
@@ -259,7 +260,7 @@ const TabBar = ({ currentTab, onTabChange, primary, muted, bg, unreadCount = 0, 
 
 // ── Left Sidebar (wide screens) ───────────────────────────────────────────────
 // Item 33: accessibilityRole="navigation" on root
-const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onToggle, onGodView, onBusiness }) => (
+const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onToggle, onGodView, onBusiness, onDownloadApp }) => (
   <View
     accessibilityRole="navigation"
     accessibilityLabel="Main navigation"
@@ -343,6 +344,35 @@ const SidebarNav = ({ currentTab, onTabChange, primary, muted, bg, isOpen, onTog
       >
         <Feather name="briefcase" size={19} color={primary} />
         {isOpen && <Text style={[sb.itemLabel, { color: primary, fontWeight: '800' }]}>For Business</Text>}
+      </TouchableOpacity>
+    )}
+
+    {/* Universal App Download entry for web visitors */}
+    {Platform.OS === 'web' && onDownloadApp && (
+      <TouchableOpacity
+        style={[
+          sb.item,
+          {
+            justifyContent: isOpen ? 'flex-start' : 'center',
+            marginTop: (!feature('business') || !onBusiness) ? 'auto' : 0,
+            marginBottom: 4,
+          },
+        ]}
+        onPress={onDownloadApp}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel="Download and install The Gruvs App for Apple or Android"
+        {...(!isOpen && Platform.OS === 'web' ? { 'data-tooltip': 'Get App' } : {})}
+      >
+        <Feather name="download" size={19} color={primary} />
+        {isOpen && (
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={[sb.itemLabel, { color: primary, fontWeight: '800' }]}>Get App</Text>
+            <View style={{ backgroundColor: `${primary}25`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+              <Text style={{ color: primary, fontSize: 8.5, fontWeight: '900' }}>iOS • ANDROID</Text>
+            </View>
+          </View>
+        )}
       </TouchableOpacity>
     )}
 
@@ -967,6 +997,7 @@ const MainNavigator = () => {
                 onToggle={() => setSidebarOpen(p => !p)}
                 onGodView={() => setGodViewVisible(true)}
                 onBusiness={hasBusiness ? () => setBizHubVisible(true) : undefined}
+                onDownloadApp={() => appInstallService.openModal()}
               />
             </ErrorBoundary>
             {/* Item 43: nativeID for skip-link anchor */}
