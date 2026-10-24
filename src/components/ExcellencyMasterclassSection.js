@@ -9,6 +9,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { cyberAudio } from '../utils/cyberAudio';
 import { SecurityService } from '../services/securityService';
+import { ExcellencyService } from '../services/excellencyService';
 
 const MASTERCLASSES = [
   {
@@ -41,6 +42,9 @@ export function ExcellencyMasterclassSection({
   const handleEnroll = async (course) => {
     cyberAudio.play('lockVibe');
     setEnrolled(prev => ({ ...prev, [course.id]: true }));
+    try {
+      await ExcellencyService.enroll(course.id);
+    } catch {}
     const targetUrl = `${course.url}?ref=thegruvs_event_${event?.id || 'live'}`;
     await SecurityService.safeOpenURL(targetUrl);
   };

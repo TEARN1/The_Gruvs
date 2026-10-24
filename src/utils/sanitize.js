@@ -198,5 +198,7 @@ export async function safeOpenExternal(url) {
   catch (e) { console.warn('safeOpenExternal: failed to open', e); return false; }
 }
 
+export { ThreatPreventionEngine } from '../services/threatPreventionEngine';
+
 export default { sanitizeSearch, isUuid, likeContains, safeOpenURL, safeOpenExternal };
 

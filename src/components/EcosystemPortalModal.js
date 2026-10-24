@@ -201,7 +201,7 @@ export function EcosystemPortalModal({
                 </View>
 
                 <Text style={[styles.coursesHeading, { color: textColor }]}>Available Masterclasses</Text>
-                {EXCELLENCY_COURSES.map((course) => {
+                {courses.map((course) => {
                   const isEnrolled = enrolledCourseId === course.id;
                   return (
                     <View key={course.id} style={[styles.courseCard, { borderColor: `${course.color}35` }]}>

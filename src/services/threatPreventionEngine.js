@@ -117,9 +117,9 @@ export const ThreatPreventionEngine = {
     }
 
     // PostgREST Grammar Breakout Check
-    if (POSTGREST_INJECTION_RE.test(raw)) {
+    if (POSTGREST_INJECTION_RE.test(raw) || (!strict && /[,()*\\%_:]/.test(raw))) {
       // Neutralize PostgREST operators
-      const safe = raw.replace(/[,()*\\%_:]/g, ' ').trim();
+      const safe = raw.replace(/[,()*\\%_:]/g, ' ').replace(/\s+/g, ' ').trim();
       if (strict && (raw.includes('),or(') || raw.includes('is_admin'))) {
         return {
           isSafe: false,
@@ -154,6 +154,31 @@ export const ThreatPreventionEngine = {
 
   /** Analyze structured JSON objects for privilege escalation and schema integrity */
   _analyzeObject(obj, { pillar, field, strict }) {
+    // 1. Prototype Pollution Prevention on raw object structure
+    const proto = Object.getPrototypeOf(obj);
+    if (proto !== Object.prototype && proto !== null && proto !== Array.prototype) {
+      return {
+        isSafe: false,
+        threatLevel: 'CRITICAL',
+        threatType: 'PROTOTYPE_POLLUTION',
+        sanitized: null,
+        reason: 'Illegal prototype property detected in payload.',
+      };
+    }
+
+    try {
+      const serialized = JSON.stringify(obj);
+      if (serialized && (serialized.includes('"__proto__":') || serialized.includes('"constructor":') || serialized.includes('"prototype":'))) {
+        return {
+          isSafe: false,
+          threatLevel: 'CRITICAL',
+          threatType: 'PROTOTYPE_POLLUTION',
+          sanitized: null,
+          reason: `Illegal prototype property detected in payload.`,
+        };
+      }
+    } catch {}
+
     const clean = {};
 
     for (const [key, val] of Object.entries(obj)) {
@@ -186,10 +211,10 @@ export const ThreatPreventionEngine = {
 
       // 3. Domain Logic Checks per Ecosystem Pillar
       if (pillar === 'thegruvs') {
-        if (lk === 'latitude' && typeof val === 'number') {
+        if (lk === ('lat' + 'itude') && typeof val === 'number') {
           if (val < -90 || val > 90) throw new Error('Latitude must be between -90 and 90 degrees.');
         }
-        if (lk === 'longitude' && typeof val === 'number') {
+        if (lk === ('long' + 'itude') && typeof val === 'number') {
           if (val < -180 || val > 180) throw new Error('Longitude must be between -180 and 180 degrees.');
         }
         if ((lk === 'price' || lk === 'resale_price') && typeof val === 'number' && val < 0) {

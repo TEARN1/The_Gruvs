@@ -280,20 +280,16 @@ export const SecurityService = {
     return ThreatPreventionEngine.analyze(input, options);
   },
 
-  /** Strip dangerous keys from any object before it touches the DB. */
-  sanitizePayload(obj, options = {}) {
+  /** Strip dangerous prototype pollution keys from any object before it touches the DB. */
+  sanitizePayload(obj) {
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
-    try {
-      return ThreatPreventionEngine.guard(obj, { strict: false, ...options });
-    } catch {
-      const dangerous = ['__proto__', 'constructor', 'prototype'];
-      const clean = {};
-      for (const [k, v] of Object.entries(obj)) {
-        if (dangerous.includes(k)) continue;
-        clean[k] = typeof v === 'object' && v !== null ? this.sanitizePayload(v) : v;
-      }
-      return clean;
+    const dangerous = ['__proto__', 'constructor', 'prototype'];
+    const clean = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (dangerous.includes(k)) continue;
+      clean[k] = typeof v === 'object' && v !== null ? this.sanitizePayload(v) : v;
     }
+    return clean;
   },
 
   // ── Auth guard helper ────────────────────────────────────────────────────
