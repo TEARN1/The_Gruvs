@@ -21,14 +21,33 @@ export function MapReportSheet({ visible, onClose, onSubmit }) {
 
   const [kind, setKind] = useState(null);
   const [note, setNote] = useState('');
+  const [trafficDensity, setTrafficDensity] = useState(null);
+  const [detourHint, setDetourHint] = useState('');
   const [saving, setSaving] = useState(false);
 
   const chosen = kind ? MAP_REPORT_BY_KEY[kind] : null;
+  const isTransportClosure = chosen && (
+    chosen.group === 'Transport' ||
+    ['funeral_closure', 'marathon_route', 'accident', 'dead_robots', 'road_closed', 'heavy_traffic', 'detour', 'street_bash'].includes(chosen.key)
+  );
 
   const submit = async () => {
     if (!kind || saving) return;
     setSaving(true);
-    try { await onSubmit?.(kind, note.trim() || null); setKind(null); setNote(''); }
+    let fullNote = note.trim();
+    if (trafficDensity) {
+      fullNote = `[TRAFFIC: ${trafficDensity}] ${fullNote}`.trim();
+    }
+    if (detourHint.trim()) {
+      fullNote = `[DETOUR: ${detourHint.trim()}] ${fullNote}`.trim();
+    }
+    try {
+      await onSubmit?.(kind, fullNote || null);
+      setKind(null);
+      setNote('');
+      setTrafficDensity(null);
+      setDetourHint('');
+    }
     finally { setSaving(false); }
   };
 
@@ -69,9 +88,53 @@ export function MapReportSheet({ visible, onClose, onSubmit }) {
 
           {chosen && (
             <View style={s.footer}>
+              {isTransportClosure && (
+                <View style={{ gap: 8, marginBottom: 4 }}>
+                  <Text style={[s.group, { color: muted, marginBottom: 2 }]}>PREDICTED TRAFFIC IMPACT</Text>
+                  <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    {[
+                      { key: 'Normal Flow', label: '🟢 Normal' },
+                      { key: 'Moderate Delay (+10m)', label: '🟡 Moderate (+10m)' },
+                      { key: 'Heavy Delay (+25m)', label: '🟠 Heavy (+25m)' },
+                      { key: 'Gridlock / Road Closed', label: '🔴 Road Closed' }
+                    ].map(d => {
+                      const active = trafficDensity === d.key;
+                      return (
+                        <TouchableOpacity
+                          key={d.key}
+                          onPress={() => setTrafficDensity(active ? null : d.key)}
+                          style={[
+                            s.chip,
+                            {
+                              paddingVertical: 6,
+                              paddingHorizontal: 9,
+                              backgroundColor: active ? `${primary}25` : 'rgba(255,255,255,0.05)',
+                              borderColor: active ? primary : 'rgba(255,255,255,0.12)'
+                            }
+                          ]}
+                        >
+                          <Text style={{ color: active ? primary : text, fontSize: 11, fontWeight: '800' }}>
+                            {d.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <TextInput
+                    value={detourHint}
+                    onChangeText={setDetourHint}
+                    placeholder="Suggest detour / alternate bypass street (optional)"
+                    placeholderTextColor={muted}
+                    maxLength={100}
+                    style={[s.input, { color: text, borderColor: `${primary}30`, paddingVertical: 8, fontSize: 12 }]}
+                  />
+                </View>
+              )}
+
               <TextInput
                 value={note} onChangeText={setNote}
-                placeholder={`Add a detail (optional) — e.g. "${chosen.label} at the north gate"`}
+                placeholder={`Add a detail (optional) — e.g. "${chosen.label} at 4th Ave"`}
                 placeholderTextColor={muted} maxLength={200}
                 style={[s.input, { color: text, borderColor: `${primary}30` }]}
               />

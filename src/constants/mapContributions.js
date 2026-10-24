@@ -33,6 +33,11 @@ export const MAP_REPORT_TYPES = [
   T('lost_found',     'Lost & found',       'help-circle',    CYAN,  'Safety', 12),
 
   // ── Getting there / away ──────────────────────────────────────────────────
+  T('funeral_closure','Funeral Street Tent','home',           PURPLE,'Transport', 48),
+  T('marathon_route', 'Marathon / Race Route','flag',         ORANGE,'Transport', 12),
+  T('accident',       'Traffic Accident',   'alert-octagon',  RED,   'Transport', 4),
+  T('dead_robots',    'Traffic Lights Out', 'slash',          YELLOW,'Transport', 8),
+  T('street_bash',    'Street Bash / Block Party','music',    PINK,  'Transport', 10),
   T('taxi_rank',      'Taxi rank',          'navigation',     YELLOW,'Transport', 24),
   T('ehail_pickup',   'e-Hailing pickup',   'navigation-2',   BLUE,  'Transport', 12),
   T('dropoff',        'Drop-off zone',      'log-out',        CYAN,  'Transport', 12),
