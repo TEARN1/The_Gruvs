@@ -490,6 +490,7 @@ export const MainNavigator = () => {
               if (reelId) setTargetReel(reelId);
               handleTabChange('reels');
             }}
+            onNavigateToTab={handleTabChange}
           />
         );
       case 'reels':

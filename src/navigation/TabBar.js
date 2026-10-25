@@ -145,16 +145,32 @@ export const TabBar = ({
                     </Text>
                   </View>
                 )}
-                {tab.key === 'chats' && unreadDMCount > 0 && (
+                {tab.key === 'chats' && (unreadDMCount > 0 || unreadCount > 0) && (
                   <View
-                    style={[styles.unreadBadge, { backgroundColor: primary }]}
-                    accessibilityLabel={`${unreadDMCount} unread messages`}
+                    style={[
+                      styles.unreadBadge,
+                      { backgroundColor: unreadDMCount > 0 ? primary : '#ef4444' },
+                    ]}
+                    accessibilityLabel={
+                      unreadDMCount > 0
+                        ? `${unreadDMCount} unread messages`
+                        : `${unreadCount} unread notifications`
+                    }
                   >
                     <Text
-                      style={[styles.unreadBadgeText, { color: '#000' }]}
+                      style={[
+                        styles.unreadBadgeText,
+                        { color: unreadDMCount > 0 ? '#000' : '#fff' },
+                      ]}
                       maxFontSizeMultiplier={1.2}
                     >
-                      {unreadDMCount > 99 ? '99+' : unreadDMCount}
+                      {unreadDMCount > 0
+                        ? unreadDMCount > 99
+                          ? '99+'
+                          : unreadDMCount
+                        : unreadCount > 99
+                        ? '99+'
+                        : unreadCount}
                     </Text>
                   </View>
                 )}

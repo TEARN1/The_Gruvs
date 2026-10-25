@@ -9,12 +9,15 @@
 export const LAUNCH_MINIMAL = true;
 
 // Tabs hidden from the bar/sidebar while in minimal launch mode.
-// Reels is demoted at launch: endless short-form scrolling pulls against the
-// "get people off their phones and into the real world" thesis, and it isn't
-// part of the core discover → verify → Touch Down → coordinate loop. To bring a
-// tab back, remove its key here (or set LAUNCH_MINIMAL = false). You can also
-// add 'notifications' here if you want a tighter 5-tab bar.
-export const HIDDEN_TABS = LAUNCH_MINIMAL ? ['reels'] : [];
+// Gives a clean, high-ergonomics 5-tab floating dock on mobile:
+// 1. The Drop (Home Feed)
+// 2. Explore (Discovery)
+// 3. Map (The Living Map)
+// 4. Linked Up (Chats & Community Pings)
+// 5. Vibe Card (Profile & Passport)
+// Demoted screens (Reels, Calendar, Notifications) still mount via ALL_TABS
+// and stay fully reachable via deep links and Quick Tools.
+export const HIDDEN_TABS = LAUNCH_MINIMAL ? ['reels', 'calendar', 'notifications'] : [];
 
 // ── Feature surfaces (The Focus Cut) ──────────────────────────────────────────
 // Present the core loop (see tonight → go → Touch Down → coordinate) and PARK

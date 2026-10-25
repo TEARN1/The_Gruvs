@@ -1126,7 +1126,7 @@ const orderForGuest = (list) =>
 //  ScoreEngine.eventScore + personalisation + diversify. This screen only
 //  filters, dedupes and collapses tours; it never re-ranks.)
 
-export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap }) => {
+export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap, onNavigateToTab }) => {
   // Header fit on small phones: at 320 px the logo, wordmark and five round
   // buttons were wider than the screen and the "+" (post) button was cut off.
   const { width: winW } = useWindowDimensions();
@@ -2984,6 +2984,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         onOpenCulture={() => setCultureModalVisible(true)}
         onOpenRides={() => setRidesModalVisible(true)}
         onOpenReels={onNavigateToReels}
+        onOpenCalendar={() => onNavigateToTab?.('calendar')}
+        onOpenNotifications={() => onNavigateToTab?.('notifications')}
         hasReels={!!onNavigateToReels}
         hasSensory={feature('sensorySuite')}
         primary={primary}

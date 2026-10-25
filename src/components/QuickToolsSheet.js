@@ -21,6 +21,8 @@ export function QuickToolsSheet({
   onOpenCulture,
   onOpenRides,
   onOpenReels,
+  onOpenCalendar,
+  onOpenNotifications,
   hasReels = true,
   hasSensory = true,
   primary: propPrimary,
@@ -75,6 +77,36 @@ export function QuickToolsSheet({
         onOpenCulture?.();
       },
     },
+    ...(onOpenCalendar
+      ? [
+          {
+            id: 'calendar',
+            title: 'Lineup & Itinerary',
+            subtitle: 'Day-by-day festival calendar & schedule',
+            icon: 'calendar',
+            color: '#06b6d4',
+            onPress: () => {
+              onClose();
+              onOpenCalendar?.();
+            },
+          },
+        ]
+      : []),
+    ...(onOpenNotifications
+      ? [
+          {
+            id: 'notifications',
+            title: 'Pings & Activity',
+            subtitle: 'Alerts, check-in invites & mentions',
+            icon: 'bell',
+            color: '#ef4444',
+            onPress: () => {
+              onClose();
+              onOpenNotifications?.();
+            },
+          },
+        ]
+      : []),
     {
       id: 'rides',
       title: 'Resident Rides',
