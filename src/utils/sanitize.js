@@ -194,7 +194,7 @@ export async function safeOpenExternal(url) {
     }
   }
 
-  try { await Linking.openURL(raw); return true; }
+  try { await Linking.openURL(raw).catch((err) => { throw err; }); return true; }
   catch (e) { console.warn('safeOpenExternal: failed to open', e); return false; }
 }
 

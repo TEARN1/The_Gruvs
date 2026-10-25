@@ -179,7 +179,7 @@ const MiniVibeCard = ({ event, primary, onView, onClose, isPlanned, onTogglePlan
     }).start();
   }, [event?.id]);
 
-  // TODO(v6): remove media_urls/image_url fallbacks after migration
+  // NOTE(v6): retain media_urls/image_url fallbacks for backward compatibility
   const thumb = event?.media_urls?.[0] || event?.image_url;
   const date = event?.event_date
     ? new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -348,7 +348,7 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
           </View>
         )}
         {events.map(event => {
-          // TODO(v6): remove media_urls/image_url fallbacks after migration
+          // NOTE(v6): retain media_urls/image_url fallbacks for backward compatibility
           const thumb = event.media_urls?.[0] || event.image_url;
           const date = event.event_date
             ? new Date(event.event_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })

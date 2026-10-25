@@ -3203,8 +3203,9 @@ export const BlockManager = {
         // insert -- covers the case where the upsert's onConflict target
         // itself is what's failing (e.g. a constraint-name drift).
         async () => {
-          await supabase.from('user_blocks').delete()
+          const { error } = await supabase.from('user_blocks').delete()
             .eq('blocker_id', blockerId).eq('blocked_id', blockedId);
+          if (error) log.warn('[BlockManager] pre-insert cleanup warning:', error.message);
           return supabase.from('user_blocks').insert({ blocker_id: blockerId, blocked_id: blockedId });
         },
       ],

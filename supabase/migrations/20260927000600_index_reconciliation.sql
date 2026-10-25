@@ -72,6 +72,7 @@ BEGIN
   PERFORM pg_temp.reidx('live_checkins', 'idx_live_checkins_user',  '(user_id, checked_in_at DESC)');
   PERFORM pg_temp.reidx('live_checkins', 'idx_live_checkins_event', '(event_id, checked_in_at DESC)');
   PERFORM pg_temp.reidx('follows',       'idx_follows_follower',    '(follower_id, following_id)');
+  PERFORM pg_temp.reidx('follows',       'idx_follows_following',   '(following_id, follower_id)');
 
   -- ── 3. reels — the worst offender ─────────────────────────────────────────
   -- Kept: one plain (created_at DESC), the (user_id, created_at DESC) composite,

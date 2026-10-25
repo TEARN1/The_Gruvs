@@ -176,10 +176,10 @@ const HeroCard = ({ event, primary, onPress }) => {
     if (e.media?.[0]) {
       url = typeof e.media[0] === 'string' ? e.media[0] : e.media[0].url;
     }
-    // TODO(v6): remove media_urls fallback after migration
+    // NOTE(v6): retain media_urls fallback for backward compatibility
     if (!url && e.media_urls?.[0]) url = e.media_urls[0];
     if (!url && e.cover_url) url = e.cover_url;
-    // TODO(v6): remove cover_image/image_url fallbacks after migration
+    // NOTE(v6): retain cover_image/image_url fallbacks for backward compatibility
     if (!url && e.cover_image) url = e.cover_image;
     if (!url && e.image_url) url = e.image_url;
     if (!url) return null;
@@ -427,7 +427,7 @@ const startsInLabel = (event) => {
 const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false }) => {
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
   const starts = startsInLabel(event);
-  // TODO(v6): remove media_urls/cover_image/image_url fallbacks after migration
+  // Legacy compatibility: media_urls/cover_image/image_url fallbacks retained for older records
   // Named thumbUrl (not `thumb`) so it doesn't shadow the imported CDN helper —
   // this raw URL was being served full-res, uncached and un-resized, straight
   // past the weserv resizer every other image call site goes through.

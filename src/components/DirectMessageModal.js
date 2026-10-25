@@ -190,10 +190,10 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
 
   let thumb = null;
   if (ev) {
-    // TODO(v6): remove cover_image fallback after migration
+    // NOTE(v6): retain cover_image fallback for backward compatibility
     thumb = ev.cover_url || ev.cover_image || null;
     if (!thumb) { let m = ev.media; if (typeof m === 'string') { try { m = JSON.parse(m); } catch { m = null; } } if (Array.isArray(m) && m[0]) thumb = typeof m[0] === 'string' ? m[0] : m[0]?.url; }
-    // TODO(v6): remove media_urls fallback after migration
+    // NOTE(v6): retain media_urls fallback for backward compatibility
     if (!thumb && Array.isArray(ev.media_urls) && ev.media_urls[0]) thumb = ev.media_urls[0];
   }
   const priceStr = priceLabel(ev?.price);

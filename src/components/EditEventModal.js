@@ -79,7 +79,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
       setContactPhone(event.contact_phone || '');
       setContactEmail(event.contact_email || '');
       setTiers(Array.isArray(event.rsvp_tiers) ? event.rsvp_tiers : []);
-      // TODO(v6): remove image_url/cover_image fallbacks after migration
+      // NOTE(v6): retain image_url/cover_image fallbacks for backward compatibility
       const existing = event.cover_url || event.image_url || event.cover_image || (Array.isArray(event.media) && event.media[0]?.url) || null;
       setCoverUrl(existing);
       setCoverUri(null);

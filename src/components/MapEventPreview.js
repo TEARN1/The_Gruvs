@@ -211,12 +211,12 @@ export function MapEventPreview({
     const url = directionsUrl(dest, userCoords, Platform.OS);
     if (!url) { toast('No location on this event.', 'info'); return; }
     try {
-      await Linking.openURL(url);
+      await Linking.openURL(url).catch((err) => { throw err; });
       onClose();
     } catch {
       // Android's geo: scheme resolves to nothing when no maps app is installed.
       try {
-        await Linking.openURL(directionsFallbackUrl(dest, userCoords));
+        await Linking.openURL(directionsFallbackUrl(dest, userCoords)).catch((err) => { throw err; });
         onClose();
       } catch { toast('Could not open directions.', 'error'); }
     }

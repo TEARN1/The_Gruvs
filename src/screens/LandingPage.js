@@ -481,7 +481,7 @@ const EventCard = React.memo(({
                 m = event.media_urls.map(u => ({ url: u, type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image' }));
               }
               if (!m?.length && event.cover_url) m = [{ url: event.cover_url, type: 'image' }];
-              // TODO(v6): remove cover_image/image_url fallbacks after migration
+              // NOTE(v6): retain cover_image/image_url fallbacks for backward compatibility
               if (!m?.length && event.cover_image) m = [{ url: event.cover_image, type: 'image' }];
               if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
 

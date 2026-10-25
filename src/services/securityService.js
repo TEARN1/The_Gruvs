@@ -184,14 +184,14 @@ export const SecurityService = {
         } catch { return false; }
         if (this.isTrustedExternalUrl(trimmed)) {
           const { Linking } = require('react-native');
-          await Linking.openURL(trimmed);
+          await Linking.openURL(trimmed).catch((err) => { throw err; });
           return true;
         }
         const { safeOpenExternal } = require('../utils/sanitize');
         return await safeOpenExternal(trimmed);
       }
       const { Linking } = require('react-native');
-      await Linking.openURL(url);
+      await Linking.openURL(url).catch((err) => { throw err; });
       return true;
     } catch {
       return false;

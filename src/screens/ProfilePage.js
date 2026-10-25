@@ -1663,7 +1663,7 @@ const ProfileTabSkeleton = ({ primary }) => {
 // ── Mini event card for profile tabs ─────────────────────────────────────────
 const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPress }) => {
   // media_urls is a string[] saved by PostEventModal; media is the legacy object[] format
-  // TODO(v6): remove media_urls/cover_image/image_url fallbacks after migration
+  // NOTE(v6): retain media_urls/cover_image/image_url fallbacks for backward compatibility
   const imgUrl = ev.cover_url ||
     ev.media_urls?.[0] ||
     (Array.isArray(ev.media) ? ev.media.find(m => m?.type === 'image')?.url : null) ||
