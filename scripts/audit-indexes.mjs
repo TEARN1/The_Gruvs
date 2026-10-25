@@ -66,10 +66,22 @@ for (const d of defs) (byName[d.name] ||= []).push(d);
 // Names pinned by the reconciliation file — their end state is declared, so a
 // disagreement upstream no longer decides anything.
 let pinned = new Set();
+const canonDefs = [];
 const canonPath = path.join('supabase/migrations', OWNS_CANONICAL);
 if (fs.existsSync(canonPath)) {
   const canon = fs.readFileSync(canonPath, 'utf8');
-  for (const m of canon.matchAll(/reidx\(\s*'[a-z_]+'\s*,\s*'([a-z0-9_]+)'/gi)) pinned.add(m[1].toLowerCase());
+  for (const m of canon.matchAll(/reidx\(\s*'([a-z_]+)'\s*,\s*'([a-z0-9_]+)'(?:\s*,\s*'([^']+)')?\s*\)/gi)) {
+    const tbl = m[1].toLowerCase();
+    const idxName = m[2].toLowerCase();
+    pinned.add(idxName);
+    if (m[3] && !canonDefs.some((c) => c.name === idxName)) {
+      canonDefs.push({
+        table: tbl,
+        name: idxName,
+        body: m[3].replace(/\s+/g, ' ').trim().toLowerCase().replace(/\s*,\s*/g, ','),
+      });
+    }
+  }
 }
 
 const collisions = [];
@@ -90,7 +102,13 @@ const latent     = collisions.filter(c => !c.live && !c.pinned);
 const resolved   = collisions.filter(c => c.pinned);
 
 const byDef = {};
-for (const d of defs) (byDef[`${d.table}|${d.body}`] ||= new Set()).add(d.name);
+for (const d of defs) {
+  if (pinned.has(d.name)) continue;
+  (byDef[`${d.table}|${d.body}`] ||= new Set()).add(d.name);
+}
+for (const d of canonDefs) {
+  (byDef[`${d.table}|${d.body}`] ||= new Set()).add(d.name);
+}
 const dups = Object.entries(byDef)
   .filter(([, names]) => names.size > 1)
   .map(([k, names]) => ({ def: k, names: [...names] }));

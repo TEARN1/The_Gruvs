@@ -383,13 +383,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
     try {
       if (liking) {
         const { error } = await supabase.from('event_guest_likes').upsert(
-          { guest_id: guestId, user_id: user.id, event_id: event?.id },
+          { guest_id: guestId, user_id: user?.id, event_id: event?.id },
           { onConflict: 'guest_id,user_id', ignoreDuplicates: true },
         );
         if (error) throw error;
       } else {
         const { error } = await supabase.from('event_guest_likes')
-          .delete().eq('guest_id', guestId).eq('user_id', user.id);
+          .delete().eq('guest_id', guestId).eq('user_id', user?.id);
         if (error) throw error;
       }
     } catch {
@@ -646,7 +646,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
       if (!ok) throw new Error('RSVP update failed');
       if (status === 'going' || status === 'maybe') {
         track('rsvp', { eventId: event.id, status });
-        ClipConversions.recordRsvp({ eventId: event.id, viewerId: user.id }); // credits the clip that sent them, if one did
+        ClipConversions.recordRsvp({ eventId: event.id, viewerId: user?.id }); // credits the clip that sent them, if one did
       }
       showToast(
         status === 'going' ? "You're Locked In!" : status === 'maybe' ? "Marked Maybe" : "Removed",
@@ -861,7 +861,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
           const { data: recent } = await supabase
             .from('live_checkins')
             .select('lat, lon, checked_in_at')
-            .eq('user_id', user.id)
+            .eq('user_id', user?.id)
             .order('checked_in_at', { ascending: false })
             .limit(1)
             .maybeSingle();

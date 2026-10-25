@@ -260,7 +260,7 @@ export const StoriesRow = ({ onAuthRequired }) => {
       // unfollow, so filter here so their stories never render (B-sweep 2 + 6).
       const [{ data: blocks }, { data: mutes }] = await Promise.all([
         supabase.from('user_blocks').select('blocked_id').eq('blocker_id', user.id),
-        supabase.from('muted_users').select('muted_id').eq('user_id', user.id),
+        supabase.from('muted_users').select('muted_id').eq('user_id', user?.id),
       ]);
       const hidden = new Set([...(blocks || []).map(b => b.blocked_id), ...(mutes || []).map(m => m.muted_id)]);
       const ids = [user.id, ...(follows || []).map(f => f.following_id).filter(id => !hidden.has(id))];

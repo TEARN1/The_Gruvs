@@ -783,7 +783,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
           .eq('author_id', user.id).gte('event_date', today)
           .order('event_date', { ascending: true }).limit(25),
         supabase.from('event_rsvps').select(`events:event_id(${cols})`)
-          .eq('user_id', user.id).eq('status', 'going').limit(25),
+          .eq('user_id', user?.id).eq('status', 'going').limit(25),
       ]);
       const going = (rsvps.data || []).map(r => r.events).filter(Boolean);
       const seen = new Set();

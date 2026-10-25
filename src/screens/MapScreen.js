@@ -176,7 +176,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
       const { data: mine } = await supabase
         .from('live_checkins').select('event_id')
-        .eq('user_id', user.id).gte('checked_in_at', since)
+        .eq('user_id', user?.id).gte('checked_in_at', since)
         .order('checked_in_at', { ascending: false }).limit(1).maybeSingle();
       if (mine?.event_id) {
         const { data: shared } = await supabase
@@ -187,7 +187,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       }
     } catch (_err) { /* ranking degrades to proximity-only */ }
 
-    const viewer = { id: user.id, lat: userLoc?.lat, lon: userLoc?.lng };
+    const viewer = { id: user?.id, lat: userLoc?.lat, lon: userLoc?.lng };
     const extras = Object.fromEntries(raw.map((v) => [v.id, { sameEventNow: sameEventIds.has(v.id) }]));
     return rankPeople(viewer, raw, extras);
   }, [user?.id, userLoc?.lat, userLoc?.lng]);

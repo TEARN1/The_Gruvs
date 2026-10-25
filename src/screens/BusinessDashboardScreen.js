@@ -676,7 +676,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
 
       const { error } = await supabase.from('business_tier_requests').insert({
         business_id: biz.id,
-        requested_by: user.id,
+        requested_by: user?.id,
         requested_tier: newTier,
       });
       if (error) { showToast(error.message || 'Could not send request.', 'error'); return; }

@@ -171,8 +171,8 @@ export const CreateReelModal = ({ visible, onClose, onPosted, presetEvent = null
         const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
         const [authored, rsvped, checkins] = await Promise.all([
           supabase.from('events').select('id, title, event_date').eq('author_id', user.id).order('event_date', { ascending: false }).limit(20),
-          supabase.from('event_rsvps').select('events(id, title, event_date)').eq('user_id', user.id).limit(20),
-          supabase.from('live_checkins').select('checked_in_at, events(id, title, event_date)').eq('user_id', user.id)
+          supabase.from('event_rsvps').select('events(id, title, event_date)').eq('user_id', user?.id).limit(20),
+          supabase.from('live_checkins').select('checked_in_at, events(id, title, event_date)').eq('user_id', user?.id)
             .not('event_id', 'is', null).gte('checked_in_at', since).order('checked_in_at', { ascending: false }).limit(5),
         ]);
         const { list, suggested } = rankTaggableEvents({

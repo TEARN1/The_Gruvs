@@ -104,6 +104,11 @@ BEGIN
   PERFORM pg_temp.reidx('pulse_requests', 'idx_pulse_event_votes');
   PERFORM pg_temp.reidx('reel_comments',  'idx_reel_comments_reel_idx');
   PERFORM pg_temp.reidx('event_rsvps',    'idx_event_rsvps_id');  -- the PK already indexes id
+  PERFORM pg_temp.reidx('event_rsvps',    'idx_event_rsvps_event_status'); -- duplicate of idx_rsvps_event
+  PERFORM pg_temp.reidx('events',         'events_event_date_idx');        -- duplicate of idx_events_date
+  PERFORM pg_temp.reidx('live_checkins',  'live_checkins_event_idx');      -- prefix of idx_live_checkins_event
+  PERFORM pg_temp.reidx('reels',          'idx_reels_is_deleted');         -- duplicate of idx_reels_feed
+  PERFORM pg_temp.reidx('reels',          'idx_reels_published');          -- duplicate of idx_reels_feed
 
   -- ── 5. Strict prefixes already served by a wider composite ────────────────
   PERFORM pg_temp.reidx('event_rsvps',           'idx_rsvps_user');

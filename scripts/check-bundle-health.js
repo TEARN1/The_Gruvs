@@ -350,7 +350,7 @@ for (const file of allFiles(['src/screens', 'src/components'])) {
     const surrounding = content.slice(Math.max(0, m.index - 300), m.index + 20);
     const safe = /user\?\.id|if\s*\(!?\s*user\b|user\s*&&|\buser\b.*return/.test(surrounding);
     if (!safe)
-      console.log(yellow(`  ℹ️  UNSAFE USER ID: ${short(file)}:${lineOf(content, m.index)} — user.id in DB call without null guard`)); c++;
+      console.log(yellow(`  ℹ️  UNSAFE USER ID: ${short(file)}:${lineOf(content, m.index)} — user.id in DB call without null guard`)), c++;
   }
 }
 if (!c) ok('user.id in DB calls look guarded.');

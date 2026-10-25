@@ -2757,7 +2757,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
         const { data: d, error } = await supabase
           .from('event_stamps')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', user?.id)
           .order('created_at', { ascending: false });
         if (error) throw error;
         setPassportStamps(d || []);

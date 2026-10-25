@@ -921,7 +921,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       try {
         const cities = new Set(stops.map(s => (s.city || '').trim().toLowerCase()).filter(Boolean));
         const { data: seriesRow, error: seriesErr } = await supabase.from('event_series').insert({
-          creator_id: user.id,
+          creator_id: user?.id,
           name: (tourName.trim() || title.trim()),
           description: description.trim() || null,
           cover_url: mediaUrls[0]?.url || null,
