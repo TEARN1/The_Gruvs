@@ -84,7 +84,7 @@ const ReelTabSwitcher = ({ absolute, insetsTop, onClose, hashtagFilter, setHasht
           {tab === 'following' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setTab('trending')}>
-          <Text style={[rs.tabLabel, tab === 'trending' && rs.tabActive]}>🔥 Trending</Text>
+          <Text style={[rs.tabLabel, tab === 'trending' && rs.tabActive]}>Trending</Text>
           {tab === 'trending' && <View style={[rs.tabUnderline, { backgroundColor: primary }]} />}
         </TouchableOpacity>
       </>

@@ -41,7 +41,7 @@ export const ReferralCard = ({ userId }) => {
 
   const referralCode = generateReferralCode(userId);
   const inviteLink   = `${APP_BASE_URL}?ref=${referralCode}`;
-  const inviteMsg    = `${username || 'me'} invited you to The Gruvs 🎉\n\nJoin the app where South Africa gruvs — discover events, connect with Vibers & live the culture.\n\n${inviteLink}`;
+  const inviteMsg    = `${username || 'me'} invited you to The Gruvs\n\nJoin the app where South Africa gruvs — discover events, connect with Vibers & live the culture.\n\n${inviteLink}`;
 
   const fetchReferralData = useCallback(async () => {
     if (!userId) { setLoading(false); return; }

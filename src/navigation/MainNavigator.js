@@ -75,7 +75,7 @@ export const MainNavigator = () => {
   const updateReady = useWebAppUpdate();
   const unreadCount = useUnreadCount();
   const unreadDMCount = useUnreadDMCount(() => {
-    if (currentTab !== 'chats') showToast('💬 New message in Linked Up', 'info');
+    if (currentTab !== 'chats') showToast('New message in Linked Up', 'info');
   });
   const { hasLaunched, openTutorial, markLaunched, activeTutorial } = useTutorial();
 
@@ -659,6 +659,7 @@ export const MainNavigator = () => {
                 primary={primary}
                 muted={muted}
                 bg={bg}
+                textColor={currentTheme?.text || '#fff'}
                 unreadCount={unreadCount}
                 unreadDMCount={unreadDMCount}
               />

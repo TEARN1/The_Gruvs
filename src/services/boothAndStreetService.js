@@ -34,7 +34,7 @@ export const BoothAndStreetService = {
       duration_sec: 15,
       recorded_at: '20 mins ago',
       audio_url: 'https://actions.google.com/sounds/v1/crowds/club_cheer.ogg',
-      energy_level: 'PEAK GROOVE 🔥',
+      energy_level: 'PEAK GROOVE',
     };
   },
 
@@ -46,7 +46,7 @@ export const BoothAndStreetService = {
       track_genre: genre || 'Amapiano / Deep House',
       duration_sec: 15,
       recorded_at: 'Just now',
-      energy_level: energyLevel || 'JUMPING ⚡',
+      energy_level: energyLevel || 'JUMPING',
       audio_url: 'https://actions.google.com/sounds/v1/crowds/club_cheer.ogg',
     };
     try {

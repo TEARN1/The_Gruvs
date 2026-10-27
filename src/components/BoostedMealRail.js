@@ -39,7 +39,7 @@ export function BoostedMealRail() {
   return (
     <View style={styles.wrap}>
       <View style={styles.headRow}>
-        <Text style={[styles.title, { color: textColor }]}>🍽️ Tasting near you</Text>
+        <Text style={[styles.title, { color: textColor }]}>Tasting near you</Text>
         <Text style={[styles.hint, { color: muted }]}>Boosted</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>

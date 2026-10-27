@@ -49,7 +49,7 @@ export const NotificationNudge = ({ primary = '#00f2ff', surface = '#131a1c', te
       await NotificationService.registerForPush(user.id); // triggers the OS/browser prompt
       const { granted } = await NotificationService.getPermissionState();
       if (granted) {
-        showToast("Notifications on — you won't miss a message 🔔", 'success');
+        showToast("Notifications on — you won't miss a message", 'success');
         setShow(false);
       } else {
         // Denied at the OS level — respect it, don't nag again this week.

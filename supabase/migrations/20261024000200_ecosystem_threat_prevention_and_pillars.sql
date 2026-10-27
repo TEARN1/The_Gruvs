@@ -20,33 +20,42 @@
 -- 1.1 Privilege escalation protection on profiles
 -- Regular authenticated users cannot self-grant admin status, verified badges,
 -- or manipulate trust tiers.
+-- SECURITY INVOKER, not DEFINER: inside a definer `current_user` is the owner,
+-- so the guard never fired (definer_privilege_test.sql). Columns are read
+-- through jsonb because production has no profiles.is_admin and the CI schema
+-- has no resident_trust_tier: NEW.<missing column> would have failed EVERY
+-- profile update, Find Me and profile edits included.
 CREATE OR REPLACE FUNCTION public.guard_profile_privilege_escalation()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
+SET search_path = public
 AS $$
+DECLARE
+  n jsonb := to_jsonb(NEW);
+  o jsonb := to_jsonb(OLD);
 BEGIN
-  -- Service role / postgres can update anything
-  IF auth.role() = 'service_role' OR current_user = 'postgres' THEN
+  -- Only direct client writes are guarded; server code (definer RPCs, the
+  -- service role, migrations) runs as another role and passes.
+  IF current_user NOT IN ('authenticated', 'anon') THEN
+    RETURN NEW;
+  END IF;
+  IF public.is_admin(auth.uid()) THEN
     RETURN NEW;
   END IF;
 
-  -- Block non-admin clients from modifying privileged columns
-  IF (NEW.is_admin IS DISTINCT FROM OLD.is_admin) AND NOT public.is_admin(auth.uid()) THEN
+  IF (n -> 'is_admin') IS DISTINCT FROM (o -> 'is_admin') THEN
     RAISE EXCEPTION 'SecurityViolation: Unauthorized attempt to modify is_admin';
   END IF;
-
-  IF (NEW.is_verified IS DISTINCT FROM OLD.is_verified) AND NOT public.is_admin(auth.uid()) THEN
+  IF (n -> 'is_verified') IS DISTINCT FROM (o -> 'is_verified') THEN
     RAISE EXCEPTION 'SecurityViolation: Unauthorized attempt to modify is_verified';
   END IF;
-
-  IF (NEW.resident_trust_tier IS DISTINCT FROM OLD.resident_trust_tier) AND NOT public.is_admin(auth.uid()) THEN
+  IF (n -> 'resident_trust_tier') IS DISTINCT FROM (o -> 'resident_trust_tier') THEN
     RAISE EXCEPTION 'SecurityViolation: Unauthorized attempt to modify resident_trust_tier';
   END IF;
-
-  IF (NEW.vibe_score IS DISTINCT FROM OLD.vibe_score) AND NOT public.is_admin(auth.uid()) THEN
-    -- Minor auto-adjustments are handled via RPCs; direct updates are blocked
-    NEW.vibe_score := OLD.vibe_score;
+  -- Scores move through RPCs only; a direct write is quietly undone.
+  IF (n -> 'vibe_score') IS DISTINCT FROM (o -> 'vibe_score') THEN
+    NEW := jsonb_populate_record(NEW, jsonb_build_object('vibe_score', o -> 'vibe_score'));
   END IF;
 
   RETURN NEW;
@@ -60,6 +69,9 @@ CREATE TRIGGER trg_guard_profile_privilege_escalation
   EXECUTE FUNCTION public.guard_profile_privilege_escalation();
 
 -- 1.2 Geocode & price boundary constraints on events
+-- Production has these columns; the CI schema never did, which failed the build.
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS latitude double precision;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS longitude double precision;
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -83,7 +95,9 @@ BEGIN
   ) THEN
     ALTER TABLE public.events
       ADD CONSTRAINT chk_events_price_non_negative
-      CHECK (price IS NULL OR price >= 0);
+      -- price is TEXT ('{"general":"150"}', 'From R200'), so `price >= 0` was a
+      -- type error that stopped this whole file. Reject a negative amount instead.
+      CHECK (price IS NULL OR price !~ '(^|[":])\s*-\s*[0-9]');
   END IF;
 END $$;
 

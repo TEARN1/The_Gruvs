@@ -331,7 +331,7 @@ export const PresenceBar = ({
           { attemptsPerTier: 2, baseMs: 300, label: `PresenceBar.dmRoom:${toUserId}`, fallbackValue: null }
         );
         setMatchIds(prev => new Set([...prev, toUserId]));
-        showToast('💬 Mutual match! A chat room is open for 48h', 'success');
+        showToast('Mutual match! A chat room is open for 48h', 'success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch { /* mutual check failed silently — star still recorded */ }
@@ -449,7 +449,7 @@ export const PresenceBar = ({
 
           {/* Name */}
           <Text style={[s.username, { color: isGhost ? muted : textColor }]} numberOfLines={1}>
-            {isGhost ? '👻 Ghost' : username}
+            {isGhost ? 'Ghost' : username}
             {isMe ? ' (you)' : ''}
           </Text>
 
@@ -468,7 +468,7 @@ export const PresenceBar = ({
           {/* Match pill */}
           {matched && (
             <View style={[s.matchPill, { backgroundColor: `${primary}25`, borderColor: primary }]}>
-              <Text style={[s.matchText, { color: primary }]}>💬 Match!</Text>
+              <Text style={[s.matchText, { color: primary }]}>Match!</Text>
             </View>
           )}
 

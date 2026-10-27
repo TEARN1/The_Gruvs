@@ -276,7 +276,7 @@ export const EventGallery = ({ eventId }) => {
         onPress={() => setIsModalVisible(true)}
       >
         <Text style={[styles.triggerText, { color: muted, fontWeight: '700' }]}>
-          📸 Vibe Archive / Gallery
+Vibe Archive / Gallery
         </Text>
         <View style={[styles.badge, { backgroundColor: `${primary}22`, borderColor: `${primary}50` }]}>
           <Text style={[styles.badgeText, { color: primary }]}>

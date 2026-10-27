@@ -384,7 +384,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted, presetEvent = null
       if (!saved?.id) throw new Error('Could not save reel');
 
       clearDraft();
-      toast.show('Reel posted! 🎬', 'success');
+      toast.show('Reel posted!', 'success');
       onPosted?.();
       handleClose();
     } catch (e) {
@@ -540,7 +540,7 @@ export const CreateReelModal = ({ visible, onClose, onPosted, presetEvent = null
                 <Text style={[s.fieldLabel, { color: muted }]}>CAPTION</Text>
                 <TextInput
                   style={[s.captionInput, { color: textColor, backgroundColor: surface, borderColor: `${primary}20` }]}
-                  placeholder="Write a caption… describe the vibe 🔥"
+                  placeholder="Write a caption… describe the vibe"
                   placeholderTextColor={muted}
                   value={caption}
                   onChangeText={setCaption}

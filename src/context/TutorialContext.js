@@ -59,7 +59,7 @@ export const TUTORIALS = [
       {
         icon: 'tag',
         title: 'Gruv Stats Explained',
-        body: 'Each card shows key numbers:\n\n• 🔥 Vibes — Vibers who RSVPed or showed interest\n• 💬 Echoes — Hype posts and community talk\n• ✓ Touch Downs — Confirmed Vibers on the day\n• ⭐ Rating — Post-Gruv score from Vibers',
+        body: 'Each card shows key numbers:\n\n• Vibes — Vibers who RSVPed or showed interest\n• Echoes — Hype posts and community talk\n• ✓ Touch Downs — Confirmed Vibers on the day\n• Rating — Post-Gruv score from Vibers',
         tip: 'Gruvs with more Vibes get pushed higher in other Vibers\' Drops automatically.',
         visual: 'stats',
       },
@@ -642,7 +642,7 @@ export const TUTORIALS = [
         icon: 'film',
         title: 'What Are Reels?',
         body: 'Reels are short vertical videos posted by Vibers and organisers — highlights from Gruvs, DJ sets, behind-the-scenes, food drops, and culture moments. Swipe up to skip to the next Reel.',
-        tip: 'Double-tap anywhere on a Reel to instantly drop a ❤️ like.',
+        tip: 'Double-tap anywhere on a Reel to instantly drop a like.',
         visual: 'reels_feed',
       },
       {
@@ -655,7 +655,7 @@ export const TUTORIALS = [
       {
         icon: 'zap',
         title: 'Reel Controls',
-        body: 'Action bar on the right side:\n\n• ❤️ Like — or double-tap the screen\n• 💬 Comment — drop a quick thought\n• 📤 Share — send via WhatsApp, copy link\n• 🔖 Save — bookmark to watch again later\n• 👁 Views — how many Vibers have watched\n• 🔊 Mute — tap to toggle audio on/off\n• Speed — 0.5× · 1× · 1.5× playback speed',
+        body: 'Action bar on the right side:\n\n• Like — or double-tap the screen\n• Comment — drop a quick thought\n• Share — send via WhatsApp, copy link\n• Save — bookmark to watch again later\n• Views — how many Vibers have watched\n• Mute — tap to toggle audio on/off\n• Speed — 0.5× · 1× · 1.5× playback speed',
         tip: 'Tap the creator\'s avatar at the top of the action bar to open their Vibe Card.',
         visual: 'reels_actions',
       },
@@ -812,8 +812,8 @@ export const TUTORIALS = [
     steps: [
       {
         icon: 'settings',
-        title: 'The ⚙️ Manage Tab',
-        body: "If you're the organiser or co-host of a Gruv, the Gruv detail page shows a ⚙️ Manage tab. This is your live event control panel — add your lineup, build your schedule, manage vendors, and post host-only updates.",
+        title: 'The Manage Tab',
+        body: "If you're the organiser or co-host of a Gruv, the Gruv detail page shows a Manage tab. This is your live event control panel — add your lineup, build your schedule, manage vendors, and post host-only updates.",
         tip: 'Only the event creator and co-hosts can see the Manage tab.',
         visual: 'mgmt_tab',
       },
@@ -841,7 +841,7 @@ export const TUTORIALS = [
       {
         icon: 'broadcast',
         title: 'Live Updates',
-        body: 'Post real-time updates to all attendees directly from the Manage tab:\n\n• "Doors opening now"\n• "Main act going on in 10 min"\n• "Stage 2 is delayed — grab a drink"\n\nUpdates appear instantly on the Gruv page with a 🔴 Live marker.',
+        body: 'Post real-time updates to all attendees directly from the Manage tab:\n\n• "Doors opening now"\n• "Main act going on in 10 min"\n• "Stage 2 is delayed — grab a drink"\n\nUpdates appear instantly on the Gruv page with a Live marker.',
         tip: 'Use Live Updates on the night to keep attendees informed and reduce door congestion.',
         visual: 'live_updates',
       },

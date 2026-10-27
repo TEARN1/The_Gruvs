@@ -116,7 +116,7 @@ export function BirthdayCelebrationHub({
     try { haptics.success(); } catch {}
     setWishedMap((prev) => ({ ...prev, [bdayId]: true }));
     setGlitterTrigger(Date.now());
-    toast(`Sent Birthday Vibe & Glitter to ${name}! 🎂✨`, 'success');
+    toast(`Sent Birthday Vibe & Glitter to ${name}!`, 'success');
   };
 
   if (!visible) return null;
@@ -195,7 +195,7 @@ export function BirthdayCelebrationHub({
                       >
                         <Feather name={wished ? 'check' : 'heart'} size={13} color={wished ? '#10b981' : '#fff'} />
                         <Text numberOfLines={1} style={[styles.wishBtnText, { color: wished ? '#10b981' : '#fff' }]}>
-                          {wished ? 'Vibe Sent ✨' : 'Send Birthday Vibe ✨'}
+                          {wished ? 'Vibe Sent' : 'Send Birthday Vibe'}
                         </Text>
                         <ControlledGlitterBurst trigger={glitterTrigger} count={12} radius={35} colors={['#ec4899', '#fde047', '#fff']} />
                       </TouchableOpacity>

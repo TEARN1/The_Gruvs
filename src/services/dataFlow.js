@@ -23,6 +23,7 @@ import { rankEventResults, rankUserResults } from '../utils/searchRelevance';
 import { secureCode } from '../utils/secureId';
 import { loadEventsCatalog } from './eventsCatalog';
 import { TicketCache } from './offlineCache';
+import { durationLabel } from '../utils/beaconDuration';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
 export const normalizeEvent = (event) => {
@@ -2186,15 +2187,29 @@ export const DiscoveryManager = {
       const coords = LocationService.getCached();
       if (!coords) return [];
 
-      // Use the safe, fuzzed version of the nearby function
+      // Live, visible, rounded positions only — see find_me_privacy.sql.
       const { data } = await supabase.rpc('get_safe_nearby_vibers', {
         u_lat: coords.lat,
         u_lon: coords.lon,
         radius_km: radius
       });
+      let people = data || [];
 
-      if (data) cache.set(cacheKey, data);
-      return data || [];
+      // The nearby list carries no interests, so Find Them's "Filter by
+      // Interest" matched nobody and every card's interests were blank.
+      // Fetch the public profile bits for exactly these people.
+      if (people.length) {
+        try {
+          const { data: extra } = await supabase.from('profiles')
+            .select('id, interests, display_name, is_verified')
+            .in('id', people.map(p => p.id).slice(0, 100));
+          const byId = new Map((extra || []).map(r => [r.id, r]));
+          people = people.map(p => ({ ...byId.get(p.id), ...p }));
+        } catch { /* the list still works without interests */ }
+      }
+
+      if (data) cache.set(cacheKey, people);
+      return people;
     } catch (error) {
       return [];
     }
@@ -2656,9 +2671,9 @@ async function _notifyEventAuthor(eventId, actorId, type) {
       .maybeSingle();
     if (!event?.author_id || event.author_id === actorId) return;
     const messages = {
-      vibe: { title: 'New Vibe on your Gruv 🔥', body: `Someone Vibed "${event.title}"` },
+      vibe: { title: 'New Vibe on your Gruv', body: `Someone Vibed "${event.title}"` },
       rsvp: { title: 'New RSVP on your Gruv', body: `Someone locked in to "${event.title}"` },
-      checkin: { title: 'Someone Touched Down 📍', body: `A Vibe just Touched Down at "${event.title}"` },
+      checkin: { title: 'Someone Touched Down', body: `A Vibe just Touched Down at "${event.title}"` },
     };
     const msg = messages[type];
     if (!msg) return;
@@ -2755,7 +2770,7 @@ export const InviteManager = {
    */
   async inviteToEvent(eventId, eventTitle, recipientIds, hostId, hostName) {
     if (!eventId || !recipientIds?.length) return 0;
-    const title = 'You\'re invited 🎉';
+    const title = 'You\'re invited';
     const body = `${hostName || 'A host'} invited you to "${eventTitle || 'an event'}"`;
     let sent = 0;
     for (const rid of recipientIds) {
@@ -3346,6 +3361,22 @@ export const ReminderManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 // PRESENCE MANAGER  (online/offline status)
 // ─────────────────────────────────────────────────────────────────────────────
+/** Everyone who shares a crew with this person (members and owners), minus them. */
+async function crewmateIds(userId) {
+  const [{ data: memberOf }, { data: owned }] = await Promise.all([
+    supabase.from('crew_members').select('crew_id').eq('user_id', userId).limit(100),
+    supabase.from('crews').select('id').eq('owner_id', userId).limit(100),
+  ]);
+  const crewIds = [...new Set([...(memberOf || []).map(r => r.crew_id), ...(owned || []).map(r => r.id)])];
+  if (!crewIds.length) return [];
+  const [{ data: members }, { data: crews }] = await Promise.all([
+    supabase.from('crew_members').select('user_id').in('crew_id', crewIds).limit(500),
+    supabase.from('crews').select('owner_id').in('id', crewIds).limit(100),
+  ]);
+  return [...new Set([...(members || []).map(r => r.user_id), ...(crews || []).map(r => r.owner_id)])]
+    .filter(id => id && id !== userId);
+}
+
 export const PresenceManager = {
   _channel: null,
   _heartbeatTimer: null,
@@ -3388,9 +3419,13 @@ export const PresenceManager = {
   // `intent` — 'open' | 'crew' | 'music' | null. Purely informational (see
   // beacon_intent.sql): what someone means by going live, not just that they
   // are. Not an access-control gate; visibility is unchanged.
-  async activateBeacon(userId, coords = {}, minutes = 60, intent = null) {
+  // `audience` — 'everyone' | 'mutuals': who may find you while live. Enforced
+  // by get_safe_nearby_vibers (find_me_privacy.sql), not by this client.
+  // `minutes` is capped at 2 days here and again by the database.
+  async activateBeacon(userId, coords = {}, minutes = 60, intent = null, audience = null, cloak = null) {
     if (!userId) throw new Error('Sign in to go live.');
-    const expires = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+    const mins = Math.max(1, Math.min(48 * 60, Number(minutes) || 60));
+    const expires = new Date(Date.now() + mins * 60 * 1000).toISOString();
     const payload = {
       is_beacon_active: true,
       is_online: true,
@@ -3398,15 +3433,21 @@ export const PresenceManager = {
       beacon_expires_at: expires,
     };
     if (intent) payload.beacon_intent = intent;
+    if (audience) payload.beacon_audience = audience;
+    if (typeof cloak === 'boolean') payload.beacon_cloak = cloak;
     if (coords?.lat != null && coords?.lon != null) { payload.lat = coords.lat; payload.lon = coords.lon; }
+    const save = (body) => async () => { const { error } = await supabase.from('profiles').update(body).eq('id', userId); if (error) throw error; return true; };
+    const { beacon_intent: _i, ...noIntent } = payload;
+    const { beacon_audience: _a, beacon_cloak: _c, ...noPrivacy } = noIntent;
+    const { beacon_expires_at: _x, ...core } = noPrivacy;
+    // The vibe is only a label, so it may be dropped. The audience may not:
+    // falling back without "mutuals" or "crew" used to make people findable
+    // by everyone. Older databases (find_me_privacy.sql not applied) get the
+    // narrower tiers only when the choice was "everyone" anyway.
+    const narrowed = audience && audience !== 'everyone';
+    const tiers = [save(payload), save(noIntent), ...(narrowed ? [] : [save(noPrivacy), save(core)])];
     const res = await resilient(
-      [
-        async () => { const { error } = await supabase.from('profiles').update(payload).eq('id', userId); if (error) throw error; return true; },
-        // Fallback for DBs without beacon_intent yet.
-        async () => { const { beacon_intent: _i, ...noIntent } = payload; const { error } = await supabase.from('profiles').update(noIntent).eq('id', userId); if (error) throw error; return true; },
-        // Fallback for DBs without beacon_expires_at yet — still flips the beacon on.
-        async () => { const { beacon_expires_at: _x, beacon_intent: _i2, ...core } = payload; const { error } = await supabase.from('profiles').update(core).eq('id', userId); if (error) throw error; return true; },
-      ],
+      tiers,
       { attemptsPerTier: 2, baseMs: 300, label: 'PresenceManager.activateBeacon', fallbackValue: null }
     );
     if (res === null) throw new Error('Could not go live — please try again.');
@@ -3429,26 +3470,36 @@ export const PresenceManager = {
   // going live pings your MUTUALS (people you follow who follow you back —
   // a deliberate audience, never ambient broadcast) with where to pull up.
   // Truth Protocol: fires only on a real, user-initiated "go live".
-  async dropBeacon(userId, { coords = {}, minutes = 60, placeLabel = null, intent = null } = {}) {
-    const expires = await this.activateBeacon(userId, coords, minutes, intent);
+  async dropBeacon(userId, { coords = {}, minutes = 60, placeLabel = null, intent = null, audience = null, cloak = null } = {}) {
+    const expires = await this.activateBeacon(userId, coords, minutes, intent, audience, cloak);
 
-    // Fan out to mutuals — bounded, best-effort, never blocks going live.
+    // Fan out to mutuals (or, on "crew only", your crewmates) — bounded,
+    // best-effort, never blocks going live.
     (async () => {
       try {
-        const [{ data: iFollow }, { data: followMe }] = await Promise.all([
-          supabase.from('follows').select('following_id').eq('follower_id', userId).limit(500),
-          supabase.from('follows').select('follower_id').eq('following_id', userId).limit(500),
-        ]);
-        const mine = new Set((iFollow || []).map(r => r.following_id));
-        const mutuals = (followMe || []).map(r => r.follower_id).filter(id => mine.has(id)).slice(0, 50);
+        let people;
+        if (audience === 'crew') {
+          people = await crewmateIds(userId);
+        } else {
+          const [{ data: iFollow }, { data: followMe }] = await Promise.all([
+            supabase.from('follows').select('following_id').eq('follower_id', userId).limit(500),
+            supabase.from('follows').select('follower_id').eq('following_id', userId).limit(500),
+          ]);
+          const mine = new Set((iFollow || []).map(r => r.following_id));
+          people = (followMe || []).map(r => r.follower_id).filter(id => mine.has(id));
+        }
+        // Never ping someone you've hidden from (they'd learn you're out).
+        const { data: hidden } = await supabase.from('presence_hidden_from').select('hidden_id').eq('owner_id', userId).limit(500);
+        const hiddenIds = new Set((hidden || []).map(r => r.hidden_id));
+        const mutuals = people.filter(id => !hiddenIds.has(id)).slice(0, 50);
         if (!mutuals.length) return;
 
         const { data: me } = await supabase.from('profiles').select('username, display_name').eq('id', userId).maybeSingle();
         const name = me?.display_name || me?.username || 'A viber';
         const where = placeLabel ? ` at ${placeLabel}` : ' near you';
         await Promise.all(mutuals.map(rid =>
-          _notify(rid, userId, 'beacon', `${name} is out — pull up 📍`,
-            `${name} just went live${where}. Beacon is on for ${minutes} min.`).catch(() => {})
+          _notify(rid, userId, 'beacon', `${name} is out — pull up`,
+            `${name} just went live${where}. Findable for ${durationLabel(minutes)}.`).catch(() => {})
         ));
       } catch (e) { logError('Beacon.fanout', e, { userId }); }
     })();

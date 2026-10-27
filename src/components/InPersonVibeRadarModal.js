@@ -89,7 +89,7 @@ export function InPersonVibeRadarModal({
       partnerUser: { username: 'Kagiso_Vibe', bio: 'Amapiano producer & DJ' },
       eventId: event.id,
     });
-    toast?.('NFC Vibe Handshake Complete! Contact card exchanged & saved. ⚡', 'success');
+    toast?.('NFC Vibe Handshake Complete! Contact card exchanged & saved.', 'success');
   };
 
   const handleDropToRoll = async () => {
@@ -98,12 +98,12 @@ export function InPersonVibeRadarModal({
       eventId: event.id,
       author: user?.user_metadata?.username || 'You',
       mediaUrl: 'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=600',
-      caption: rollCaption || 'Midnight moment at the sound desk 🎧',
+      caption: rollCaption || 'Midnight moment at the sound desk',
       ghostMode,
     });
     setRollCaption('');
     loadData();
-    toast?.('Photo dropped into 24h Collective Camera Roll! 📸', 'success');
+    toast?.('Photo dropped into 24h Collective Camera Roll!', 'success');
   };
 
   return (
@@ -212,7 +212,7 @@ export function InPersonVibeRadarModal({
                       <Text style={{ color: muted, fontSize: 10 }}>🔋 Battery: {member.batteryLevel}</Text>
                     </View>
                     <TouchableOpacity
-                      onPress={() => toast?.(`Pinging @${member.username} with radar ping! 📍`, 'success')}
+                      onPress={() => toast?.(`Pinging @${member.username} with radar ping!`, 'success')}
                       style={[styles.smallBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}45` }]}
                     >
                       <Feather name="navigation" size={13} color={primary} />
@@ -262,7 +262,7 @@ export function InPersonVibeRadarModal({
                   <Text style={[styles.boxTitle, { color: textColor }]}>Drop a Photo to the Event Dump</Text>
                   <TextInput
                     style={[styles.inputFull, { color: textColor, borderColor: 'rgba(255,255,255,0.2)' }]}
-                    placeholder="Caption (e.g. When the DJ dropped that log drum 🔥)"
+                    placeholder="Caption (e.g. When the DJ dropped that log drum)"
                     placeholderTextColor={muted}
                     value={rollCaption}
                     onChangeText={setRollCaption}
