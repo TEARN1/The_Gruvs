@@ -178,7 +178,7 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
               <Feather name="compass" size={20} color={primary} />
               <Text style={[s.title, { color: primary }]}>Vibe Roulette</Text>
             </View>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Close">
               <Feather name="x" size={20} color={textColor} />
             </TouchableOpacity>
           </View>
@@ -286,7 +286,7 @@ export const VibeRouletteModal = ({ visible, onClose, events, onSelectEvent, pri
 
 const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
-  container: { width: '92%', maxWidth: 420, padding: 22, borderRadius: 24, gap: 16 },
+  container: { width: '92%', maxWidth: 440, padding: 22, borderRadius: 24, gap: 16, alignSelf: 'center' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 16, fontWeight: '900', letterSpacing: 1.5, textTransform: 'uppercase' },
   desc: { fontSize: 12, lineHeight: 18 },

@@ -12,8 +12,8 @@
  * Automatically detects the city's current real-time nightlife tempo and
  * gives vibers a tactile, acoustic scrubbing experience.
  */
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Animated } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { cyberAudio } from '../utils/cyberAudio';
 
@@ -34,7 +34,10 @@ export function NightlifeTimeDial({
   primary = '#00f2ff',
   textColor = '#fff',
   muted = 'rgba(255,255,255,0.55)',
+  defaultExpanded = false,
 }) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded || selectedHour !== null);
+
   // Real-time city tempo detection
   const currentTempo = useMemo(() => {
     const h = new Date().getHours();
@@ -49,71 +52,91 @@ export function NightlifeTimeDial({
     <View style={[styles.dialCard, { borderColor: `${primary}35` }]}>
       {/* Outer Cyber Reticles */}
       <View style={[styles.reticle, styles.tl, { borderColor: primary }]} />
-      <View style={[styles.reticle, styles.tr, { borderColor: primary }]} />
-      <View style={[styles.reticle, styles.bl, { borderColor: primary }]} />
-      <View style={[styles.reticle, styles.br, { borderColor: primary }]} />
+      <View style={[styles.tr, styles.reticle, { borderColor: primary }]} />
+      <View style={[styles.bl, styles.reticle, { borderColor: primary }]} />
+      <View style={[styles.br, styles.reticle, { borderColor: primary }]} />
 
-      <View style={styles.header}>
+      {/* Header bar / Micro-Capsule */}
+      <TouchableOpacity
+        style={styles.header}
+        activeOpacity={0.85}
+        onPress={() => {
+          cyberAudio.play('telemetryTick');
+          setIsExpanded(!isExpanded);
+        }}
+      >
         <View style={styles.titleRow}>
-          <Feather name="clock" size={14} color={primary} />
-          <Text style={[styles.title, { color: textColor }]}>TEMPORAL NIGHT SCRUBBER</Text>
+          <Feather name="clock" size={13} color={primary} />
+          <Text style={[styles.title, { color: textColor }]}>TEMPO // {currentTempo.phase}</Text>
           <View style={[styles.tempoBadge, { borderColor: `${currentTempo.color}55`, backgroundColor: `${currentTempo.color}15` }]}>
             <View style={[styles.liveDot, { backgroundColor: currentTempo.color }]} />
-            <Text style={[styles.tempoText, { color: currentTempo.color }]}>{currentTempo.phase}</Text>
+            <Text style={[styles.tempoText, { color: currentTempo.color }]}>
+              {selectedHour !== null ? `FILTER: ${selectedHour}:00` : 'LIVE'}
+            </Text>
           </View>
         </View>
-        <TouchableOpacity
-          onPress={() => {
-            cyberAudio.play('telemetryTick');
-            onClose?.();
-          }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Feather name="x" size={16} color={muted} />
-        </TouchableOpacity>
-      </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.slotsRow}
-      >
-        {NIGHT_PHASES.map((phase, idx) => {
-          const isActive = selectedHour === phase.hour;
-          return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Feather name={isExpanded ? "chevron-up" : "chevron-down"} size={15} color={primary} />
+          {onClose && (
             <TouchableOpacity
-              key={idx}
-              onPress={() => {
+              onPress={(e) => {
+                e.stopPropagation?.();
                 cyberAudio.play('telemetryTick');
-                onSelectHour(phase.hour);
+                onClose?.();
               }}
-              style={[
-                styles.slotBtn,
-                {
-                  borderColor: isActive ? primary : 'rgba(255,255,255,0.12)',
-                  backgroundColor: isActive ? 'rgba(0,242,255,0.18)' : 'rgba(255,255,255,0.04)',
-                  shadowColor: isActive ? primary : 'transparent',
-                  shadowOpacity: isActive ? 0.6 : 0,
-                  shadowRadius: 8,
-                },
-              ]}
-              activeOpacity={0.8}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Feather
-                name={phase.icon}
-                size={14}
-                color={isActive ? primary : muted}
-              />
-              <Text style={[styles.slotLabel, { color: isActive ? primary : textColor }]}>
-                {phase.label}
-              </Text>
-              <Text style={[styles.slotDesc, { color: muted }]}>
-                {phase.desc}
-              </Text>
+              <Feather name="x" size={15} color={muted} />
             </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      {/* Expanded Scrubber Strip */}
+      {isExpanded && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.slotsRow}
+        >
+          {NIGHT_PHASES.map((phase, idx) => {
+            const isActive = selectedHour === phase.hour;
+            return (
+              <TouchableOpacity
+                key={idx}
+                onPress={() => {
+                  cyberAudio.play('telemetryTick');
+                  onSelectHour(phase.hour);
+                }}
+                style={[
+                  styles.slotBtn,
+                  {
+                    borderColor: isActive ? primary : 'rgba(255,255,255,0.12)',
+                    backgroundColor: isActive ? 'rgba(0,242,255,0.18)' : 'rgba(255,255,255,0.04)',
+                    shadowColor: isActive ? primary : 'transparent',
+                    shadowOpacity: isActive ? 0.6 : 0,
+                    shadowRadius: 8,
+                  },
+                ]}
+                activeOpacity={0.8}
+              >
+                <Feather
+                  name={phase.icon}
+                  size={14}
+                  color={isActive ? primary : muted}
+                />
+                <Text style={[styles.slotLabel, { color: isActive ? primary : textColor }]}>
+                  {phase.label}
+                </Text>
+                <Text style={[styles.slotDesc, { color: muted }]}>
+                  {phase.desc}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
     </View>
   );
 }

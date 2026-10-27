@@ -9,6 +9,7 @@
 export const MAX_BEACON_MINUTES = 48 * 60;
 
 export const BEACON_DURATIONS = [
+  { key: '30m', label: '30 min', minutes: 30 },
   { key: '1h', label: '1 hour', minutes: 60 },
   { key: '4h', label: '4 hours', minutes: 240 },
   { key: 'tonight', label: 'Tonight', minutes: null }, // until 06:00
@@ -18,7 +19,7 @@ export const BEACON_DURATIONS = [
 
 /** Minutes for a duration key. "Tonight" runs to the next 06:00 local time. */
 export function minutesFor(key, now = new Date()) {
-  const opt = BEACON_DURATIONS.find((d) => d.key === key) || BEACON_DURATIONS[0];
+  const opt = BEACON_DURATIONS.find((d) => d.key === key) || BEACON_DURATIONS.find((d) => d.key === '1h');
   let mins = opt.minutes;
   if (mins == null) {
     const end = new Date(now);

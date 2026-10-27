@@ -45,6 +45,7 @@ export function ZoneDrawTool({
   const [activeHrs, setActiveHrs] = useState(4);
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
+  const [trafficPrediction, setTrafficPrediction] = useState('Heavy Congestion');
   const [detourPoints, setDetourPoints] = useState([]);
   const [drawingDetour, setDrawingDetour] = useState(false);
 
@@ -79,9 +80,17 @@ export function ZoneDrawTool({
     try {
       const startsAt = new Date(Date.now() + startHrs * 3600 * 1000);
       const endsAt = new Date(startsAt.getTime() + activeHrs * 3600 * 1000);
+      let fullNote = label.trim() || ZONE_KINDS[kind]?.label || '';
+      if (trafficPrediction) {
+        fullNote = `[TRAFFIC: ${trafficPrediction}] ${fullNote}`.trim();
+      }
+      if (detourPoints.length > 0) {
+        fullNote = `[DETOUR: Bypass route active] ${fullNote}`.trim();
+      }
       const zone = await MapZones.create({
         eventId, kind, geometry, startsAt, endsAt,
-        label: label.trim() || ZONE_KINDS[kind]?.label,
+        label: (label.trim() || ZONE_KINDS[kind]?.label || '').slice(0, 80),
+        note: fullNote.slice(0, 250),
       });
       toast('Marked on the map — locals can see it now.', 'success');
       onPublished?.(zone);
@@ -179,10 +188,45 @@ export function ZoneDrawTool({
             </View>
           </View>
 
+          {/* Host Traffic & Busyness Prediction */}
+          <View style={{ marginTop: 2 }}>
+            <Text style={[s.lbl, { color: muted }]}>HOST TRAFFIC PREDICTION</Text>
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+              {[
+                { key: 'Normal Flow', label: '🟢 Normal' },
+                { key: 'Moderate Congestion', label: '🟡 Moderate' },
+                { key: 'Heavy Congestion', label: '🟠 Heavy (+20m)' },
+                { key: 'Street Closed', label: '🔴 Street Closed' },
+              ].map(t => {
+                const active = trafficPrediction === t.key;
+                return (
+                  <TouchableOpacity
+                    key={t.key}
+                    onPress={() => setTrafficPrediction(t.key)}
+                    style={[
+                      s.durChip,
+                      {
+                        flex: 1,
+                        minWidth: 70,
+                        borderColor: active ? primary : `${primary}30`,
+                        backgroundColor: active ? `${primary}18` : 'transparent',
+                        paddingVertical: 7,
+                      }
+                    ]}
+                  >
+                    <Text style={{ color: active ? primary : textColor, fontSize: 10, fontWeight: '800' }}>
+                      {t.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
           {/* Optional label */}
           <TextInput
             value={label} onChangeText={setLabel} maxLength={80}
-            placeholder="Add a note (optional) — e.g. 'stage build-down'" placeholderTextColor={muted}
+            placeholder="Add a note (optional) — e.g. 'Stage build-down / Marathon loop'" placeholderTextColor={muted}
             style={[s.input, { color: textColor, borderColor: `${primary}30` }]}
           />
 

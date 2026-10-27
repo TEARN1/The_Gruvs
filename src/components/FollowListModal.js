@@ -44,12 +44,13 @@ export const FollowListModal = ({ visible, onClose, userId, mode = 'followers', 
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={fl.overlay}>
         <View style={[fl.sheet, { backgroundColor: bg, borderColor: `${primary}30` }]}>
+          <View style={fl.notchHandle} />
           <View style={fl.header}>
             <Text style={[fl.title, { color: textColor }]}>
               {mode === 'followers' ? 'Your Crew' : 'Following'}
               {Array.isArray(people) ? `  ·  ${people.length}` : ''}
             </Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Close">
               <Feather name="x" size={22} color={textColor} />
             </TouchableOpacity>
           </View>
@@ -108,8 +109,9 @@ export const FollowListModal = ({ visible, onClose, userId, mode = 'followers', 
 };
 
 const fl = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, paddingBottom: Platform.OS === 'web' ? 20 : 34, maxHeight: '80%' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end', alignItems: 'center' },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, paddingBottom: Platform.OS === 'web' ? 20 : 34, maxHeight: '80%', maxWidth: 580, width: '100%', alignSelf: 'center' },
+  notchHandle: { width: 44, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.25)', alignSelf: 'center', marginTop: 10, marginBottom: 4 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, paddingBottom: 12 },
   title: { fontSize: 17, fontWeight: '900' },
   empty: { alignItems: 'center', gap: 10, paddingVertical: 30, paddingHorizontal: 24 },
@@ -119,7 +121,7 @@ const fl = StyleSheet.create({
   name: { fontSize: 14.5, fontWeight: '800', flexShrink: 1 },
   handle: { fontSize: 12, marginTop: 1 },
   verified: { width: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  vibe: { fontSize: 12, fontWeight: '900' },
+  vibe: { fontSize: 12, fontWeight: '900', fontVariant: ['tabular-nums'] },
 });
 
 export default FollowListModal;

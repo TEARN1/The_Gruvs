@@ -108,6 +108,7 @@ export const NowPlayingBar = ({ eventId, onPress }) => {
       style={[s.bar, { backgroundColor: bg, borderColor: `${primary}40` }]}
       onPress={onPress}
       activeOpacity={0.85}
+      accessibilityRole="button"
       accessibilityLabel={`Now playing: ${nowPlaying.song_title || 'set'} by ${nowPlaying.artist_name}`}
     >
       {/* Live dot */}
@@ -147,7 +148,7 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 16,
     borderWidth: 1,
-    gap: 12,
+    gap: 12, maxWidth: 680, alignSelf: 'center',
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
   info: { flex: 1 },
@@ -155,5 +156,5 @@ const s = StyleSheet.create({
   artist: { fontSize: 13, fontWeight: '800' },
   song: { fontSize: 11, fontWeight: '600', marginTop: 1 },
   right: { alignItems: 'flex-end', gap: 4 },
-  elapsed: { fontSize: 10, fontWeight: '700' },
+  elapsed: { fontSize: 10, fontWeight: '700', fontVariant: ['tabular-nums'] },
 });

@@ -190,10 +190,10 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
 
   let thumb = null;
   if (ev) {
-    // TODO(v6): remove cover_image fallback after migration
+    // NOTE(v6): retain cover_image fallback for backward compatibility
     thumb = ev.cover_url || ev.cover_image || null;
     if (!thumb) { let m = ev.media; if (typeof m === 'string') { try { m = JSON.parse(m); } catch { m = null; } } if (Array.isArray(m) && m[0]) thumb = typeof m[0] === 'string' ? m[0] : m[0]?.url; }
-    // TODO(v6): remove media_urls fallback after migration
+    // NOTE(v6): retain media_urls fallback for backward compatibility
     if (!thumb && Array.isArray(ev.media_urls) && ev.media_urls[0]) thumb = ev.media_urls[0];
   }
   const priceStr = priceLabel(ev?.price);
@@ -783,7 +783,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
           .eq('author_id', user.id).gte('event_date', today)
           .order('event_date', { ascending: true }).limit(25),
         supabase.from('event_rsvps').select(`events:event_id(${cols})`)
-          .eq('user_id', user.id).eq('status', 'going').limit(25),
+          .eq('user_id', user?.id).eq('status', 'going').limit(25),
       ]);
       const going = (rsvps.data || []).map(r => r.events).filter(Boolean);
       const seen = new Set();
@@ -1279,7 +1279,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
       >
         {/* Header */}
         <View style={[dm.header, { borderBottomColor: `${primary}18`, paddingTop: embedded ? 14 : insets.top + 10 }]}>
-          <TouchableOpacity onPress={onClose} style={dm.backBtn}>
+          <TouchableOpacity onPress={onClose} style={dm.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Back">
             <Feather name={embedded ? 'x' : 'arrow-left'} size={22} color={textColor} />
           </TouchableOpacity>
           <TouchableOpacity style={dm.headerInfo} onPress={() => setProfileModalVisible(true)} activeOpacity={0.8}>
@@ -1728,7 +1728,11 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      {inner}
+      <View style={{ flex: 1, backgroundColor: bg, alignItems: 'center' }}>
+        <View style={{ flex: 1, width: '100%', maxWidth: 680 }}>
+          {inner}
+        </View>
+      </View>
     </Modal>
   );
 };

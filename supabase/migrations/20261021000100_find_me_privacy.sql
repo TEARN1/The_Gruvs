@@ -13,8 +13,10 @@
 --
 --  After it:
 --  • You are findable only while your beacon is on, for the time you chose
---    (at most 2 days, enforced here), and only to the audience you picked.
---  • Positions come back rounded: ~110 m normally, ~1.1 km in ghost mode.
+--    (at most 2 days, enforced here), and only to the audience you picked:
+--    anyone nearby, mutuals, or people in one of your crews.
+--  • Positions come back rounded: ~1.1 km with the cloak on (the default) or
+--    in ghost mode, ~110 m with it off. Never the exact pin.
 --  • presence_hidden_from: people you hide never see you nearby, nor your
 --    RSVPs or check-ins. Blocking, either way, does the same. Hosts still see
 --    their own guest lists. Nobody can see who hid them.
@@ -26,19 +28,23 @@
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS lat double precision;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS lon double precision;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS beacon_intent text;
+-- The vibe someone shows while live. beacon_intent.sql allowed three; the app
+-- now offers six, and a rejected vibe used to knock the whole save down a
+-- fallback that also dropped the audience.
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_beacon_intent_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_beacon_intent_check
+  CHECK (beacon_intent IS NULL OR beacon_intent IN ('bored', 'late_bites', 'open', 'crew', 'music', 'chill'));
 
--- Who can find me while I'm live: anyone nearby, or only people I follow who
--- follow me back.
+-- Who can find me while I'm live: anyone nearby, only people I follow who
+-- follow me back, or only people in one of my crews.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS beacon_audience text DEFAULT 'everyone';
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_beacon_audience_check') THEN
-    ALTER TABLE public.profiles ADD CONSTRAINT profiles_beacon_audience_check
-      CHECK (beacon_audience IS NULL OR beacon_audience IN ('everyone', 'mutuals'));
-  END IF;
-END $$;
--- profiles uses column-level grants in production; the new column needs its own.
-GRANT SELECT (beacon_audience), UPDATE (beacon_audience) ON public.profiles TO authenticated;
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_beacon_audience_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_beacon_audience_check
+  CHECK (beacon_audience IS NULL OR beacon_audience IN ('everyone', 'mutuals', 'crew'));
+-- The cloak: on, people see roughly where you are (~1 km); off, ~100 m.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS beacon_cloak boolean NOT NULL DEFAULT true;
+-- profiles uses column-level grants in production; new columns need their own.
+GRANT SELECT (beacon_audience, beacon_cloak), UPDATE (beacon_audience, beacon_cloak) ON public.profiles TO authenticated;
 
 -- ── 1. A beacon lasts at most 2 days, whatever the client sends ──────────────
 CREATE OR REPLACE FUNCTION public.clamp_beacon_expiry()
@@ -102,10 +108,40 @@ $$;
 REVOKE ALL ON FUNCTION public.can_see_presence(uuid, uuid) FROM public;
 GRANT EXECUTE ON FUNCTION public.can_see_presence(uuid, uuid) TO anon, authenticated;
 
+-- Do these two people share a crew (as members, or one owns it)? PL/pgSQL so
+-- it builds on schemas without crews, where it simply answers no. Not granted
+-- to clients: only the definer functions here ask it.
+CREATE OR REPLACE FUNCTION public.shares_crew(p_a uuid, p_b uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  IF p_a IS NULL OR p_b IS NULL OR p_a = p_b
+     OR to_regclass('public.crews') IS NULL OR to_regclass('public.crew_members') IS NULL THEN
+    RETURN false;
+  END IF;
+  RETURN EXISTS (
+    SELECT 1
+      FROM public.crews c
+     WHERE (c.owner_id = p_a OR EXISTS (SELECT 1 FROM public.crew_members m WHERE m.crew_id = c.id AND m.user_id = p_a))
+       AND (c.owner_id = p_b OR EXISTS (SELECT 1 FROM public.crew_members m WHERE m.crew_id = c.id AND m.user_id = p_b))
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.shares_crew(uuid, uuid) FROM public, anon, authenticated;
+
 -- ── 4. Who's nearby, done properly ───────────────────────────────────────────
--- Same signature as before, so the app's call is unchanged.
-CREATE OR REPLACE FUNCTION public.get_safe_nearby_vibers(u_lat double precision, u_lon double precision, radius_km double precision)
-RETURNS TABLE(id uuid, username text, avatar_url text, vibe_score integer, distance_km double precision, lat double precision, lon double precision)
+-- Same arguments as before, so the app's call is unchanged. It also returns
+-- the vibe each person chose to show, and whether they are your mutual or in
+-- one of your crews, which Find Them's filters need (clients can't read
+-- beacon_intent). Changing the result columns needs a drop first.
+DROP FUNCTION IF EXISTS public.get_safe_nearby_vibers(double precision, double precision, double precision);
+CREATE FUNCTION public.get_safe_nearby_vibers(u_lat double precision, u_lon double precision, radius_km double precision)
+RETURNS TABLE(id uuid, username text, avatar_url text, vibe_score integer, distance_km double precision, lat double precision, lon double precision,
+              beacon_intent text, is_mutual boolean, is_crew boolean)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
@@ -114,7 +150,12 @@ AS $$
   WITH me AS (SELECT auth.uid() AS uid, LEAST(GREATEST(COALESCE(radius_km, 5), 0.5), 50) AS r),
   cand AS (
     SELECT p.id AS pid, p.username AS uname, p.avatar_url AS avatar, p.vibe_score AS score,
-           p.identity_mode AS mode, p.lat AS plat, p.lon AS plon,
+           p.beacon_intent AS intent, p.beacon_audience AS audience,
+           (EXISTS (SELECT 1 FROM public.follows f WHERE f.follower_id = p.id AND f.following_id = me.uid)
+            AND EXISTS (SELECT 1 FROM public.follows f WHERE f.follower_id = me.uid AND f.following_id = p.id)) AS mutual,
+           public.shares_crew(p.id, me.uid) AS crew,
+           (p.identity_mode = 'ghost' OR COALESCE(p.beacon_cloak, true)) AS coarse,
+           p.lat AS plat, p.lon AS plon,
            6371 * 2 * asin(sqrt(
              power(sin(radians(p.lat - u_lat) / 2), 2)
              + cos(radians(u_lat)) * cos(radians(p.lat)) * power(sin(radians(p.lon - u_lon) / 2), 2)
@@ -129,18 +170,18 @@ AS $$
        AND COALESCE(p.is_beacon_active, false)
        AND p.beacon_expires_at > now()
        AND public.can_see_presence(p.id, me.uid)
-       AND (
-         COALESCE(p.beacon_audience, 'everyone') = 'everyone'
-         OR (EXISTS (SELECT 1 FROM public.follows f WHERE f.follower_id = p.id AND f.following_id = me.uid)
-             AND EXISTS (SELECT 1 FROM public.follows f WHERE f.follower_id = me.uid AND f.following_id = p.id))
-       )
   )
   SELECT c.pid, c.uname, c.avatar, c.score,
-         round(c.d::numeric, 1)::double precision,
-         round(c.plat::numeric, CASE WHEN c.mode = 'ghost' THEN 2 ELSE 3 END)::double precision,
-         round(c.plon::numeric, CASE WHEN c.mode = 'ghost' THEN 2 ELSE 3 END)::double precision
+         -- Distance gives position away too, so cloaked people get whole km.
+         CASE WHEN c.coarse THEN GREATEST(1, round(c.d::numeric, 0)) ELSE round(c.d::numeric, 1) END::double precision,
+         round(c.plat::numeric, CASE WHEN c.coarse THEN 2 ELSE 3 END)::double precision,
+         round(c.plon::numeric, CASE WHEN c.coarse THEN 2 ELSE 3 END)::double precision,
+         c.intent, c.mutual, c.crew
     FROM cand c, me
    WHERE c.d <= me.r
+     AND (COALESCE(c.audience, 'everyone') = 'everyone'
+          OR (c.audience = 'mutuals' AND c.mutual)
+          OR (c.audience = 'crew' AND c.crew))
    ORDER BY c.d
    LIMIT 100;
 $$;

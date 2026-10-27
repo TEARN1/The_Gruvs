@@ -73,6 +73,7 @@ import { ReactPicker } from '../components/ReactPicker';
 import { GlitterBurst } from '../components/GlitterBurst';
 import { SuggestedFollows } from '../components/SuggestedFollows';
 import { GoOutNudge } from '../components/GoOutNudge';
+import { appInstallService } from '../services/appInstallService';
 import birthdaySpotlight from '../services/birthdaySpotlight';
 // ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
 import { PostEventModal }       from '../components/PostEventModal';
@@ -82,6 +83,7 @@ import { EventAdminPanel }      from '../components/EventAdminPanel';
 import { EditEventModal }       from '../components/EditEventModal';
 import { RSVPConfirmModal }     from '../components/RSVPConfirmModal';
 import { ReportModal }          from '../components/ReportModal';
+import { QuickToolsSheet }      from '../components/QuickToolsSheet';
 import { EventMapView }         from '../components/EventMapView';
 import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './lazyScreens';
@@ -479,7 +481,7 @@ const EventCard = React.memo(({
                 m = event.media_urls.map(u => ({ url: u, type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image' }));
               }
               if (!m?.length && event.cover_url) m = [{ url: event.cover_url, type: 'image' }];
-              // TODO(v6): remove cover_image/image_url fallbacks after migration
+              // NOTE(v6): retain cover_image/image_url fallbacks for backward compatibility
               if (!m?.length && event.cover_image) m = [{ url: event.cover_image, type: 'image' }];
               if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
 
@@ -860,134 +862,158 @@ const EventCard = React.memo(({
             </TouchableOpacity>
           ) : null}
 
-          {/* Action bar — Item 51: accessible labels on all action buttons */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
+          {/* Action bar — Responsive, full-width with secondary tools toggle */}
+          <View style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
             <View style={styles.actionBar}>
-              <TouchableOpacity
-                style={[styles.actionBtn, { position: 'relative' }]}
-                onPress={() => {
-                  const canVibe = !!user && (isVibed || event.author_id !== user.id);
-                  if (canVibe) setLikeFx(f => ({ n: f.n + 1, kind: isVibed ? 'unlike' : 'like', burst: isVibed ? f.burst : Date.now() }));
-                  onVibe(id);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
-              >
-                <View style={{ position: 'relative' }}>
-                  <Pop trigger={likeFx.n} kind={likeFx.kind}>
-                    <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
+              <View style={styles.actionGroupLeft}>
+                {/* Vibe */}
+                <TouchableOpacity
+                  style={[styles.actionBtn, { position: 'relative' }]}
+                  onPress={() => {
+                    const canVibe = !!user && (isVibed || event.author_id !== user.id);
+                    if (canVibe) setLikeFx(f => ({ n: f.n + 1, kind: isVibed ? 'unlike' : 'like', burst: isVibed ? f.burst : Date.now() }));
+                    onVibe(id);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
+                >
+                  <View style={{ position: 'relative' }}>
+                    <Pop trigger={likeFx.n} kind={likeFx.kind}>
+                      <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
+                    </Pop>
+                    <ControlledGlitterBurst trigger={likeFx.burst} count={10} radius={26} colors={['#ef4444', '#fde047', '#ffffff']} enableHaptics={false} />
+                  </View>
+                  <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? "#ef4444" : muted }]} />
+                </TouchableOpacity>
+
+                {/* React */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onToggleSection(id, 'react')}
+                  accessibilityRole="button"
+                  accessibilityLabel="React to this event"
+                >
+                  <Pop trigger={userReaction || ''} kind="pop">
+                    {userReaction
+                      ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
+                      : <Feather name="smile" size={19} color={muted} />
+                    }
                   </Pop>
-                  <ControlledGlitterBurst trigger={likeFx.burst} count={10} radius={26} colors={['#ef4444', '#fde047', '#ffffff']} enableHaptics={false} />
+                  <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
+                </TouchableOpacity>
+
+                {/* Echo (Comments) */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onToggleSection(id, 'echo')}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
+                >
+                  <Feather name="message-circle" size={19} color={openSection === 'echo' ? primary : muted} />
+                  <Text style={[styles.actionCount, { color: openSection === 'echo' ? primary : muted }]}>{event.echo_count || 0}</Text>
+                </TouchableOpacity>
+
+                {/* Share */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onShare(event)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Share event: ${title}`}
+                >
+                  <Feather name="share-2" size={19} color={muted} />
+                </TouchableOpacity>
+
+                {/* More Tools Toggle */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onToggleSection(id, 'more')}
+                  accessibilityRole="button"
+                  accessibilityLabel="More event tools"
+                >
+                  <Feather name="more-horizontal" size={19} color={openSection === 'more' ? primary : muted} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Bookmark Button */}
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onBookmark(id)}
+                accessibilityRole="button"
+                accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+                  <Feather name="bookmark" size={19} color={isSaved ? primary : muted} />
+                  <GlitterBurst trigger={saveFx} size={90} colors={[primary, '#fde047', '#ffffff', '#a78bfa']} />
                 </View>
-                <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? "#ef4444" : muted }]} />
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'react')}
-                accessibilityRole="button"
-                accessibilityLabel="React to this event"
-              >
-                <Pop trigger={userReaction || ''} kind="pop">
-                  {userReaction
-                    ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
-                    : <Feather name="smile" size={19} color={muted} />
-                  }
-                </Pop>
-                <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'echo')}
-                accessibilityRole="button"
-                accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
-              >
-                <Feather name="message-circle" size={19} color={openSection === 'echo' ? primary : muted} />
-                <Text style={[styles.actionCount, { color: openSection === 'echo' ? primary : muted }]}>{event.echo_count || 0}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'gallery')}
-                accessibilityRole="button"
-                accessibilityLabel="View event gallery"
-              >
-                <Feather name="camera" size={19} color={openSection === 'gallery' ? primary : muted} />
-                <Text style={[styles.actionLabel, { color: openSection === 'gallery' ? primary : muted }]}>Gallery</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'pulse')}
-                accessibilityRole="button"
-                accessibilityLabel="View Pulse Schedule"
-              >
-                <Feather name="activity" size={19} color={openSection === 'pulse' ? primary : muted} />
-                <Text style={[styles.actionLabel, { color: openSection === 'pulse' ? primary : muted }]}>Pulse</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleRoute(event)}
-                accessibilityRole="button"
-                accessibilityLabel={isRoute ? 'Remove from journey' : 'Pin to your journey'}
-              >
-                <Feather
-                  name={isRoute ? "map-pin" : "plus-circle"}
-                  size={19}
-                  color={isRoute ? primary : muted}
-                />
-                <Text style={[styles.actionLabel, { color: isRoute ? primary : muted }]}>Journey</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'rate')}
-                accessibilityRole="button"
-                accessibilityLabel="Rate this event"
-              >
-                <Feather name="star" size={19} color={openSection === 'rate' ? primary : muted} />
-                <Text style={[styles.actionLabel, { color: openSection === 'rate' ? primary : muted }]}>Rate</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onShare(event)}
-                accessibilityRole="button"
-                accessibilityLabel={`Share event: ${title}`}
-              >
-                <Feather name="share-2" size={19} color={muted} />
-                <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionBtn} onPress={() => {
-                safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
-                if (user) onRsvpEvent(event);
-                else { PendingIntent.set('rsvp', { eventId: event.id, event }); onAuthRequired(); }
-              }}>
-                <Feather name="check-circle" size={19} color={muted} />
-                <Text style={[styles.actionLabel, { color: muted }]}>RSVP</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionBtn} onPress={() => onReportTarget({ id, type: 'event' })}>
-                <Feather name="flag" size={19} color={muted} />
-              </TouchableOpacity>
-
-              {isOwner && (
-                <TouchableOpacity style={styles.actionBtn} onPress={() => onEditEvent(event)}>
-                  <Feather name="edit-2" size={19} color={primary} />
-                </TouchableOpacity>
-              )}
-
-              {isOwner && (
-                <TouchableOpacity style={styles.actionBtn} onPress={() => onAdminEvent(event)}>
-                  <Feather name="bar-chart-2" size={19} color={primary} />
-                  <Text style={[styles.actionLabel, { color: primary }]}>Admin</Text>
-                </TouchableOpacity>
-              )}
             </View>
-          </ScrollView>
+
+            {/* Secondary actions tray */}
+            {openSection === 'more' && (
+              <View style={[styles.moreToolsTray, { borderTopColor: `${primary}15` }]}>
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: isRoute ? primary : 'rgba(255,255,255,0.12)', backgroundColor: isRoute ? `${primary}15` : 'transparent' }]}
+                  onPress={() => onToggleRoute(event)}
+                >
+                  <Feather name={isRoute ? "map-pin" : "plus-circle"} size={13} color={isRoute ? primary : muted} />
+                  <Text style={[styles.moreToolText, { color: isRoute ? primary : textColor }]}>{isRoute ? 'In Journey' : 'Journey'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onToggleSection(id, 'gallery')}
+                >
+                  <Feather name="camera" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: textColor }]}>Gallery</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onToggleSection(id, 'pulse')}
+                >
+                  <Feather name="activity" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: textColor }]}>Pulse</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onToggleSection(id, 'rate')}
+                >
+                  <Feather name="star" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: textColor }]}>Rate</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onReportTarget({ id, type: 'event' })}
+                >
+                  <Feather name="flag" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: muted }]}>Report</Text>
+                </TouchableOpacity>
+
+                {isOwner && (
+                  <TouchableOpacity
+                    style={[styles.moreToolPill, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}
+                    onPress={() => onEditEvent(event)}
+                  >
+                    <Feather name="edit-2" size={13} color={primary} />
+                    <Text style={[styles.moreToolText, { color: primary }]}>Edit</Text>
+                  </TouchableOpacity>
+                )}
+
+                {isOwner && (
+                  <TouchableOpacity
+                    style={[styles.moreToolPill, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}
+                    onPress={() => onAdminEvent(event)}
+                  >
+                    <Feather name="bar-chart-2" size={13} color={primary} />
+                    <Text style={[styles.moreToolText, { color: primary }]}>Admin</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
 
           {/* Collapsible sections — each in its own SafeSection */}
           {openSection === 'react' && (
@@ -1100,7 +1126,7 @@ const orderForGuest = (list) =>
 //  ScoreEngine.eventScore + personalisation + diversify. This screen only
 //  filters, dedupes and collapses tours; it never re-ranks.)
 
-export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap }) => {
+export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap, onNavigateToTab }) => {
   // Header fit on small phones: at 320 px the logo, wordmark and five round
   // buttons were wider than the screen and the "+" (post) button was cut off.
   const { width: winW } = useWindowDimensions();
@@ -1129,6 +1155,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [ridesModalVisible, setRidesModalVisible] = useState(false);
   const [selectedCat, setSelectedCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [quickToolsVisible, setQuickToolsVisible] = useState(false);
   // ── Community Safety Alert (from The Resident) ────────────────────────────
   const [communityAlert, setCommunityAlert] = useState(null);
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -1309,6 +1338,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const handleBackButton = () => {
       if (selectedEvent) {
         setSelectedEvent(null);
+        return true;
+      }
+      if (quickToolsVisible) {
+        setQuickToolsVisible(false);
         return true;
       }
       if (routeModalVisible) {
@@ -1859,16 +1892,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       const ok = wasFollowing
         ? await resilient(
             [
-              async () => { const { error } = await supabase.rpc('unfollow_user', { p_follower_id: user.id, p_following_id: profileId }); if (error) throw error; return true; },
-              async () => { const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profileId); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.rpc('unfollow_user', { p_follower_id: user?.id, p_following_id: profileId }); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.from('follows').delete().eq('follower_id', user?.id).eq('following_id', profileId); if (error) throw error; return true; },
             ],
             { attemptsPerTier: 2, baseMs: 300, label: `LandingPage.unfollow:${profileId}`, fallbackValue: null }
           )
         : await resilient(
             [
-              async () => { const { error } = await supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: profileId }); if (error) throw error; return true; },
-              async () => { const { error } = await supabase.from('follows').upsert({ follower_id: user.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }); if (error) throw error; return true; },
-              async () => { const { error } = await supabase.from('follows').insert({ follower_id: user.id, following_id: profileId }); if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error; return true; },
+              async () => { const { error } = await supabase.rpc('follow_user', { p_follower_id: user?.id, p_following_id: profileId }); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.from('follows').upsert({ follower_id: user?.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.from('follows').insert({ follower_id: user?.id, following_id: profileId }); if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error; return true; },
             ],
             { attemptsPerTier: 2, baseMs: 300, label: `LandingPage.follow:${profileId}`, fallbackValue: null }
           );
@@ -2198,8 +2231,8 @@ CELEBRATING TODAY
   const renderHeader = () => (
     <View style={[styles.headerWrap, { borderBottomColor: `${primary}20` }]}>
       <CyberScanline color={primary} opacity={0.12} duration={4500} />
-      {/* Main Row: Logo + Search + Actions */}
-      <View style={styles.mainRow}>
+      {/* Main Row: Logo + Search + Actions (dynamic notch clearance) */}
+      <View style={[styles.mainRow, { paddingTop: Math.max(insets.top || 0, 14) }]}>
         <View style={styles.brandGroup}>
           <BrandLogo size={tightHeader ? 30 : 36} showGlow />
           {!tightHeader && <View style={styles.wordmarkMini}>
@@ -2222,6 +2255,8 @@ CELEBRATING TODAY
             placeholder="Search events, scenes, venues..."
             placeholderTextColor={muted}
             value={searchQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 250)}
             onChangeText={setSearchQuery}
             onSubmitEditing={() => { if (searchQuery.trim()) saveSearch(searchQuery.trim()); }}
             returnKeyType="search"
@@ -2234,54 +2269,29 @@ CELEBRATING TODAY
         </GlassView>
 
         <View style={[styles.headerActions, tightHeader && { gap: 6 }]}>
-          {/* Reels — opt-in entry while it's demoted from the tab bar */}
-          {onNavigateToReels && HIDDEN_TABS.includes('reels') && (
+          {Platform.OS === 'web' && (
             <TouchableOpacity
-              style={[styles.iconBtn, iconBox, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}
-              onPress={onNavigateToReels}
+              style={[styles.iconBtn, iconBox, { backgroundColor: `${primary}18`, borderColor: `${primary}45` }]}
+              onPress={() => appInstallService.openModal()}
               accessibilityRole="button"
-              accessibilityLabel="Reels"
+              accessibilityLabel="Download and install The Gruvs App for Apple or Android"
             >
-              <Feather name="film" size={16} color={primary} />
+              <Feather name="download" size={16} color={primary} />
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.1)' }]}
-            onPress={() => setRouletteVisible(true)}
+            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: `${primary}35` }]}
+            onPress={() => setQuickToolsVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel="Vibe Roulette"
+            accessibilityLabel="Explore tools and quick actions"
           >
-            <Feather name="compass" size={16} color={textColor} />
-          </TouchableOpacity>
-          {feature('sensorySuite') && (
-            <TouchableOpacity
-              style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
-              onPress={() => setSensoryModalVisible(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Nightlife Sensory Suite"
-            >
-              <Feather name="zap" size={16} color="#00f2ff" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: '#f59e0b35' }]}
-            onPress={() => setCultureModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Culture & Heritage Artifacts"
-          >
-            <Feather name="award" size={16} color="#f59e0b" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(0,242,255,0.08)', borderColor: '#00f2ff35' }]}
-            onPress={() => setRidesModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Resident Rides & Lifts"
-          >
-            <Feather name="navigation" size={16} color={primary} />
+            <Feather name="grid" size={16} color={primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.postIconBtn, iconBox, { backgroundColor: primary, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
+            accessibilityRole="button"
+            accessibilityLabel="Drop a Gruv"
           >
             <Feather name="plus" size={18} color="#000" />
           </TouchableOpacity>
@@ -2290,7 +2300,6 @@ CELEBRATING TODAY
 
       <StoriesRow onAuthRequired={onAuthRequired} />
 
-      <CommunityStatsBar />
       <EcosystemUniverseBar primary={primary} textColor={textColor} muted={muted} />
 
       {!!user && (
@@ -2339,29 +2348,15 @@ CELEBRATING TODAY
       {/* Visitor banner — only if no user */}
       {!user && <VisitorBanner onSignIn={onAuthRequired} primary={primary} muted={muted} textColor={textColor} />}
 
-      {/* Search history chips */}
-      <SearchHistoryBar
-        currentQuery={searchQuery}
-        onSelect={q => { setSearchQuery(q); setDebouncedQuery(q); }}
-        primary={primary}
-        muted={muted}
-      />
-
-      {/* Date filter strip */}
-      <DateFilterStrip
-        value={dateFilter}
-        onChange={(val, range) => { setDateFilter(val); setDateRange(range); }}
-        primary={primary}
-        muted={muted}
-      />
-
-      {/* Trending hashtags */}
-      <HashtagStrip
-        activeTag={activeHashtag}
-        onTagSelect={tag => { setActiveHashtag(tag); if (tag) setSearchQuery(`#${tag}`); else setSearchQuery(''); }}
-        primary={primary}
-        muted={muted}
-      />
+      {/* Search history chips — only rendered when actively searching */}
+      {(searchFocused || searchQuery.length > 0) && (
+        <SearchHistoryBar
+          currentQuery={searchQuery}
+          onSelect={q => { setSearchQuery(q); setDebouncedQuery(q); }}
+          primary={primary}
+          muted={muted}
+        />
+      )}
 
       <TonightAlert
         events={events}
@@ -2373,10 +2368,9 @@ CELEBRATING TODAY
         primary={primary}
       />
 
-      {/* Vibe Oracle (AI Prediction) — DISABLED */}
-
-      {/* Feed mode toggle — All / Upcoming / Following / Mine / Rides */}
-      <View style={{ flexDirection: 'row', marginHorizontal: 14, marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
+      {/* Primary Discovery Bar: Feed Mode Tabs + Filter Drawer Trigger + Layout Toggle */}
+      <View style={styles.filterControlRow}>
+        <View style={styles.feedModeTabs}>
           {[
             { key: 'upcoming', label: 'Upcoming', icon: 'calendar' },
             { key: 'all', label: 'For You', icon: 'home' },
@@ -2394,36 +2388,44 @@ CELEBRATING TODAY
                   }
                   safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
                 }}
-                style={{
-                  flexDirection: 'row', alignItems: 'center', gap: 5,
-                  paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
-                  backgroundColor: active ? primary : 'rgba(255,255,255,0.06)',
-                  borderWidth: 1, borderColor: active ? primary : 'rgba(255,255,255,0.10)',
-                }}
+                style={[
+                  styles.modeTabPill,
+                  {
+                    backgroundColor: active ? primary : 'rgba(255,255,255,0.06)',
+                    borderColor: active ? primary : 'rgba(255,255,255,0.10)',
+                  }
+                ]}
               >
                 <Feather name={tab.icon} size={12} color={active ? '#000' : textColor} />
                 <Text style={{ fontSize: 12, fontWeight: '800', color: active ? '#000' : textColor }}>{tab.label}</Text>
               </TouchableOpacity>
             );
           })}
-          {/* Dedicated Rides Strategy Button */}
+        </View>
+
+        <View style={styles.filterActionsRight}>
+          {/* Filter Drawer Toggle with active filter dot */}
           <TouchableOpacity
             onPress={() => {
-              setRidesModalVisible(true);
+              setFiltersExpanded(prev => !prev);
               safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
             }}
             accessibilityRole="button"
-            accessibilityLabel="The Drop Rides & Resident Lifts"
-            style={{
-              flexDirection: 'row', alignItems: 'center', gap: 5,
-              paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
-              backgroundColor: `${primary}18`,
-              borderWidth: 1, borderColor: `${primary}45`,
-            }}
+            accessibilityLabel="Filter by date and hashtags"
+            style={[
+              styles.filterToggleBtn,
+              {
+                backgroundColor: (filtersExpanded || dateFilter !== 'any' || activeHashtag) ? `${primary}25` : 'rgba(255,255,255,0.06)',
+                borderColor: (filtersExpanded || dateFilter !== 'any' || activeHashtag) ? primary : 'rgba(255,255,255,0.10)',
+              }
+            ]}
           >
-            <Feather name="navigation" size={12} color={primary} />
-            <Text style={{ fontSize: 12, fontWeight: '800', color: primary }}>Rides</Text>
+            <Feather name="sliders" size={13} color={(filtersExpanded || dateFilter !== 'any' || activeHashtag) ? primary : textColor} />
+            {(dateFilter !== 'any' || activeHashtag) ? (
+              <View style={[styles.filterActiveDot, { backgroundColor: primary }]} />
+            ) : null}
           </TouchableOpacity>
+
           {/* List ⇄ Masonry (Pinterest) layout toggle */}
           <TouchableOpacity
             onPress={() => {
@@ -2434,16 +2436,51 @@ CELEBRATING TODAY
             }}
             accessibilityRole="button"
             accessibilityLabel={layoutType === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
-            style={{
-              marginLeft: 'auto', width: 34, height: 30, borderRadius: 15,
-              alignItems: 'center', justifyContent: 'center',
-              backgroundColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.06)',
-              borderWidth: 1, borderColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.10)',
-            }}
+            style={[
+              styles.layoutToggleBtn,
+              {
+                backgroundColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.06)',
+                borderColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.10)',
+              }
+            ]}
           >
-            <Feather name={layoutType === 'grid' ? 'list' : 'grid'} size={14} color={layoutType === 'grid' ? '#000' : textColor} />
+            <Feather name={layoutType === 'grid' ? 'list' : 'grid'} size={13} color={layoutType === 'grid' ? '#000' : textColor} />
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Expandable Filter Drawer (Date Range + Hashtags) */}
+      {(filtersExpanded || dateFilter !== 'any' || activeHashtag) && (
+        <View style={[styles.filterDrawer, { borderColor: `${primary}25` }]}>
+          <View style={styles.filterDrawerHeader}>
+            <Text style={[styles.filterDrawerTitle, { color: primary }]}>Filter Feed</Text>
+            {(dateFilter !== 'any' || activeHashtag) ? (
+              <TouchableOpacity
+                onPress={() => {
+                  setDateFilter('any');
+                  setDateRange(null);
+                  setActiveHashtag('');
+                  setSearchQuery('');
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: muted }}>Reset</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <DateFilterStrip
+            value={dateFilter}
+            onChange={(val, range) => { setDateFilter(val); setDateRange(range); }}
+            primary={primary}
+            muted={muted}
+          />
+          <HashtagStrip
+            activeTag={activeHashtag}
+            onTagSelect={tag => { setActiveHashtag(tag); if (tag) setSearchQuery(`#${tag}`); else setSearchQuery(''); }}
+            primary={primary}
+            muted={muted}
+          />
+        </View>
+      )}
 
       {/* Who to follow — suggested people, attractive cards */}
       {user && <SuggestedFollows />}
@@ -2622,61 +2659,108 @@ CELEBRATING TODAY
     // Masonry mode: one virtual item renders the whole Pinterest grid.
     if (id === '__masonry__') {
       return (
-        <MasonryFeed
-          events={feedData.filter(e => !e._header)}
-          onSelectEvent={(ev) => setSelectedEvent(ev)}
-          primary={primary}
-          textColor={textColor}
-        />
+        <View key="__masonry_container__">
+          {renderTrending()}
+          <MasonryFeed
+            events={feedData.filter(e => !e._header)}
+            onSelectEvent={(ev) => setSelectedEvent(ev)}
+            primary={primary}
+            textColor={textColor}
+          />
+          {mode === 'drop' && onNavigateToReels && feature('reelsRail') && (
+            <ReelsRail
+              onOpenReel={(reelId) => onNavigateToReels(reelId)}
+              primary={primary}
+              textColor={textColor}
+              muted={muted}
+            />
+          )}
+        </View>
       );
     }
+
+    const isTrendingSlot = index === (feedData.length === 1 ? 0 : 1);
+    const isReelsSlot = index === 3;
+    const isBirthdaySlot = index === 5;
+    const isGoOutSlot = index === 7;
+
     return (
-      <LazyCard eager={index < 3}>
-      <EventCard
-        event={event}
-        index={index}
-        user={user}
-        primary={primary}
-        surface={surface}
-        textColor={textColor}
-        muted={muted}
-        isVibed={myVibes.has(id)}
-        vibeCounts={vibeCounts}
-        isSaved={savedEvents.has(id)}
-        userReaction={reactions[id]}
-        crewCount={crewRsvpMap[id] || 0}
-        isHighlighted={highlightedId === id}
-        flashColor={reactionFlash[id]}
-        isRoute={routeEvents.some(re => re.id === id)}
-        isFollowing={followingSet.has(event.profiles?.id)}
-        checkins={eventCheckins[id]}
-        friendsGoingList={friendsByEvent.get(id)}
-        onAuthRequired={onAuthRequired}
-        onNavigateToServices={onNavigateToServices}
-        onSelectEvent={setSelectedEvent}
-        onEditEvent={setEditEvent}
-        onAdminEvent={setAdminEvent}
-        onRsvpEvent={setRsvpEvent}
-        onReportTarget={setReportTarget}
-        onSetReactorsEvent={(eventId) => { setReactorsEvent(eventId); setReactorsFilter('all'); fetchReactors(eventId); }}
-        onFetchCheckins={fetchEventCheckins}
-        onOpenViberProfile={openViberProfile}
-        onFollow={handleFollowFromFeed}
-        onImageTap={handleImageTap}
-        onImageLongPress={handleImageLongPress}
-        onCardPressIn={onCardPressIn}
-        onCardPressOut={onCardPressOut}
-        scaleValue={getCardScale(id)}
-        heartAnim={heartAnimRef.current[id]}
-        openSection={openSection[id]}
-        onVibe={handleVibe}
-        onBookmark={handleBookmark}
-        onReact={handleReact}
-        onShare={handleShare}
-        onToggleRoute={handleToggleRoute}
-        onToggleSection={toggleSection}
-      />
-      </LazyCard>
+      <View key={id || index}>
+        <LazyCard eager={index < 3}>
+          <EventCard
+            event={event}
+            index={index}
+            user={user}
+            primary={primary}
+            surface={surface}
+            textColor={textColor}
+            muted={muted}
+            isVibed={myVibes.has(id)}
+            vibeCounts={vibeCounts}
+            isSaved={savedEvents.has(id)}
+            userReaction={reactions[id]}
+            crewCount={crewRsvpMap[id] || 0}
+            isHighlighted={highlightedId === id}
+            flashColor={reactionFlash[id]}
+            isRoute={routeEvents.some(re => re.id === id)}
+            isFollowing={followingSet.has(event.profiles?.id)}
+            checkins={eventCheckins[id]}
+            friendsGoingList={friendsByEvent.get(id)}
+            onAuthRequired={onAuthRequired}
+            onNavigateToServices={onNavigateToServices}
+            onSelectEvent={setSelectedEvent}
+            onEditEvent={setEditEvent}
+            onAdminEvent={setAdminEvent}
+            onRsvpEvent={setRsvpEvent}
+            onReportTarget={setReportTarget}
+            onSetReactorsEvent={(eventId) => { setReactorsEvent(eventId); setReactorsFilter('all'); fetchReactors(eventId); }}
+            onFetchCheckins={fetchEventCheckins}
+            onOpenViberProfile={openViberProfile}
+            onFollow={handleFollowFromFeed}
+            onImageTap={handleImageTap}
+            onImageLongPress={handleImageLongPress}
+            onCardPressIn={onCardPressIn}
+            onCardPressOut={onCardPressOut}
+            scaleValue={getCardScale(id)}
+            heartAnim={heartAnimRef.current[id]}
+            openSection={openSection[id]}
+            onVibe={handleVibe}
+            onBookmark={handleBookmark}
+            onReact={handleReact}
+            onShare={handleShare}
+            onToggleRoute={handleToggleRoute}
+            onToggleSection={toggleSection}
+          />
+        </LazyCard>
+
+        {/* Content discovery interleaved into feed — ensures Event #1 is immediately above the fold */}
+        {isTrendingSlot && renderTrending()}
+
+        {isReelsSlot && mode === 'drop' && onNavigateToReels && feature('reelsRail') && (
+          <ReelsRail
+            onOpenReel={(reelId) => onNavigateToReels(reelId)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+          />
+        )}
+
+        {isBirthdaySlot && renderBirthdaySpotlight()}
+
+        {isGoOutSlot && mode === 'drop' && (
+          <GoOutNudge
+            events={events}
+            topEvent={trendingEvents[0] || null}
+            onHost={() => (user ? setPostModalVisible(true) : onAuthRequired())}
+            onExplore={onNavigateToServices}
+            onViewEvent={(ev) => setSelectedEvent(ev)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+          />
+        )}
+      </View>
     );
   }, [myVibes, vibeCounts, reactions, savedEvents, openSection, reactionFlash, routeEvents, crewRsvpMap,
       followingSet, highlightedId, eventCheckins, user, primary, surface, textColor, muted, mode,
@@ -2778,46 +2862,6 @@ CELEBRATING TODAY
         ListHeaderComponent={
           <>
             {renderHeader()}
-            {/* Max-reach reminder to enable phone notifications (shared 7-day
-                snooze with Chats/Pings, so it never double-nags). */}
-            {mode === 'drop' && (
-              <NotificationNudge primary={primary} surface={surface} textColor={textColor} muted={muted} />
-            )}
-            {/* The age gate fails open on an unknown birthday, so the only thing
-                closing it is asking. Self-hides once a DOB exists. */}
-            {mode === 'drop' && (
-              <BirthDateNudge primary={primary} surface={surface} textColor={textColor} muted={muted} />
-            )}
-            {renderTrending()}
-            {/* Reels on The Drop — video discovery starts in the feed */}
-            {mode === 'drop' && onNavigateToReels && feature('reelsRail') && (
-              <ReelsRail
-                onOpenReel={(reelId) => onNavigateToReels(reelId)}
-                primary={primary}
-                textColor={textColor}
-                muted={muted}
-              />
-            )}
-            {renderBirthdaySpotlight()}
-            {mode === 'drop' && (
-              <GoOutNudge
-                events={events}
-                topEvent={trendingEvents[0] || null}
-                onHost={() => (user ? setPostModalVisible(true) : onAuthRequired())}
-                onExplore={onNavigateToServices}
-                onViewEvent={(ev) => setSelectedEvent(ev)}
-                primary={primary}
-                textColor={textColor}
-                muted={muted}
-                surface={surface}
-              />
-            )}
-            {mode === 'drop' && (
-              <CrewJourneyPanel onEventPress={(ev) => {
-                const idx = events.findIndex(e => e.id === ev.id);
-                if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true });
-              }} />
-            )}
             {renderFeedHeader()}
           </>
         }
@@ -2875,6 +2919,7 @@ CELEBRATING TODAY
                   <Text style={[styles.emptyBtnText, { color: primary }]}>{feedMode === 'mine' ? 'Post your first Gruv' : 'Drop the first Gruv'}</Text>
                 </TouchableOpacity>
               )}
+              {renderTrending()}
             </View>
           ) : null
         }
@@ -2929,6 +2974,23 @@ CELEBRATING TODAY
           />
         </SafeSection>
       )}
+      <QuickToolsSheet
+        visible={quickToolsVisible}
+        onClose={() => setQuickToolsVisible(false)}
+        onOpenRoulette={() => setRouletteVisible(true)}
+        onOpenSensory={() => setSensoryModalVisible(true)}
+        onOpenCulture={() => setCultureModalVisible(true)}
+        onOpenRides={() => setRidesModalVisible(true)}
+        onOpenReels={onNavigateToReels}
+        onOpenCalendar={() => onNavigateToTab?.('calendar')}
+        onOpenNotifications={() => onNavigateToTab?.('notifications')}
+        hasReels={!!onNavigateToReels}
+        hasSensory={feature('sensorySuite')}
+        primary={primary}
+        surface={surface}
+        textColor={textColor}
+        muted={muted}
+      />
       <TrendingModal
         visible={trendingModalVisible}
         onClose={() => setTrendingModalVisible(false)}
@@ -3297,6 +3359,85 @@ const styles = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
   pillText: { fontSize: 9, fontWeight: '800' },
 
+  // Streamlined Filter Bar & Drawer
+  filterControlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 14,
+    marginTop: 6,
+    marginBottom: 8,
+    gap: 8,
+  },
+  feedModeTabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    flex: 1,
+  },
+  modeTabPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterActionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterToggleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  filterActiveDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  layoutToggleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterDrawer: {
+    marginHorizontal: 14,
+    marginBottom: 8,
+    padding: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    gap: 6,
+  },
+  filterDrawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
+  filterDrawerTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+
   // Visitor banner
   visitorBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginVertical: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
   visitorText: { flex: 1, fontSize: 12, lineHeight: 17 },
@@ -3395,10 +3536,35 @@ const styles = StyleSheet.create({
   reactionCount: { fontSize: 11 },
 
   actionBarWrapper: { borderTopWidth: 1 },
-  actionBar: { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 12, gap: 20 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 50 },
+  actionBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10 },
+  actionGroupLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 4 },
   actionCount: { fontSize: 13, fontWeight: '800' },
   actionLabel: { fontSize: 10, fontWeight: '700' },
+
+  moreToolsTray: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  moreToolPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  moreToolText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
 
   lockInBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14, marginTop: 8, marginBottom: 4 },
   lockInBtnText: { fontSize: 11.5, fontWeight: '900', letterSpacing: 0.8 },

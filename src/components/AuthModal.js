@@ -87,6 +87,7 @@ export const AuthModal = ({ visible, onClose }) => {
   const monthRef = useRef(null);
   const yearRef = useRef(null);
   const [dobPickerOpen, setDobPickerOpen] = useState(false);
+  const [showSsoVaultInfo, setShowSsoVaultInfo] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const primary = currentTheme?.primary || "#00f2ff";
@@ -618,24 +619,33 @@ export const AuthModal = ({ visible, onClose }) => {
 
             {/* Unified Ecosystem SSO Vault */}
             <View style={[styles.ecosystemCard, { borderColor: `${primary}30`, backgroundColor: 'rgba(255,255,255,0.03)' }]}>
-              <View style={styles.ecosystemHeaderRow}>
+              <TouchableOpacity
+                onPress={() => setShowSsoVaultInfo(!showSsoVaultInfo)}
+                style={styles.ecosystemHeaderRow}
+                activeOpacity={0.8}
+              >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <View style={[styles.ecosystemLiveDot, { backgroundColor: '#10b981' }]} />
                   <Text style={[styles.ecosystemTitle, { color: primary }]}>ECOSYSTEM SSO VAULT</Text>
                 </View>
-                <Text style={[styles.ecosystemStatus, { color: '#10b981' }]}>● Sync Active</Text>
-              </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={[styles.ecosystemStatus, { color: '#10b981' }]}>● Sync Active</Text>
+                  <Feather name={showSsoVaultInfo ? "chevron-up" : "chevron-down"} size={12} color={muted} />
+                </View>
+              </TouchableOpacity>
               <Text style={[styles.ecosystemDesc, { color: muted }]}>
                 One credential unlocks The Gruvs, Excellency Academy & The Resident Crew.
               </Text>
-              <View style={styles.ecosystemPills}>
-                {ECOSYSTEM_APPS.map((app) => (
-                  <View key={app.id} style={[styles.ecosystemPill, { borderColor: `${app.color}40`, backgroundColor: `${app.color}10` }]}>
-                    <Feather name={app.icon} size={11} color={app.color} />
-                    <Text style={[styles.ecosystemPillText, { color: textColor }]}>{app.name}</Text>
-                  </View>
-                ))}
-              </View>
+              {showSsoVaultInfo && (
+                <View style={styles.ecosystemPills}>
+                  {ECOSYSTEM_APPS.map((app) => (
+                    <View key={app.id} style={[styles.ecosystemPill, { borderColor: `${app.color}40`, backgroundColor: `${app.color}10` }]}>
+                      <Feather name={app.icon} size={11} color={app.color} />
+                      <Text style={[styles.ecosystemPillText, { color: textColor }]}>{app.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
 
             <View style={[styles.tabRow, { borderColor: `${primary}40` }]}>

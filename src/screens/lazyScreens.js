@@ -29,12 +29,17 @@
 // before any tab is visited.
 
 import React from 'react';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const deferred = (load, name) => {
   let Screen = null;
   const Deferred = React.forwardRef((props, ref) => {
     if (!Screen) Screen = load();
-    return <Screen ref={ref} {...props} />;
+    return (
+      <ErrorBoundary label={name} inline>
+        <Screen ref={ref} {...props} />
+      </ErrorBoundary>
+    );
   });
   Deferred.displayName = `Deferred(${name})`;
   return Deferred;

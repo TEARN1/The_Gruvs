@@ -95,7 +95,7 @@ export function MealComposeModal({ visible, business, onClose, onPosted }) {
           <View style={s.handle} />
           <View style={s.headerRow}>
             <Text style={[s.header, { color: text }]}>Post to The Meal</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}><Feather name="x" size={22} color={text} /></TouchableOpacity>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Close"><Feather name="x" size={22} color={text} /></TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24, gap: 12 }}>
@@ -135,9 +135,9 @@ export function MealComposeModal({ visible, business, onClose, onPosted }) {
 }
 
 const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  sheet: { maxHeight: '92%', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, padding: 16 },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)', marginBottom: 10 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end', alignItems: 'center' },
+  sheet: { maxHeight: '92%', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, padding: 16, width: '100%', maxWidth: 580, alignSelf: 'center' },
+  handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.25)', marginBottom: 12 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   header: { fontSize: 18, fontWeight: '900' },
   imgPick: { height: 150, borderRadius: 16, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },

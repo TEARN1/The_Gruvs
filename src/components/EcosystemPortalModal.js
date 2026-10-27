@@ -6,7 +6,7 @@
  *   • Excellency: Browse masterclasses, audio engineering courses & certification badges.
  *   • Single Sign-On (SSO): 1-tap seamless jump to full companion with zero login friction.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform,
 } from 'react-native';
@@ -14,6 +14,9 @@ import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cyberAudio } from '../utils/cyberAudio';
 import { SecurityService } from '../services/securityService';
+import { ExcellencyService } from '../services/excellencyService';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from './ToastNotification';
 import { ResidentStaysSection } from './ResidentStaysSection';
 import { CyberScanline } from './Motion';
 
@@ -62,8 +65,19 @@ export function EcosystemPortalModal({
   muted = 'rgba(255,255,255,0.6)',
 }) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('browse');
   const [enrolledCourseId, setEnrolledCourseId] = useState(null);
+  const [courses, setCourses] = useState(EXCELLENCY_COURSES);
+
+  useEffect(() => {
+    if (app?.id === 'excellency' && visible) {
+      ExcellencyService.getCourses().then(data => {
+        if (data && data.length > 0) setCourses(data);
+      }).catch(() => {});
+    }
+  }, [app?.id, visible]);
 
   if (!app) return null;
 
@@ -76,9 +90,15 @@ export function EcosystemPortalModal({
     await SecurityService.safeOpenURL(targetUrl);
   };
 
-  const handleEnroll = (courseId) => {
+  const handleEnroll = async (courseId) => {
     cyberAudio.play('lockVibe');
     setEnrolledCourseId(courseId);
+    try {
+      await ExcellencyService.enroll(courseId, user?.id);
+      toast?.show?.('Enrolled in Masterclass! Verified badge reserved.', 'success');
+    } catch (e) {
+      toast?.show?.(e?.message || 'Seat reserved for this masterclass', 'info');
+    }
   };
 
   return (
@@ -181,7 +201,7 @@ export function EcosystemPortalModal({
                 </View>
 
                 <Text style={[styles.coursesHeading, { color: textColor }]}>Available Masterclasses</Text>
-                {EXCELLENCY_COURSES.map((course) => {
+                {courses.map((course) => {
                   const isEnrolled = enrolledCourseId === course.id;
                   return (
                     <View key={course.id} style={[styles.courseCard, { borderColor: `${course.color}35` }]}>

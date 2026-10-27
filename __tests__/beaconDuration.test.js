@@ -2,7 +2,7 @@ import { minutesFor, formatRemaining, durationLabel, MAX_BEACON_MINUTES, BEACON_
 
 describe('beaconDuration — how long "Find me" stays on', () => {
   it('offers 1 hour up to 2 days, and never more than 2 days', () => {
-    expect(BEACON_DURATIONS.map((d) => d.key)).toEqual(['1h', '4h', 'tonight', '1d', '2d']);
+    expect(BEACON_DURATIONS.map((d) => d.key)).toEqual(['30m', '1h', '4h', 'tonight', '1d', '2d']);
     expect(minutesFor('1h')).toBe(60);
     expect(minutesFor('2d')).toBe(MAX_BEACON_MINUTES);
     expect(MAX_BEACON_MINUTES).toBe(48 * 60);

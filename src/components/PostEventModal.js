@@ -921,7 +921,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       try {
         const cities = new Set(stops.map(s => (s.city || '').trim().toLowerCase()).filter(Boolean));
         const { data: seriesRow, error: seriesErr } = await supabase.from('event_series').insert({
-          creator_id: user.id,
+          creator_id: user?.id,
           name: (tourName.trim() || title.trim()),
           description: description.trim() || null,
           cover_url: mediaUrls[0]?.url || null,
@@ -1505,6 +1505,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     value={contactPhone}
                     onChangeText={setContactPhone}
                     keyboardType="phone-pad"
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
                   />
 
                   <Text style={[pm.label, { color: muted }]}>Contact Email (Optional)</Text>
@@ -1515,6 +1517,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     value={contactEmail}
                     onChangeText={setContactEmail}
                     keyboardType="email-address"
+                    autoComplete="email"
+                    textContentType="emailAddress"
                     autoCapitalize="none"
                   />
 

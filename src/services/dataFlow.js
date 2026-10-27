@@ -3218,8 +3218,9 @@ export const BlockManager = {
         // insert -- covers the case where the upsert's onConflict target
         // itself is what's failing (e.g. a constraint-name drift).
         async () => {
-          await supabase.from('user_blocks').delete()
+          const { error } = await supabase.from('user_blocks').delete()
             .eq('blocker_id', blockerId).eq('blocked_id', blockedId);
+          if (error) log.warn('[BlockManager] pre-insert cleanup warning:', error.message);
           return supabase.from('user_blocks').insert({ blocker_id: blockerId, blocked_id: blockedId });
         },
       ],
@@ -3360,6 +3361,22 @@ export const ReminderManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 // PRESENCE MANAGER  (online/offline status)
 // ─────────────────────────────────────────────────────────────────────────────
+/** Everyone who shares a crew with this person (members and owners), minus them. */
+async function crewmateIds(userId) {
+  const [{ data: memberOf }, { data: owned }] = await Promise.all([
+    supabase.from('crew_members').select('crew_id').eq('user_id', userId).limit(100),
+    supabase.from('crews').select('id').eq('owner_id', userId).limit(100),
+  ]);
+  const crewIds = [...new Set([...(memberOf || []).map(r => r.crew_id), ...(owned || []).map(r => r.id)])];
+  if (!crewIds.length) return [];
+  const [{ data: members }, { data: crews }] = await Promise.all([
+    supabase.from('crew_members').select('user_id').in('crew_id', crewIds).limit(500),
+    supabase.from('crews').select('owner_id').in('id', crewIds).limit(100),
+  ]);
+  return [...new Set([...(members || []).map(r => r.user_id), ...(crews || []).map(r => r.owner_id)])]
+    .filter(id => id && id !== userId);
+}
+
 export const PresenceManager = {
   _channel: null,
   _heartbeatTimer: null,
@@ -3405,7 +3422,7 @@ export const PresenceManager = {
   // `audience` — 'everyone' | 'mutuals': who may find you while live. Enforced
   // by get_safe_nearby_vibers (find_me_privacy.sql), not by this client.
   // `minutes` is capped at 2 days here and again by the database.
-  async activateBeacon(userId, coords = {}, minutes = 60, intent = null, audience = null) {
+  async activateBeacon(userId, coords = {}, minutes = 60, intent = null, audience = null, cloak = null) {
     if (!userId) throw new Error('Sign in to go live.');
     const mins = Math.max(1, Math.min(48 * 60, Number(minutes) || 60));
     const expires = new Date(Date.now() + mins * 60 * 1000).toISOString();
@@ -3417,17 +3434,20 @@ export const PresenceManager = {
     };
     if (intent) payload.beacon_intent = intent;
     if (audience) payload.beacon_audience = audience;
+    if (typeof cloak === 'boolean') payload.beacon_cloak = cloak;
     if (coords?.lat != null && coords?.lon != null) { payload.lat = coords.lat; payload.lon = coords.lon; }
+    const save = (body) => async () => { const { error } = await supabase.from('profiles').update(body).eq('id', userId); if (error) throw error; return true; };
+    const { beacon_intent: _i, ...noIntent } = payload;
+    const { beacon_audience: _a, beacon_cloak: _c, ...noPrivacy } = noIntent;
+    const { beacon_expires_at: _x, ...core } = noPrivacy;
+    // The vibe is only a label, so it may be dropped. The audience may not:
+    // falling back without "mutuals" or "crew" used to make people findable
+    // by everyone. Older databases (find_me_privacy.sql not applied) get the
+    // narrower tiers only when the choice was "everyone" anyway.
+    const narrowed = audience && audience !== 'everyone';
+    const tiers = [save(payload), save(noIntent), ...(narrowed ? [] : [save(noPrivacy), save(core)])];
     const res = await resilient(
-      [
-        async () => { const { error } = await supabase.from('profiles').update(payload).eq('id', userId); if (error) throw error; return true; },
-        // Fallback for DBs without beacon_audience yet (find_me_privacy.sql not applied).
-        async () => { const { beacon_audience: _a, ...noAudience } = payload; const { error } = await supabase.from('profiles').update(noAudience).eq('id', userId); if (error) throw error; return true; },
-        // Fallback for DBs without beacon_intent yet.
-        async () => { const { beacon_intent: _i, beacon_audience: _a2, ...noIntent } = payload; const { error } = await supabase.from('profiles').update(noIntent).eq('id', userId); if (error) throw error; return true; },
-        // Fallback for DBs without beacon_expires_at yet — still flips the beacon on.
-        async () => { const { beacon_expires_at: _x, beacon_intent: _i2, beacon_audience: _a3, ...core } = payload; const { error } = await supabase.from('profiles').update(core).eq('id', userId); if (error) throw error; return true; },
-      ],
+      tiers,
       { attemptsPerTier: 2, baseMs: 300, label: 'PresenceManager.activateBeacon', fallbackValue: null }
     );
     if (res === null) throw new Error('Could not go live — please try again.');
@@ -3450,21 +3470,28 @@ export const PresenceManager = {
   // going live pings your MUTUALS (people you follow who follow you back —
   // a deliberate audience, never ambient broadcast) with where to pull up.
   // Truth Protocol: fires only on a real, user-initiated "go live".
-  async dropBeacon(userId, { coords = {}, minutes = 60, placeLabel = null, intent = null, audience = null } = {}) {
-    const expires = await this.activateBeacon(userId, coords, minutes, intent, audience);
+  async dropBeacon(userId, { coords = {}, minutes = 60, placeLabel = null, intent = null, audience = null, cloak = null } = {}) {
+    const expires = await this.activateBeacon(userId, coords, minutes, intent, audience, cloak);
 
-    // Fan out to mutuals — bounded, best-effort, never blocks going live.
+    // Fan out to mutuals (or, on "crew only", your crewmates) — bounded,
+    // best-effort, never blocks going live.
     (async () => {
       try {
-        const [{ data: iFollow }, { data: followMe }] = await Promise.all([
-          supabase.from('follows').select('following_id').eq('follower_id', userId).limit(500),
-          supabase.from('follows').select('follower_id').eq('following_id', userId).limit(500),
-        ]);
-        const mine = new Set((iFollow || []).map(r => r.following_id));
+        let people;
+        if (audience === 'crew') {
+          people = await crewmateIds(userId);
+        } else {
+          const [{ data: iFollow }, { data: followMe }] = await Promise.all([
+            supabase.from('follows').select('following_id').eq('follower_id', userId).limit(500),
+            supabase.from('follows').select('follower_id').eq('following_id', userId).limit(500),
+          ]);
+          const mine = new Set((iFollow || []).map(r => r.following_id));
+          people = (followMe || []).map(r => r.follower_id).filter(id => mine.has(id));
+        }
         // Never ping someone you've hidden from (they'd learn you're out).
         const { data: hidden } = await supabase.from('presence_hidden_from').select('hidden_id').eq('owner_id', userId).limit(500);
         const hiddenIds = new Set((hidden || []).map(r => r.hidden_id));
-        const mutuals = (followMe || []).map(r => r.follower_id).filter(id => mine.has(id) && !hiddenIds.has(id)).slice(0, 50);
+        const mutuals = people.filter(id => !hiddenIds.has(id)).slice(0, 50);
         if (!mutuals.length) return;
 
         const { data: me } = await supabase.from('profiles').select('username, display_name').eq('id', userId).maybeSingle();

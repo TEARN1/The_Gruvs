@@ -266,7 +266,7 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
                 {event?.title || 'Your Event'}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Close">
               <Feather name="x" size={22} color={textColor} />
             </TouchableOpacity>
           </View>
@@ -480,15 +480,15 @@ export const EventAdminPanel = ({ visible, onClose, event, userId }) => {
 };
 
 const ad = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'flex-end' },
-  sheet: { height: '88%', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, overflow: 'hidden' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'flex-end', alignItems: 'center' },
+  sheet: { height: '88%', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, overflow: 'hidden', maxWidth: 680, width: '100%', alignSelf: 'center' },
   pill: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 14 },
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, marginBottom: 16 },
   title: { fontSize: 18, fontWeight: '900', letterSpacing: 1 },
   subtitle: { fontSize: 12, marginTop: 3 },
   statsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 14 },
   statBox: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 14, borderWidth: 1, gap: 4 },
-  statVal: { fontSize: 18, fontWeight: '900' },
+  statVal: { fontSize: 18, fontWeight: '900', fontVariant: ['tabular-nums'] },
   statLabel: { fontSize: 9, fontWeight: '700' },
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
   exportText: { fontSize: 11, fontWeight: '800' },

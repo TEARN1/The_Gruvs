@@ -214,5 +214,57 @@ export const NeonGlowPulse = ({ color = '#00f2ff', children, style, radius = 18 
   );
 };
 
+// ── SkeletonCard ─────────────────────────────────────────────────────────────
+// Cyan-infused skeleton shimmer for feed cards (eliminates layout shift)
+export const SkeletonCard = ({ height = 240, style, radius = 22 }) => (
+  <View style={[{ height, borderRadius: radius, overflow: 'hidden', backgroundColor: '#0d1318', marginVertical: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }, style]}>
+    <Shimmer color="#0d1318" highlight="rgba(0,242,255,0.12)" style={{ flex: 1 }} />
+    <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16, gap: 10 }}>
+      <Shimmer color="rgba(255,255,255,0.08)" highlight="rgba(0,242,255,0.18)" style={{ width: '60%', height: 18, borderRadius: 9 }} />
+      <Shimmer color="rgba(255,255,255,0.05)" highlight="rgba(0,242,255,0.12)" style={{ width: '40%', height: 12, borderRadius: 6 }} />
+    </View>
+  </View>
+);
+
+// ── ParticleBurst ────────────────────────────────────────────────────────────
+// Lightweight micro-confetti burst (GPU animated)
+export const ParticleBurst = ({ active = false, count = 8, color = '#00f2ff' }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!active) return;
+    anim.setValue(0);
+    Animated.timing(anim, { toValue: 1, duration: 650, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }).start();
+  }, [active, anim]);
+
+  if (!active) return null;
+  const particles = Array.from({ length: count });
+  return (
+    <View pointerEvents="none" style={[StyleSheet.absoluteFillObject, mt.center]}>
+      {particles.map((_, i) => {
+        const angle = (i * (360 / count)) * (Math.PI / 180);
+        const dist = 48;
+        const tx = anim.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(angle) * dist] });
+        const ty = anim.interpolate({ inputRange: [0, 1], outputRange: [0, Math.sin(angle) * dist] });
+        const scale = anim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.2, 1.2, 0] });
+        const opacity = anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 0.9, 0] });
+        return (
+          <Animated.View
+            key={i}
+            style={{
+              position: 'absolute',
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: i % 2 === 0 ? color : '#ff007f',
+              transform: [{ translateX: tx }, { translateY: ty }, { scale }],
+              opacity,
+            }}
+          />
+        );
+      })}
+    </View>
+  );
+};
+
 const mt = StyleSheet.create({ center: { alignItems: 'center', justifyContent: 'center' } });
 

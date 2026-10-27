@@ -9,11 +9,12 @@
  * Keeps users in one contiguous universe with 1-tap instant portal switching.
  */
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { ECOSYSTEM_APPS } from '../constants/ecosystemApps';
 import { cyberAudio } from '../utils/cyberAudio';
 import { EcosystemPortalModal } from './EcosystemPortalModal';
+import { CommunityStatsBar } from './CommunityStatsBar';
 
 export function EcosystemUniverseBar({
   activeAppId = 'thegruvs',
@@ -21,8 +22,11 @@ export function EcosystemUniverseBar({
   primary = '#00f2ff',
   textColor = '#fff',
   muted = 'rgba(255,255,255,0.6)',
+  showMutuals = true,
 }) {
   const [portalApp, setPortalApp] = useState(null);
+  const { width } = useWindowDimensions();
+  const isCompact = width < 370;
 
   const handlePress = (app) => {
     cyberAudio.play('telemetryTick');
@@ -69,12 +73,15 @@ export function EcosystemUniverseBar({
                     { color: isActive ? app.color : textColor },
                   ]}
                   numberOfLines={1}
+                  maxFontSizeMultiplier={1.2}
                 >
                   {app.name.replace('The ', '')}
                 </Text>
-                <Text style={[styles.tabSub, { color: muted }]} numberOfLines={1}>
-                  {app.id === 'thegruvs' ? 'Nightlife' : app.id === 'theresident' ? 'Stays & Lifts' : 'Masterclass'}
-                </Text>
+                {!isCompact && (
+                  <Text style={[styles.tabSub, { color: muted }]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+                    {app.id === 'thegruvs' ? 'Nightlife' : app.id === 'theresident' ? 'Stays' : 'Audio'}
+                  </Text>
+                )}
               </View>
               {isActive && (
                 <View style={[styles.activeDot, { backgroundColor: app.color }]} />
@@ -82,6 +89,12 @@ export function EcosystemUniverseBar({
             </TouchableOpacity>
           );
         })}
+
+        {showMutuals && (
+          <View style={styles.mutualsWrap}>
+            <CommunityStatsBar variant="pill" />
+          </View>
+        )}
       </View>
 
       {/* In-App Ecosystem Portal (The Resident & Excellency inside The Gruvs) */}
@@ -144,6 +157,9 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
+    marginLeft: 2,
+  },
+  mutualsWrap: {
     marginLeft: 2,
   },
   reticle: {

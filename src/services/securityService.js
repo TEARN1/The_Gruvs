@@ -4,6 +4,7 @@
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { resilient } from '../utils/resilience';
+import { ThreatPreventionEngine } from './threatPreventionEngine';
 
 // Keys to redact — checked as substrings (case-insensitive) so variants are caught
 const SENSITIVE_KEY_FRAGMENTS = [
@@ -183,14 +184,14 @@ export const SecurityService = {
         } catch { return false; }
         if (this.isTrustedExternalUrl(trimmed)) {
           const { Linking } = require('react-native');
-          await Linking.openURL(trimmed);
+          await Linking.openURL(trimmed).catch((err) => { throw err; });
           return true;
         }
         const { safeOpenExternal } = require('../utils/sanitize');
         return await safeOpenExternal(trimmed);
       }
       const { Linking } = require('react-native');
-      await Linking.openURL(url);
+      await Linking.openURL(url).catch((err) => { throw err; });
       return true;
     } catch {
       return false;
@@ -266,9 +267,20 @@ export const SecurityService = {
     return { allowed: true };
   },
 
-  // ── Payload integrity — prevent prototype pollution ─────────────────────
+  // ── Payload integrity & Threat Prevention Engine ────────────────────────
+  threatEngine: ThreatPreventionEngine,
 
-  /** Strip dangerous keys from any object before it touches the DB. */
+  /** Intercepts and validates inputs against SQLi, XSS, and PostgREST grammar breakouts */
+  guardInput(input, options = {}) {
+    return ThreatPreventionEngine.guard(input, options);
+  },
+
+  /** Deeply inspects an input and returns threat diagnostics */
+  analyzeThreat(input, options = {}) {
+    return ThreatPreventionEngine.analyze(input, options);
+  },
+
+  /** Strip dangerous prototype pollution keys from any object before it touches the DB. */
   sanitizePayload(obj) {
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
     const dangerous = ['__proto__', 'constructor', 'prototype'];

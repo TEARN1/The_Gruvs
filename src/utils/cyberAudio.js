@@ -6,9 +6,19 @@
  * On native, triggers synchronized precision haptics and safe audio chimes.
  */
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeHaptics as Haptics } from './haptics';
 
 let webAudioCtx = null;
+
+const CYBER_AUDIO_MUTE_KEY = '@gruvs_cyber_audio_muted';
+let _synthAudioMuted = false;
+
+try {
+  AsyncStorage.getItem(CYBER_AUDIO_MUTE_KEY).then(val => {
+    if (val !== null) _synthAudioMuted = val === 'true';
+  }).catch(() => {});
+} catch {}
 
 function getAudioContext() {
   if (Platform.OS !== 'web') return null;
@@ -33,6 +43,37 @@ function getAudioContext() {
 }
 
 export const cyberAudio = {
+  setMuted(muted) {
+    _synthAudioMuted = !!muted;
+    try {
+      AsyncStorage.setItem(CYBER_AUDIO_MUTE_KEY, String(_synthAudioMuted)).catch(() => {});
+    } catch {}
+  },
+  isMuted() {
+    return _synthAudioMuted;
+  },
+
+  /**
+   * Tiered tactile haptic feedback matching the design tokens.
+   */
+  triggerHaptic(style = 'light') {
+    try {
+      if (style === 'heavy') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      } else if (style === 'medium') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else if (style === 'tap' || style === 'haptic_select') {
+        Haptics.selectionAsync();
+      } else if (style === 'success') {
+        Haptics.notificationAsync?.(Haptics.NotificationFeedbackType.Success);
+      } else if (style === 'error') {
+        Haptics.notificationAsync?.(Haptics.NotificationFeedbackType.Error);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch {}
+  },
+
   /**
    * Play a synthesized sci-fi sound effect.
    * Types: 'sonarPing' | 'radarSweep' | 'bubbleSquish' | 'lockVibe' | 'warpOpen' | 'telemetryTick'
@@ -40,14 +81,18 @@ export const cyberAudio = {
   play(type = 'telemetryTick') {
     // 1. Always fire synchronized tactile haptic feedback
     try {
-      if (type === 'lockVibe' || type === 'radarSweep') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (type === 'lockVibe') {
+        this.triggerHaptic('success');
+      } else if (type === 'radarSweep') {
+        this.triggerHaptic('medium');
       } else if (type === 'bubbleSquish' || type === 'telemetryTick') {
-        Haptics.selectionAsync();
+        this.triggerHaptic('tap');
       } else {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        this.triggerHaptic('light');
       }
     } catch {}
+
+    if (_synthAudioMuted) return;
 
     // 2. Synthesize audio on web if available
     const ctx = getAudioContext();

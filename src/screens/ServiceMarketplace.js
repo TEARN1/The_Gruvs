@@ -799,6 +799,9 @@ export function ServiceMarketplace({ onAuthRequired, onClose } = {}) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    maxWidth: 1080,
+    width: '100%',
+    alignSelf: 'center',
   },
 
   // Header

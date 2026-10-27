@@ -18,6 +18,7 @@ export function AnimatedChatBubble({
   isSelected = false,
   isRecent = false,
   onPress,
+  onDoubleTap,
   onLongPress,
   primary = '#00f2ff',
   style,
@@ -30,6 +31,7 @@ export function AnimatedChatBubble({
   const waveAnim = useRef(new Animated.Value(0)).current;
   const waveOpacity = useRef(new Animated.Value(0)).current;
   const breathAnim = useRef(new Animated.Value(0.4)).current;
+  const lastTapRef = useRef(0);
 
   // Pop-in entrance on mount
   useEffect(() => {
@@ -105,6 +107,17 @@ export function AnimatedChatBubble({
     }).start();
   };
 
+  const handlePress = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      triggerEnergyWave();
+      onDoubleTap?.();
+    } else {
+      onPress?.(triggerEnergyWave);
+    }
+    lastTapRef.current = now;
+  };
+
   return (
     <Animated.View
       style={[
@@ -136,15 +149,19 @@ export function AnimatedChatBubble({
         activeOpacity={0.92}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        onPress={() => {
-          onPress?.(triggerEnergyWave);
-        }}
+        onPress={handlePress}
         onLongPress={onLongPress}
         style={[styles.touchWrap]}
       >
         <Animated.View
           style={[
             styles.bubbleContainer,
+            {
+              borderTopRightRadius: isMine ? 6 : 20,
+              borderTopLeftRadius: isMine ? 20 : 6,
+              borderBottomLeftRadius: 20,
+              borderBottomRightRadius: 20,
+            },
             bubbleStyle,
             isSelected && {
               borderColor: primary,

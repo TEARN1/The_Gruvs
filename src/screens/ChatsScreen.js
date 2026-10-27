@@ -342,6 +342,12 @@ export const ChatsScreen = ({ onAuthRequired }) => {
                     <Text style={[ch.emptySub, { color: muted }]}>
                       {search ? 'No chats match that name' : 'Tap a Viber\'s profile and hit the message button to link up'}
                     </Text>
+                    {!search && (
+                      <View style={[ch.explorePromptBtn, { borderColor: `${primary}45`, backgroundColor: `${primary}15` }]}>
+                        <Feather name="compass" size={14} color={primary} />
+                        <Text style={[ch.explorePromptText, { color: primary }]}>Connect with Vibers Across the City</Text>
+                      </View>
+                    )}
                   </View>
                 }
               />
@@ -426,7 +432,7 @@ export const useUnreadDMCount = (onNewMessage) => {
 };
 
 const ch = StyleSheet.create({
-  screen:       { flex: 1 },
+  screen:       { flex: 1, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
   title:        { fontSize: 18, fontWeight: '900', letterSpacing: 2 },
   pendingBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1 },
@@ -436,6 +442,8 @@ const ch = StyleSheet.create({
   empty:        { alignItems: 'center', paddingTop: 70, gap: 12, paddingHorizontal: 40 },
   emptyTitle:   { fontSize: 16, fontWeight: '800' },
   emptySub:     { fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  explorePromptBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, marginTop: 10 },
+  explorePromptText: { fontSize: 12, fontWeight: '800' },
   unauthWrap:   { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 40 },
   unauthTitle:  { fontSize: 18, fontWeight: '900' },
   unauthSub:    { fontSize: 14, textAlign: 'center', lineHeight: 20 },

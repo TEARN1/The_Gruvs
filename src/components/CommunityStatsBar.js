@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Animated, TouchableOpacity,
   Modal, FlatList, Image, ActivityIndicator,
@@ -58,7 +58,7 @@ const fmt = (n) => {
 const avatarBg = (u = '') =>
   ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u.charCodeAt(0) || 0) % 5];
 
-export const CommunityStatsBar = () => {
+export const CommunityStatsBar = ({ variant = 'bar' }) => {
   const { currentTheme } = useTheme();
   const { user }         = useAuth();
   const primary   = currentTheme?.primary    || "#00f2ff";
@@ -191,18 +191,34 @@ export const CommunityStatsBar = () => {
 
   return (
     <>
-      <TouchableOpacity
-        style={[ss.bar, { backgroundColor: `${surface}cc`, borderColor: `${primary}18` }]}
-        onPress={handleOpen}
-        activeOpacity={0.8}
-      >
-        <Animated.View style={[ss.dot, { backgroundColor: "#10b981", ...(IS_WEB ? dotPulse : { transform: [{ scale: pulseAnim }] }) }]} />
-        <Text style={[ss.count, { color: "#10b981" }]}>{fmt(onlineCount)}</Text>
-        <Text style={[ss.label, { color: 'rgba(255,255,255,0.45)' }]}>
-          {onlineCount === 1 ? 'mutual online' : 'mutuals online'}
-        </Text>
-        <Feather name="chevron-right" size={12} color="rgba(255,255,255,0.25)" style={{ marginLeft: 'auto' }} />
-      </TouchableOpacity>
+      {variant === 'pill' ? (
+        <TouchableOpacity
+          style={[ss.pill, { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.35)' }]}
+          onPress={handleOpen}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={`${onlineCount} mutuals online now`}
+        >
+          <Animated.View style={[ss.dot, { backgroundColor: "#10b981", ...(IS_WEB ? dotPulse : { transform: [{ scale: pulseAnim }] }) }]} />
+          <Text style={[ss.pillCount, { color: "#10b981" }]}>{fmt(onlineCount)}</Text>
+          <Text style={[ss.pillLabel, { color: 'rgba(255,255,255,0.75)' }]}>
+            {onlineCount === 1 ? 'mutual' : 'mutuals'}
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[ss.bar, { backgroundColor: `${surface}cc`, borderColor: `${primary}18` }]}
+          onPress={handleOpen}
+          activeOpacity={0.8}
+        >
+          <Animated.View style={[ss.dot, { backgroundColor: "#10b981", ...(IS_WEB ? dotPulse : { transform: [{ scale: pulseAnim }] }) }]} />
+          <Text style={[ss.count, { color: "#10b981" }]}>{fmt(onlineCount)}</Text>
+          <Text style={[ss.label, { color: 'rgba(255,255,255,0.45)' }]}>
+            {onlineCount === 1 ? 'mutual online' : 'mutuals online'}
+          </Text>
+          <Feather name="chevron-right" size={12} color="rgba(255,255,255,0.25)" style={{ marginLeft: 'auto' }} />
+        </TouchableOpacity>
+      )}
 
       <Modal
         visible={modalVisible}
@@ -263,6 +279,24 @@ const ss = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     gap: 7,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 5,
+  },
+  pillCount: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+  },
+  pillLabel: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   dot: { width: 7, height: 7, borderRadius: 4 },
   count: { fontSize: 14, fontWeight: '900', letterSpacing: 0.3 },

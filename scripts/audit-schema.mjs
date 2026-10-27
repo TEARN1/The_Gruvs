@@ -56,6 +56,14 @@ const EXPECTED_MISSING = new Set([
   // People you hide from on Find Me. Ships with 20261021000100_find_me_privacy.sql;
   // the screen says hiding is not on yet until it is applied. Remove once live.
   'presence_hidden_from',
+  // Excellency & Threat Prevention tables. Ships with supabase/migrations/20261024000200_ecosystem_threat_prevention_and_pillars.sql,
+  // pending remote application. Client falls back to curated/local state meanwhile.
+  'exc_certifications',
+  'exc_enrollments',
+  'security_threat_logs',
+  // Ticket Vault & Talent Escrow (parked behind feature('ticketVault') = false).
+  'ticket_resales',
+  'talent_escrow',
 ]);
 
 // Known, ACKNOWLEDGED drift with an owner and a plan. These do not fail the
@@ -125,16 +133,16 @@ if (acknowledged.length) {
 
 if (!broken.length) {
   console.log('\n✅ No NEW schema drift. Every other query matches the database.');
-  process.exit(0);
+  process.exitCode = 0;
+} else {
+  console.log(`\n🔴 NEW SCHEMA DRIFT — ${broken.length} quer${broken.length === 1 ? 'y' : 'ies'} fail against the live database.`);
+  console.log('This feature is BROKEN in production. It fails SILENTLY — the app renders it as "empty",');
+  console.log('which is exactly how RSVP, Crews, polls and the ticket system rotted unnoticed.\n');
+  for (const b of broken) {
+    console.log(`  [${b.status}] ${b.table}`);
+    console.log(`        ${b.msg}`);
+    console.log(`        ${b.file}\n`);
+    console.log(`::error file=${b.file}::Schema drift in '${b.table}': ${b.msg}`);
+  }
+  process.exitCode = 1;
 }
-
-console.log(`\n🔴 NEW SCHEMA DRIFT — ${broken.length} quer${broken.length === 1 ? 'y' : 'ies'} fail against the live database.`);
-console.log('This feature is BROKEN in production. It fails SILENTLY — the app renders it as "empty",');
-console.log('which is exactly how RSVP, Crews, polls and the ticket system rotted unnoticed.\n');
-for (const b of broken) {
-  console.log(`  [${b.status}] ${b.table}`);
-  console.log(`        ${b.msg}`);
-  console.log(`        ${b.file}\n`);
-  console.log(`::error file=${b.file}::Schema drift in '${b.table}': ${b.msg}`);
-}
-process.exit(1);
