@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, Modal, FlatList, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Animated, Alert, Linking,
+  ActivityIndicator, Animated, Alert, Linking, ScrollView,
 } from 'react-native';
 import { SmartImage } from './SmartImage';
 import { VibeCardBubble } from './VibeCardBubble';

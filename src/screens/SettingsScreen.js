@@ -131,7 +131,7 @@ export const SettingsScreen = ({
   const toggleCyberAudioMute = useCallback((val) => {
     setCyberAudioMuted(val);
     cyberAudio.setMuted(val);
-    toast?.show(val ? 'Synthesizer muted' : 'Futuristic synthesizer active ⚡', 'info');
+    toast?.show(val ? 'Synthesizer muted' : 'Futuristic synthesizer active', 'info');
   }, [toast]);
 
   // Privacy toggles mirror the profile; write-through on change.
