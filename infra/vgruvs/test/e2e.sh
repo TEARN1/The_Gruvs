@@ -166,6 +166,9 @@ for s in 00-vgruvs-http.conf 00-vgruvs-console.conf; do cp "$T/lib/nginx/sites/$
 "$T/bin/nginx"
 for app in thegruvs excellency theresident; do "$VG" site "$app" >/dev/null; done
 check "all three sites pass nginx -t together" "$T/bin/nginx" -t -q
+# A hostname written straight into proxy_pass is looked up when nginx loads,
+# and a DNS failure then rejects every site; outside hosts go in a variable.
+check "no outside host is looked up when nginx loads" bash -c "! grep -hE 'proxy_pass https?://[a-z0-9.-]+\.[a-z]{2,}' '$T'/nginx/sites-enabled/*.conf"
 sleep 0.5
 check "an unknown hostname gets no site" test "$(code_of unknown.example /)" = 000
 check "vgruvs knows its version" contains "$("$VG" version)" "V-Gruvs 2"
@@ -388,8 +391,13 @@ seen="$(for i in $(seq 1 40); do get theresidentcrew.com / -A "visitor-$i"; echo
 check "visitors are split between the two releases" bash -c "grep -q 'resident two' <<<'$seen' && grep -q 'resident three' <<<'$seen'"
 check "each visitor stays on one release" test "$(for _ in 1 2 3 4 5; do get theresidentcrew.com / -A visitor-7; echo; done | sort -u | wc -l)" = 1
 check "a healthy rollout reaches everyone by itself" eventually 25 bash -c "[[ ! -f '$T/srv/theresident/rollout' && \$(readlink '$T/srv/theresident/current') == releases/n5 ]]"
-everyone="$(for i in $(seq 1 10); do get theresidentcrew.com / -A "visitor-$i"; echo; done)"
-check "and everyone is on it" bash -c "grep -q 'resident three' <<<'$everyone' && ! grep -q 'resident two' <<<'$everyone'"
+# nginx reloads in the background, so old workers can answer for a moment.
+everyone_on_n5() {
+  local everyone i
+  everyone="$(for i in $(seq 1 10); do get theresidentcrew.com / -A "visitor-$i"; echo; done)"
+  grep -q 'resident three' <<<"$everyone" && ! grep -q 'resident two' <<<"$everyone"
+}
+check "and everyone is on it" eventually 5 everyone_on_n5
 mk_node canary-fail four | "$VG" receive theresident n6 >/dev/null
 for i in $(seq 1 60); do code_of theresidentcrew.com /work -A "visitor-$i" >/dev/null; done
 check "a failing canary is withdrawn automatically" eventually 30 grep -q '"type":"rollout_abort"' "$T/state/events.jsonl"
