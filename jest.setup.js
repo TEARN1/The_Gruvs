@@ -68,6 +68,8 @@ jest.mock('@supabase/supabase-js', () => ({
       onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
       getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
       getUser: jest.fn(() => Promise.resolve({ data: { user: null } })),
+      setSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      exchangeCodeForSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
