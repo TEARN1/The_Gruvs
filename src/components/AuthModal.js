@@ -666,8 +666,15 @@ export const AuthModal = ({ visible, onClose }) => {
                 so this is just an alternate front door, not a separate flow. */}
             {(mode === 'signin' || signupStep === 1) && (
               <>
-                <View style={{ flexDirection: 'row', marginHorizontal: HM, marginBottom: 16 }}>
-                  {/* Google temporarily pulled — Supabase provider isn't configured yet. */}
+                <View style={{ flexDirection: 'row', marginHorizontal: HM, marginBottom: 16, gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => handleOAuth('google')}
+                    disabled={loading || checkingName}
+                    style={[styles.oauthBtn, { borderColor: `${primary}30` }]}
+                  >
+                    <MaterialCommunityIcons name="google" size={16} color={textColor} />
+                    <Text style={[styles.oauthText, { color: textColor }]}>Google</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleOAuth('facebook')}
                     disabled={loading || checkingName}
