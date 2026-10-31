@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import {
-  Modal, View, Text, StyleSheet, TextInput,
+  Modal, View, Text, StyleSheet, TextInput, Image,
   TouchableOpacity, Animated, KeyboardAvoidingView,
   Platform, ScrollView, ActivityIndicator, Dimensions, useWindowDimensions,
 } from 'react-native';
@@ -609,9 +609,16 @@ export const AuthModal = ({ visible, onClose }) => {
                   <View style={[styles.glowBar, { backgroundColor: primary }]} />
 
             <View style={styles.headerRow}>
-              <Text style={[styles.title, { color: primary }]}>
-                {mode === 'signin' ? '👑 Welcome back' : '⚡ Create your account'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Image
+                  source={require('../../assets/icon-512.png')}
+                  style={{ width: 32, height: 32, borderRadius: 8 }}
+                  resizeMode="contain"
+                />
+                <Text style={[styles.title, { color: primary }]}>
+                  {mode === 'signin' ? '👑 Welcome back' : '⚡ Create your account'}
+                </Text>
+              </View>
               <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Feather name="x" size={22} color={textColor} />
               </TouchableOpacity>
