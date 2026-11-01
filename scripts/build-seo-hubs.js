@@ -391,15 +391,24 @@ function renderEventCard(e) {
     }
   }
 
-  if (events.length === 0) {
-    const catalogPath = path.join(publicDir, 'data', 'events-catalog.json');
-    if (fs.existsSync(catalogPath)) {
-      try {
-        events = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
-        console.log(`[build-seo-hubs] Loaded ${events.length} events from local events-catalog.json fallback.`);
-      } catch {}
+  // Merge Supabase live events with comprehensive catalog events (3,000+ items)
+  const catalogPath = path.join(publicDir, 'data', 'events-catalog.json');
+  let catalogEvents = [];
+  if (fs.existsSync(catalogPath)) {
+    try {
+      catalogEvents = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+      console.log(`[build-seo-hubs] Loaded ${catalogEvents.length} events from events-catalog.json.`);
+    } catch {}
+  }
+
+  const seenIds = new Set(events.map(e => e.id));
+  for (const ce of catalogEvents) {
+    if (!seenIds.has(ce.id)) {
+      events.push(ce);
+      seenIds.add(ce.id);
     }
   }
+  console.log(`[build-seo-hubs] Total unified event dataset: ${events.length} events.`);
 
   // 1. City Definitions
   const CITIES = [

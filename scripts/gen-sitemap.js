@@ -146,8 +146,25 @@ function buildXml(entries) {
         `&order=event_date.asc&limit=5000`,
         { headers: { apikey: key, Authorization: `Bearer ${key}` } }
       );
-      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-      const events = await res.json();
+      let events = [];
+      if (res.ok) {
+        events = await res.json();
+      }
+
+      // Merge comprehensive events catalog (3,000+ items)
+      const catalogPath = path.join(publicDir, 'data', 'events-catalog.json');
+      if (fs.existsSync(catalogPath)) {
+        try {
+          const catalogEvents = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+          const seenIds = new Set(events.map(e => e.id));
+          for (const ce of catalogEvents) {
+            if (!seenIds.has(ce.id)) {
+              events.push(ce);
+              seenIds.add(ce.id);
+            }
+          }
+        } catch {}
+      }
 
       for (const e of events) {
         let priority = '0.75';
