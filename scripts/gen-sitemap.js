@@ -22,6 +22,7 @@ const STATIC = [
   { loc: '/get.html', changefreq: 'monthly', priority: '0.6' },
   { loc: '/privacy.html', changefreq: 'yearly', priority: '0.2' },
   { loc: '/terms.html', changefreq: 'yearly', priority: '0.2' },
+  { loc: '/account-deletion.html', changefreq: 'yearly', priority: '0.2' },
 ];
 
 function readEnv() {
@@ -50,10 +51,7 @@ function xml(urls) {
 
 (async () => {
   const distDir = path.join(__dirname, '..', 'dist');
-  if (!fs.existsSync(distDir)) {
-    console.warn('[gen-sitemap] dist/ not found — skipping (run after expo export).');
-    return;
-  }
+  const publicDir = path.join(__dirname, '..', 'public');
 
   const urls = STATIC.map(s => ({ ...s, loc: `${SITE}${s.loc}` }));
   const { url, key } = readEnv();
@@ -86,6 +84,15 @@ function xml(urls) {
     }
   }
 
-  fs.writeFileSync(path.join(distDir, 'sitemap.xml'), xml(urls));
-  console.log(`[gen-sitemap] Wrote dist/sitemap.xml with ${urls.length} URLs.`);
+  const sitemapContent = xml(urls);
+
+  if (fs.existsSync(publicDir)) {
+    fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapContent);
+    console.log(`[gen-sitemap] Wrote public/sitemap.xml with ${urls.length} URLs.`);
+  }
+
+  if (fs.existsSync(distDir)) {
+    fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemapContent);
+    console.log(`[gen-sitemap] Wrote dist/sitemap.xml with ${urls.length} URLs.`);
+  }
 })();
