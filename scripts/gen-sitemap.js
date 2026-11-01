@@ -32,7 +32,7 @@ const HUBS = [
   // Flagship Seasonal
   { loc: '/events/ke-dezemba', changefreq: 'daily', priority: '0.95' },
 
-  // City & Metro Hubs
+  // City & Metro Hubs (All 9 Provinces & Major Event Centers)
   { loc: '/events/johannesburg', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/pretoria', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/midrand', changefreq: 'daily', priority: '0.90' },
@@ -41,14 +41,30 @@ const HUBS = [
   { loc: '/events/centurion', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/sandton', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/rosebank', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/cape-town', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/durban', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/bloemfontein', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/gqeberha', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/polokwane', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/nelspruit', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/rustenburg', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/kimberley', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/pietermaritzburg', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/stellenbosch', changefreq: 'daily', priority: '0.90' },
 
-  // Genre & Vibe Hubs
+  // Genre & Vibe Hubs (Major Music & Lifestyle Subcultures)
   { loc: '/events/amapiano', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/afro-tech', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/nightlife', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/festivals', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/food-and-drink', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/lifestyle', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/gqom-and-kwaito', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/live-jazz', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/comedy', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/rooftop-sundowners', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/shisanyama', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/sports-derbies', changefreq: 'daily', priority: '0.90' },
 ];
 
 function readEnv() {
@@ -66,15 +82,23 @@ function readEnv() {
   };
 }
 
-function slugify(text) {
+function slugify(text, maxLen = 70) {
   if (!text) return '';
-  return String(text)
+  const s = String(text)
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+  if (s.length <= maxLen) return s;
+  return s.slice(0, maxLen).replace(/-[^-]*$/, '').replace(/-+$/, '');
+}
+
+function eventSlug(e) {
+  const words = slugify([e.title, e.venue_name, e.city].filter(Boolean).join(' '), 70);
+  const cleanId = slugify(e.id || '');
+  return words ? `${words}-${cleanId}` : cleanId;
 }
 
 function escapeXml(str) {
@@ -193,7 +217,7 @@ function buildXml(entries) {
         }
 
         const lastmod = (e.updated_at || e.event_date || today).slice(0, 10);
-        const slug = `${slugify(e.title)}-${slugify(e.city || 'gauteng')}`;
+        const slug = eventSlug(e);
 
         // 1. Semantic slug URL
         urls.push({

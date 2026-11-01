@@ -33,15 +33,23 @@ function readEnv() {
   };
 }
 
-function slugify(text) {
+function slugify(text, maxLen = 70) {
   if (!text) return '';
-  return String(text)
+  const s = String(text)
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+  if (s.length <= maxLen) return s;
+  return s.slice(0, maxLen).replace(/-[^-]*$/, '').replace(/-+$/, '');
+}
+
+function eventSlug(e) {
+  const words = slugify([e.title, e.venue_name, e.city].filter(Boolean).join(' '), 70);
+  const cleanId = slugify(e.id || '');
+  return words ? `${words}-${cleanId}` : cleanId;
 }
 
 function escapeHtml(str) {
@@ -345,7 +353,7 @@ function renderEventCard(e) {
   const dateStr = formatDate(e.event_date, e.event_time);
   const venue = [e.venue_name, e.city].filter(Boolean).join(' · ');
   const price = e.price === 'FREE' || e.price === 0 ? 'Free entry' : (typeof e.price === 'string' && !e.price.startsWith('{') ? e.price : 'Tickets Available');
-  const slug = `${slugify(e.title)}-${slugify(e.city || 'gauteng')}`;
+  const slug = eventSlug(e);
 
   return `
     <a class="event-card" href="${SITE}/events/${slug}">
@@ -410,7 +418,7 @@ function renderEventCard(e) {
   }
   console.log(`[build-seo-hubs] Total unified event dataset: ${events.length} events.`);
 
-  // 1. City Definitions
+  // 1. City Definitions (Expanded across all South African Metro & Cultural Centers)
   const CITIES = [
     { slug: 'johannesburg', name: 'Johannesburg', desc: 'Upcoming events, concerts, nightlife, and festivals in Johannesburg and surrounding metro.' },
     { slug: 'pretoria', name: 'Pretoria', desc: 'Live music, theatre, picnics, and weekend vibes across Pretoria & Tshwane.' },
@@ -420,9 +428,19 @@ function renderEventCard(e) {
     { slug: 'centurion', name: 'Centurion', desc: 'Outdoor amphitheatre concerts, rooftop jazz, and lakeside lifestyle festivals in Centurion.' },
     { slug: 'sandton', name: 'Sandton', desc: 'Rooftop lounges, high-energy club nights, and VIP party events in Sandton.' },
     { slug: 'rosebank', name: 'Rosebank', desc: 'Boutique art mixers, vinyl listening bars, and creative night markets in Rosebank.' },
+    { slug: 'cape-town', name: 'Cape Town', desc: 'Camps Bay sundowners, Shimmy Beach raves, Kirstenbosch concerts, and nightlife in Cape Town.' },
+    { slug: 'durban', name: 'Durban', desc: 'Florida Road block parties, beachfront festivals, Eyadini shisanyama, and coastal vibes in Durban.' },
+    { slug: 'bloemfontein', name: 'Bloemfontein', desc: 'Mangaung cultural festivals, stadium soundstages, and Free State celebration vibes.' },
+    { slug: 'gqeberha', name: 'Gqeberha (Port Elizabeth)', desc: 'Boardwalk concerts, ocean-view food markets, and Eastern Cape live events.' },
+    { slug: 'polokwane', name: 'Polokwane', desc: 'Meropa casino concerts, Limpopo soul chillas, and outdoor stadium concerts.' },
+    { slug: 'nelspruit', name: 'Nelspruit (Mbombela)', desc: 'Lowveld botanical garden festivals, live music lounges, and safari sunset vibes.' },
+    { slug: 'rustenburg', name: 'Rustenburg', desc: 'Sun City Superbowl concerts, North West outdoor festivals, and weekend lounges.' },
+    { slug: 'kimberley', name: 'Kimberley', desc: 'Diamond pavilion soundstages, Northern Cape heritage festivals, and local music.' },
+    { slug: 'pietermaritzburg', name: 'Pietermaritzburg', desc: 'Midlands music festivals, Golden Horse lounges, and KZN capital events.' },
+    { slug: 'stellenbosch', name: 'Stellenbosch', desc: 'Wineland open-air amphitheatre gigs, student weekend bashes, and wine estate chillas.' },
   ];
 
-  // 2. Genre Definitions
+  // 2. Genre Definitions (Expanded across all South African Music & Event Subcultures)
   const GENRES = [
     { slug: 'amapiano', name: 'Amapiano', desc: 'The biggest Amapiano concerts, day parties, and private school groove sets in South Africa.' },
     { slug: 'afro-tech', name: 'Afro-Tech & Deep House', desc: 'Deep ancestral rhythms, electronic stages, and sunset Afro-Tech experiences.' },
@@ -430,6 +448,12 @@ function renderEventCard(e) {
     { slug: 'festivals', name: 'Festivals & Carnivals', desc: 'Multi-stage music festivals, cultural parades, and outdoor weekend extravaganzas.' },
     { slug: 'food-and-drink', name: 'Food & Drink', desc: 'Artisanal food markets, wine tastings, craft beer garden picnics, and braai cook-offs.' },
     { slug: 'lifestyle', name: 'Lifestyle & Culture', desc: 'Fashion pop-ups, pool clubs, art showcases, and creative community gatherings.' },
+    { slug: 'gqom-and-kwaito', name: 'Gqom & Kwaito', desc: 'Durban raw drum basslines, township heritage street sounds, and high-octane dances.' },
+    { slug: 'live-jazz', name: 'Live Jazz & Soul', desc: 'Intimate jazz cafes, acoustic soul sessions, and heritage brass orchestra performances.' },
+    { slug: 'comedy', name: 'Stand-up Comedy', desc: 'South Africa’s premier comedy clubs, vernacular laughs, and theater specials.' },
+    { slug: 'rooftop-sundowners', name: 'Rooftop Sundowners', desc: 'Golden hour panoramic cocktails, deep house selections, and skybar weekends.' },
+    { slug: 'shisanyama', name: 'Shisanyama & Braai Sundays', desc: 'Butchery grill feasts, cooler box lawn picnics, and authentic township Sunday sessions.' },
+    { slug: 'sports-derbies', name: 'Sports Derbies & Stadium Vibe', desc: 'Soweto Derby fan parks, rugby test tailgates, and stadium screening parties.' },
   ];
 
   const generatedPages = [];
@@ -437,13 +461,25 @@ function renderEventCard(e) {
   // ── Helper to write to both public and dist ───────────────────────────────
   function writePage(relPath, html) {
     const pubFile = path.join(publicDir, relPath);
-    fs.mkdirSync(path.dirname(pubFile), { recursive: true });
-    fs.writeFileSync(pubFile, html, 'utf8');
+    try {
+      fs.mkdirSync(path.dirname(pubFile), { recursive: true });
+      fs.writeFileSync(pubFile, html, 'utf8');
+    } catch {
+      try {
+        fs.writeFileSync(pubFile, html, 'utf8');
+      } catch {}
+    }
 
     if (fs.existsSync(distDir)) {
       const distFile = path.join(distDir, relPath);
-      fs.mkdirSync(path.dirname(distFile), { recursive: true });
-      fs.writeFileSync(distFile, html, 'utf8');
+      try {
+        fs.mkdirSync(path.dirname(distFile), { recursive: true });
+        fs.writeFileSync(distFile, html, 'utf8');
+      } catch {
+        try {
+          fs.writeFileSync(distFile, html, 'utf8');
+        } catch {}
+      }
     }
   }
 
@@ -473,7 +509,7 @@ function renderEventCard(e) {
             'address': { '@type': 'PostalAddress', 'addressLocality': c.name, 'addressCountry': 'ZA' },
           },
           'image': e.cover_url || e.cover_image || `${SITE}/og-default.jpg`,
-          'url': `${SITE}/events/${slugify(e.title)}-${slugify(e.city || 'gauteng')}`,
+          'url': `${SITE}/events/${eventSlug(e)}`,
         },
       })),
     };
@@ -546,7 +582,7 @@ function renderEventCard(e) {
             'address': { '@type': 'PostalAddress', 'addressLocality': e.city || 'Johannesburg', 'addressCountry': 'ZA' },
           },
           'image': e.cover_url || e.cover_image || `${SITE}/og-default.jpg`,
-          'url': `${SITE}/events/${slugify(e.title)}-${slugify(e.city || 'gauteng')}`,
+          'url': `${SITE}/events/${eventSlug(e)}`,
         },
       })),
     };
@@ -607,7 +643,7 @@ function renderEventCard(e) {
           'address': { '@type': 'PostalAddress', 'addressLocality': e.city || 'Johannesburg', 'addressCountry': 'ZA' },
         },
         'image': e.cover_url || e.cover_image || `${SITE}/og-default.jpg`,
-        'url': `${SITE}/events/${slugify(e.title)}-${slugify(e.city || 'gauteng')}`,
+        'url': `${SITE}/events/${eventSlug(e)}`,
       },
     })),
   };
@@ -652,7 +688,7 @@ function renderEventCard(e) {
 
   // ── Generate Individual Event Landing Pages ───────────────────────────────
   for (const e of events) {
-    const slug = `${slugify(e.title)}-${slugify(e.city || 'gauteng')}`;
+    const slug = eventSlug(e);
     const cover = e.cover_url || e.cover_image || (Array.isArray(e.media_urls) && e.media_urls[0]) || `${SITE}/og-default.jpg`;
     const dateStr = formatDate(e.event_date, e.event_time);
     const venue = [e.venue_name, e.city].filter(Boolean).join(' · ');
@@ -699,6 +735,17 @@ function renderEventCard(e) {
       { name: e.title, url: `${SITE}/events/${slug}` },
     ];
 
+    const dateOnly = (e.event_date || '2026-12-01').replace(/-/g, '');
+    const timeOnly = (e.event_time ? e.event_time.slice(0, 5).replace(':', '') : '1800') + '00';
+    const calStart = `${dateOnly}T${timeOnly}`;
+    const calEnd = `${dateOnly}T235900`;
+    const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${calStart}/${calEnd}&details=${encodeURIComponent(e.description || e.title)}&location=${encodeURIComponent(venue)}&sprop=website:${SITE}`;
+    const cleanTitle = (e.title || '').replace(/[\r\n]+/g, ' ');
+    const cleanDesc = (e.description || e.title || '').replace(/[\r\n]+/g, ' ');
+    const cleanVenue = venue.replace(/[\r\n]+/g, ' ');
+    const icsContent = encodeURIComponent(`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//The Gruvs//ZA\nBEGIN:VEVENT\nSUMMARY:${cleanTitle}\nDESCRIPTION:${cleanDesc}\nLOCATION:${cleanVenue}\nDTSTART:${calStart}\nDTEND:${calEnd}\nEND:VEVENT\nEND:VCALENDAR`);
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`Pull up with me to ${cleanTitle} at ${cleanVenue} on ${dateStr}! View verified tickets on The Gruvs: ${SITE}/events/${slug}`)}`;
+
     const body = `
       <div class="breadcrumbs">
         <a href="${SITE}/">Home</a> <span>›</span>
@@ -710,6 +757,18 @@ function renderEventCard(e) {
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; align-items: start; margin-top: 16px;">
         <div>
           <img src="${escapeHtml(cover)}" alt="${escapeHtml(e.title)}" style="width:100%; border-radius:18px; border:1px solid var(--surface-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
+          
+          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;">
+            <a href="${gCalUrl}" target="_blank" rel="noopener" style="flex:1; min-width:140px; text-align:center; background:#1a2327; border:1px solid #00f2ff44; color:#00f2ff; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none;">
+              📅 + Google Cal
+            </a>
+            <a href="data:text/calendar;charset=utf8,${icsContent}" download="${slug}.ics" style="flex:1; min-width:140px; text-align:center; background:#1a2327; border:1px solid rgba(255,255,255,0.18); color:#fff; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none;">
+              📥 Download .ics
+            </a>
+            <a href="${waUrl}" target="_blank" rel="noopener" style="width:100%; text-align:center; background:#25D366; color:#000; padding:11px 16px; border-radius:10px; font-size:13px; font-weight:800; text-decoration:none; display:block;">
+              💬 WhatsApp Squad Invite
+            </a>
+          </div>
         </div>
         <div>
           <div style="color:var(--primary); font-weight:800; font-size:14px; text-transform:uppercase; margin-bottom:8px;">${escapeHtml(dateStr)}</div>
@@ -736,6 +795,14 @@ function renderEventCard(e) {
               <p>Find secure stays and verified local rooms on The Resident Crew.</p>
             </div>
             <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays →</a>
+          </div>
+
+          <div style="background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.18); border-radius:12px; padding:14px 18px; margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+              <strong style="color:#fff; font-size:14px; display:block;">Are you the promoter or venue?</strong>
+              <span style="color:var(--muted); font-size:13px;">Claim this listing to update times, add tickets, and connect.</span>
+            </div>
+            <a href="${SITE}/?claim=${e.id}" class="resident-btn" style="background:transparent; border:1px solid var(--primary); color:var(--primary); padding:6px 14px; font-size:13px;">Claim Listing →</a>
           </div>
         </div>
       </div>
@@ -767,7 +834,7 @@ function renderEventCard(e) {
 
   // ── Generate RSS / Atom feed ──────────────────────────────────────────────
   const rssItems = events.slice(0, 50).map(e => {
-    const slug = `${slugify(e.title)}-${slugify(e.city || 'gauteng')}`;
+    const slug = eventSlug(e);
     const cover = e.cover_url || e.cover_image || (Array.isArray(e.media_urls) && e.media_urls[0]) || `${SITE}/og-default.jpg`;
     return `
     <item>

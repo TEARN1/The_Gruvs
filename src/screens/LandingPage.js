@@ -1126,7 +1126,7 @@ const orderForGuest = (list) =>
 //  ScoreEngine.eventScore + personalisation + diversify. This screen only
 //  filters, dedupes and collapses tours; it never re-ranks.)
 
-export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap, onNavigateToTab }) => {
+export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap, onNavigateToTab, initialFeedFilter, onClearInitialFeedFilter }) => {
   // Header fit on small phones: at 320 px the logo, wordmark and five round
   // buttons were wider than the screen and the "+" (post) button was cut off.
   const { width: winW } = useWindowDimensions();
@@ -1293,6 +1293,29 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [feedMode, setFeedMode] = useState('upcoming'); // 'upcoming' | 'all' | 'following' | 'mine'
   const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
   const fetchedCheckinIds = useRef(new Set());
+
+  // Handle SEO deep-link query hydration (e.g. ?city=Pretoria, ?genre=amapiano, ?filter=dezemba)
+  useEffect(() => {
+    if (!initialFeedFilter) return;
+    if (initialFeedFilter.category) {
+      setSelectedCat(initialFeedFilter.category.toLowerCase());
+    }
+    if (initialFeedFilter.city) {
+      setSearchQuery(initialFeedFilter.city);
+      setDebouncedQuery(initialFeedFilter.city);
+    }
+    if (initialFeedFilter.search) {
+      setSearchQuery(initialFeedFilter.search);
+      setDebouncedQuery(initialFeedFilter.search);
+    }
+    if (initialFeedFilter.filter === 'dezemba') {
+      setDateFilter('dezemba');
+      setDateRange({ from: '2026-12-01', to: '2027-01-05' });
+    } else if (initialFeedFilter.filter === 'weekend') {
+      setDateFilter('weekend');
+    }
+    if (onClearInitialFeedFilter) onClearInitialFeedFilter();
+  }, [initialFeedFilter]);
 
   // ── Dwell-time tracking (feeds the recommendation engine) ──────────────────
   const viewStartRef = useRef({}); // eventId → ms timestamp when it became visible

@@ -81,6 +81,7 @@ export const MainNavigator = () => {
 
   const [currentTab, setCurrentTab] = useState('feed');
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
+  const [initialFeedFilter, setInitialFeedFilter] = useState(null);
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [godViewVisible, setGodViewVisible] = useState(false);
   const [bizHubVisible, setBizHubVisible] = useState(false);
@@ -320,8 +321,18 @@ export const MainNavigator = () => {
         const eventId = params.get('event');
         const profileId = params.get('profile');
         const reelId = params.get('reel');
+        const cityParam = params.get('city');
+        const genreParam = params.get('genre') || params.get('category');
+        const filterParam = params.get('filter');
+        const searchParam = params.get('search');
+        const claimId = params.get('claim');
+
         if (eventId) {
           setTargetEvent({ id: eventId });
+          setCurrentTab('feed');
+          window.history.replaceState({}, '', window.location.pathname);
+        } else if (claimId) {
+          setTargetEvent({ id: claimId });
           setCurrentTab('feed');
           window.history.replaceState({}, '', window.location.pathname);
         } else if (profileId) {
@@ -332,6 +343,14 @@ export const MainNavigator = () => {
           setTargetReel(reelId);
           setCurrentTab('reels');
           window.history.replaceState({}, '', window.location.pathname);
+        } else if (cityParam || genreParam || filterParam || searchParam) {
+          setInitialFeedFilter({
+            city: cityParam || null,
+            category: genreParam || null,
+            filter: filterParam || null,
+            search: searchParam || null,
+          });
+          setCurrentTab('feed');
         }
       } catch {}
     }
@@ -481,6 +500,8 @@ export const MainNavigator = () => {
             targetEvent={targetEvent}
             onTargetHandled={() => setTargetEvent(null)}
             refreshKey={feedRefreshKey}
+            initialFeedFilter={initialFeedFilter}
+            onClearInitialFeedFilter={() => setInitialFeedFilter(null)}
             onNavigateToServices={handleNavigateToServices}
             onNavigateToMap={(ev) => {
               if (ev) setTargetEvent(ev);
