@@ -135,6 +135,7 @@ case "\$action:\$unit" in
       echo \$! >"\$pidf"
     fi
     ;;
+  reboot:) touch "$T/rebooted" ;;
   *) echo "fake systemctl: ignoring \$*" >&2 ;;
 esac
 EOF
@@ -165,6 +166,9 @@ for s in 00-vgruvs-http.conf 00-vgruvs-console.conf; do cp "$T/lib/nginx/sites/$
 "$T/bin/nginx"
 for app in thegruvs excellency theresident; do "$VG" site "$app" >/dev/null; done
 check "all three sites pass nginx -t together" "$T/bin/nginx" -t -q
+# A hostname written straight into proxy_pass is looked up when nginx loads,
+# and a DNS failure then rejects every site; outside hosts go in a variable.
+check "no outside host is looked up when nginx loads" bash -c "! grep -hE 'proxy_pass https?://[a-z0-9.-]+\.[a-z]{2,}' '$T'/nginx/sites-enabled/*.conf"
 sleep 0.5
 check "an unknown hostname gets no site" test "$(code_of unknown.example /)" = 000
 check "vgruvs knows its version" contains "$("$VG" version)" "V-Gruvs 2"
@@ -387,8 +391,13 @@ seen="$(for i in $(seq 1 40); do get theresidentcrew.com / -A "visitor-$i"; echo
 check "visitors are split between the two releases" bash -c "grep -q 'resident two' <<<'$seen' && grep -q 'resident three' <<<'$seen'"
 check "each visitor stays on one release" test "$(for _ in 1 2 3 4 5; do get theresidentcrew.com / -A visitor-7; echo; done | sort -u | wc -l)" = 1
 check "a healthy rollout reaches everyone by itself" eventually 25 bash -c "[[ ! -f '$T/srv/theresident/rollout' && \$(readlink '$T/srv/theresident/current') == releases/n5 ]]"
-everyone="$(for i in $(seq 1 10); do get theresidentcrew.com / -A "visitor-$i"; echo; done)"
-check "and everyone is on it" bash -c "grep -q 'resident three' <<<'$everyone' && ! grep -q 'resident two' <<<'$everyone'"
+# nginx reloads in the background, so old workers can answer for a moment.
+everyone_on_n5() {
+  local everyone i
+  everyone="$(for i in $(seq 1 10); do get theresidentcrew.com / -A "visitor-$i"; echo; done)"
+  grep -q 'resident three' <<<"$everyone" && ! grep -q 'resident two' <<<"$everyone"
+}
+check "and everyone is on it" eventually 5 everyone_on_n5
 mk_node canary-fail four | "$VG" receive theresident n6 >/dev/null
 for i in $(seq 1 60); do code_of theresidentcrew.com /work -A "visitor-$i" >/dev/null; done
 check "a failing canary is withdrawn automatically" eventually 30 grep -q '"type":"rollout_abort"' "$T/state/events.jsonl"
@@ -513,6 +522,21 @@ check "an app that is down, as after a restart" bash -c "'$VG' status excellency
 check "is started by vgruvs boot" eventually 20 bash -c "'$VG' status excellency | grep -q 'health=ok'"
 check "and the start-up is in the events" bash -c "'$VG' events -n 5 | grep -q 'droplet started up'"
 check "and in the notifications" eventually 10 grep -q 'droplet started up' "$T/notified.log"
+
+echo "restarts for updates"
+printf 'Unattended-Upgrade::Automatic-Reboot "true";\nUnattended-Upgrade::Automatic-Reboot-Time "01:30";\n' >"$T/52vgruvs-reboot"
+echo '*** System restart required ***' >"$T/reboot-required"
+echo 'linux-image-6.8.0-130-generic' >"$T/reboot-required.pkgs"
+heal_at() { VGRUVS_REBOOT_CONF="$T/52vgruvs-reboot" VGRUVS_REBOOT_FLAG="$T/reboot-required" VGRUVS_REBOOT_WAIT=0 VGRUVS_NOW_HHMM="$1" "$VG" heal >/dev/null 2>&1; }
+heal_at 1200
+check "a waiting restart does not happen outside the quiet hour" test ! -e "$T/rebooted"
+heal_at 0135
+check "it happens at the quiet hour, by the heal timer" test -e "$T/rebooted"
+check "and says why in the events" bash -c "'$VG' events -n 5 | grep -q 'restarting for security updates (linux-image-6.8.0-130-generic)'"
+rm -f "$T/rebooted"
+heal_at 0137
+check "but never twice in a row" test ! -e "$T/rebooted"
+check "doctor says when it will happen" bash -c "VGRUVS_REBOOT_CONF='$T/52vgruvs-reboot' VGRUVS_REBOOT_FLAG='$T/reboot-required' '$VG' doctor 2>&1 | grep -q 'the heal timer restarts the droplet at 01:30 UTC'"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [[ "$FAIL" -eq 0 ]]

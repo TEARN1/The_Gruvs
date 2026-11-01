@@ -4,7 +4,7 @@ import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import {
   Modal, View, Text, StyleSheet, TextInput, Image,
   TouchableOpacity, Animated, KeyboardAvoidingView,
-  Platform, ScrollView, ActivityIndicator, Dimensions, useWindowDimensions,
+  Platform, ScrollView, ActivityIndicator, Dimensions, useWindowDimensions, Linking,
 } from 'react-native';
 
 import { useTheme } from '../context/ThemeContext';
@@ -184,6 +184,13 @@ export const AuthModal = ({ visible, onClose }) => {
       return;
     }
     setError('');
+    // A reset link opens on thegruvs.com, which only accepts links it asked
+    // for itself (PKCE), so the app sends people there to ask for one.
+    if (Platform.OS !== 'web') {
+      setSuccess('Reset your password on thegruvs.com: tap Sign in, then "Forgot password". Then sign in here with the new one.');
+      Linking.openURL(APP_WEB_URL).catch(() => {});
+      return;
+    }
     // Send them back to a place that can complete the reset. On a deployed web
     // origin that's this exact origin (AuthContext picks up the recovery token in
     // the URL). On localhost dev or native, route to the production site so the

@@ -48,7 +48,9 @@ APT::Periodic::Unattended-Upgrade "1";
 EOF
 # An update that needs a restart (a new kernel) is not in force until the
 # droplet restarts: do it at 01:30 UTC (03:30 in South Africa), when the apps
-# are quietest. vgruvs-boot.service starts them again; the restart is in
+# are quietest. Ubuntu restarts by itself after an update run that needs it;
+# the heal timer also restarts at that time for a restart already waiting.
+# vgruvs-boot.service starts the apps again; the restart is in
 # `vgruvs events` and, with notifications on, on your phone.
 # NO_AUTO_REBOOT=1 leaves restarts to you.
 if [[ -z "${NO_AUTO_REBOOT:-}" ]]; then
