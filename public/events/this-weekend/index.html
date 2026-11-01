@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Events This Weekend in South Africa (Friday - Sunday) — The Gruvs</title>
+  <meta name="description" content="Find top parties, concerts, nightlife and markets happening this weekend in Johannesburg, Pretoria, Cape Town, and Durban." />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://thegruvs.com/events/this-weekend" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="The Gruvs" />
+  <meta property="og:title" content="Events This Weekend in South Africa (Friday - Sunday) — The Gruvs" />
+  <meta property="og:description" content="Find top parties, concerts, nightlife and markets happening this weekend in Johannesburg, Pretoria, Cape Town, and Durban." />
+  <meta property="og:url" content="https://thegruvs.com/events/this-weekend" />
+  <meta property="og:image" content="https://thegruvs.com/og-default.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="en_ZA" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@thegruvs" />
+  <meta name="twitter:title" content="Events This Weekend in South Africa (Friday - Sunday) — The Gruvs" />
+  <meta name="twitter:description" content="Find top parties, concerts, nightlife and markets happening this weekend in Johannesburg, Pretoria, Cape Town, and Durban." />
+  <meta name="twitter:image" content="https://thegruvs.com/og-default.jpg" />
+
+  <!-- Styles -->
+  <style>
+    :root {
+      --primary: #00f2ff;
+      --bg: #0d1112;
+      --surface: #131a1c;
+      --surface-border: rgba(255,255,255,0.12);
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.65);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+    header.site-header {
+      border-bottom: 1px solid var(--surface-border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 900;
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+    .brand-link img { border-radius: 8px; width: 32px; height: 32px; }
+    .brand-accent { color: var(--primary); }
+    .nav-cta {
+      background: var(--primary);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 12px;
+      font-weight: 800;
+      text-decoration: none;
+      font-size: 14px;
+      transition: transform 0.15s ease;
+    }
+    .nav-cta:hover { transform: translateY(-2px); }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+    .breadcrumbs {
+      display: flex;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .breadcrumbs a { color: var(--muted); text-decoration: none; }
+    .breadcrumbs a:hover { color: var(--primary); }
+    .hero-title {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 900;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    .hero-lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 800px;
+      margin-bottom: 32px;
+    }
+    .event-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .event-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      text-decoration: none;
+      color: inherit;
+    }
+    .event-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--primary);
+    }
+    .event-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      background: #1a2225;
+    }
+    .event-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .event-date {
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .event-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    .event-venue {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .event-footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 14px;
+      font-size: 14px;
+    }
+    .event-price {
+      font-weight: 800;
+      color: #fff;
+    }
+    .btn-view {
+      color: var(--primary);
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .resident-banner {
+      background: linear-gradient(135deg, rgba(0, 242, 255, 0.08), rgba(0, 242, 255, 0.02));
+      border: 1px solid rgba(0, 242, 255, 0.25);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 40px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .resident-banner-text h3 {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+    .resident-banner-text p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .resident-btn {
+      background: #10b981;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 800;
+      text-decoration: none;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    footer.site-footer {
+      border-top: 1px solid var(--surface-border);
+      padding: 32px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    footer.site-footer a { color: var(--primary); text-decoration: none; }
+  </style>
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Events This Weekend in South Africa",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "item": {
+        "@type": "Event",
+        "name": "Mr and Miss Pretoria Gay Pride 2026 Finale",
+        "startDate": "2026-11-07T18:00:00+02:00",
+        "url": "https://thegruvs.com/events/mr-and-miss-pretoria-gay-pride-2026-finale-barnyard-theatre-menlyn-910b5e6b-fa5b-464b-acc2-5090f2611d85"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "Event",
+        "name": "Kunye | Jozi XI",
+        "startDate": "2026-11-07T12:00:00+02:00",
+        "url": "https://thegruvs.com/events/kunye-jozi-xi-huddle-park-golf-and-recreation-johannesburg-7f8ee4de-ef9b-4ea1-a320-7a2415bc2724"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "Event",
+        "name": "Jill Scott — To Whom This May Concern Tour",
+        "startDate": "2026-11-07T18:00:00+02:00",
+        "url": "https://thegruvs.com/events/jill-scott-to-whom-this-may-concern-tour-sunbet-arena-pretoria-ed996129-089b-4f99-80a6-dd32d1bd3e43"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@type": "Event",
+        "name": "King of the Whip 2026",
+        "startDate": "2026-11-07T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/king-of-the-whip-2026-montecasino-johannesburg-1f8ca678-4be2-484d-a90d-63b5e26254ce"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "item": {
+        "@type": "Event",
+        "name": "Warehouse Protocol JHB: 12-Hour Electronic Marathon (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/warehouse-protocol-jhb-12-hour-electronic-marathon-johannesburg-the-gp-rave-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "item": {
+        "@type": "Event",
+        "name": "Soweto Groove Experience: Bacardi & Afro-House Block Party (Soweto)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/soweto-groove-experience-bacardi-and-afro-house-block-party-soweto-gp-amapiano-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "item": {
+        "@type": "Event",
+        "name": "Golden Hour Sandton: Sky-High Sunset Cocktails & Organic Grooves (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/golden-hour-sandton-sky-high-sunset-cocktails-and-organic-grooves-gp-rooftop-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
+      "item": {
+        "@type": "Event",
+        "name": "TrapCity JHB: Heavy 808s, Drill & Fresh Lyricism (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/trapcity-jhb-heavy-808s-drill-and-fresh-lyricism-johannesburg-gp-hiphop-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 9,
+      "item": {
+        "@type": "Event",
+        "name": "Soweto Soul Acoustic: Intimate Live Vocals & Guitars (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/soweto-soul-acoustic-intimate-live-vocals-and-guitars-johannesburg-gp-liveband-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 10,
+      "item": {
+        "@type": "Event",
+        "name": "Constitution Hill Heritage & Sonic Festival (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/constitution-hill-heritage-and-sonic-festival-johannesburg-gp-festival-music-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 11,
+      "item": {
+        "@type": "Event",
+        "name": "Fourways Twilight Food Carnival: 40+ Street Chefs & Craft Drinks (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/fourways-twilight-food-carnival-40-street-chefs-and-craft-drinks-gp-streetfood-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 12,
+      "item": {
+        "@type": "Event",
+        "name": "Fire & Smoke: African Wood-Fired Asado Showcase (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/fire-and-smoke-african-wood-fired-asado-showcase-johannesburg-the-gp-foodfestival-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 13,
+      "item": {
+        "@type": "Event",
+        "name": "Craft Hop Masterclass: 6 Highveld Hazy IPAs & Stouts (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/craft-hop-masterclass-6-highveld-hazy-ipas-and-stouts-johannesburg-gp-wine-tasting-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 14,
+      "item": {
+        "@type": "Event",
+        "name": "Melville Hilltop Brunch: Shakshuka, Prosecco & Live Sax (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/melville-hilltop-brunch-shakshuka-prosecco-and-live-sax-johannesburg-gp-brunch-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 15,
+      "item": {
+        "@type": "Event",
+        "name": "Tekken 8 & Street Fighter 6 Dojo Fight Night (Randburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/tekken-8-and-street-fighter-6-dojo-fight-night-randburg-nexus-hub-gp-esports-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 16,
+      "item": {
+        "@type": "Event",
+        "name": "Braamfontein Streetwear Block Party: 20 Independent Designers (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/braamfontein-streetwear-block-party-20-independent-designers-gp-streetstyle-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 17,
+      "item": {
+        "@type": "Event",
+        "name": "Otaku Night Market: Doujinshi, J-Pop & Ramen Alley (Midrand)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/otaku-night-market-doujinshi-j-pop-and-ramen-alley-midrand-gallagher-gp-anime-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 18,
+      "item": {
+        "@type": "Event",
+        "name": "Melville Vintage Curiosities & Mid-Century Market (Rosebank)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/melville-vintage-curiosities-and-mid-century-market-rosebank-the-gp-flea-market-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 19,
+      "item": {
+        "@type": "Event",
+        "name": "Emmarentia Dam 8K Tempo Run & Hill Strides (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/emmarentia-dam-8k-tempo-run-and-hill-strides-johannesburg-emmarentia-gp-running-2026-11-2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 20,
+      "item": {
+        "@type": "Event",
+        "name": "Cradle of Humankind Mindful Flow & Sound Immersion (Johannesburg)",
+        "startDate": "2026-11-08T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/cradle-of-humankind-mindful-flow-and-sound-immersion-johannesburg-the-gp-yoga-2026-11-2"
+      }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://thegruvs.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "This Weekend",
+      "item": "https://thegruvs.com/events/this-weekend"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+  <header class="site-header">
+    <a href="https://thegruvs.com/" class="brand-link">
+      <img src="https://thegruvs.com/logo.png" alt="The Gruvs Logo" />
+      <span>THE <span class="brand-accent">GRUVS</span></span>
+    </a>
+    <a href="https://thegruvs.com/" class="nav-cta">Open in App →</a>
+  </header>
+
+  <div class="container">
+    
+    <div class="breadcrumbs">
+      <a href="https://thegruvs.com/">Home</a> <span>›</span>
+      <span>Events</span> <span>›</span>
+      <span style="color:#fff;">This Weekend</span>
+    </div>
+    <h1 class="hero-title">Events <span class="brand-accent">This Weekend</span> in South Africa</h1>
+    <p class="hero-lead">The definitive weekend line-up from Friday night to Sunday sunset. Real-time tickets and soundstage schedules.</p>
+    <div class="event-grid">
+      
+    <a class="event-card" href="https://thegruvs.com/events/mr-and-miss-pretoria-gay-pride-2026-finale-barnyard-theatre-menlyn-910b5e6b-fa5b-464b-acc2-5090f2611d85">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Mr and Miss Pretoria Gay Pride 2026 Finale" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 18:00</div>
+        <h3 class="event-title">Mr and Miss Pretoria Gay Pride 2026 Finale</h3>
+        <p class="event-venue">Barnyard Theatre Menlyn Park · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/kunye-jozi-xi-huddle-park-golf-and-recreation-johannesburg-7f8ee4de-ef9b-4ea1-a320-7a2415bc2724">
+      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/fcd1261b22a09143e6c039229ed05317d22270d38ff9f4e8775dc3812fd622bb-rimg-w1200-h675-dcd84838-gmir?v=1787300830" alt="Kunye | Jozi XI" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 12:00</div>
+        <h3 class="event-title">Kunye | Jozi XI</h3>
+        <p class="event-venue">Huddle Park Golf &amp; Recreation · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/jill-scott-to-whom-this-may-concern-tour-sunbet-arena-pretoria-ed996129-089b-4f99-80a6-dd32d1bd3e43">
+      <img class="event-img" src="https://cdn-az.allevents.in/events5/banners/1c18bfb8a1145075c73bc352b3f66fd69f14d2b5a6ec739d5cbc2f7fa6a461bc-rimg-w1200-h328-dc604634-gmir?v=1784706898" alt="Jill Scott — To Whom This May Concern Tour" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026</div>
+        <h3 class="event-title">Jill Scott — To Whom This May Concern Tour</h3>
+        <p class="event-venue">SunBet Arena · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid — see venue for tickets</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/king-of-the-whip-2026-montecasino-johannesburg-1f8ca678-4be2-484d-a90d-63b5e26254ce">
+      <img class="event-img" src="https://cdn-az.allevents.in/events3/banners/29a07ddf8bc60fee14ec6d11c59cc4c5ca05be32da12ee45af9e45c9fbe422ea-rimg-w1200-h628-dc080808-gmir?v=1790133727" alt="King of the Whip 2026" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 14:00</div>
+        <h3 class="event-title">King of the Whip 2026</h3>
+        <p class="event-venue">Montecasino · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/warehouse-protocol-jhb-12-hour-electronic-marathon-johannesburg-the-gp-rave-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1545128485-c400e7702796?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Warehouse Protocol JHB: 12-Hour Electronic Marathon (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Warehouse Protocol JHB: 12-Hour Electronic Marathon (Johannesburg)</h3>
+        <p class="event-venue">The Carfax / Newtown Warehouse · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R200</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/soweto-groove-experience-bacardi-and-afro-house-block-party-soweto-gp-amapiano-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Soweto Groove Experience: Bacardi &amp; Afro-House Block Party (Soweto)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Soweto Groove Experience: Bacardi &amp; Afro-House Block Party (Soweto)</h3>
+        <p class="event-venue">Zone 6 Venue Soweto · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">R150</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/golden-hour-sandton-sky-high-sunset-cocktails-and-organic-grooves-gp-rooftop-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Golden Hour Sandton: Sky-High Sunset Cocktails &amp; Organic Grooves (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Golden Hour Sandton: Sky-High Sunset Cocktails &amp; Organic Grooves (Johannesburg)</h3>
+        <p class="event-venue">The Living Room Maboneng · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R150</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/trapcity-jhb-heavy-808s-drill-and-fresh-lyricism-johannesburg-gp-hiphop-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="TrapCity JHB: Heavy 808s, Drill &amp; Fresh Lyricism (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">TrapCity JHB: Heavy 808s, Drill &amp; Fresh Lyricism (Johannesburg)</h3>
+        <p class="event-venue">Untitled Basement Braamfontein · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R150</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/soweto-soul-acoustic-intimate-live-vocals-and-guitars-johannesburg-gp-liveband-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Soweto Soul Acoustic: Intimate Live Vocals &amp; Guitars (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Soweto Soul Acoustic: Intimate Live Vocals &amp; Guitars (Johannesburg)</h3>
+        <p class="event-venue">The Orbit Tribute Space / Victoria Yards · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R180</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/constitution-hill-heritage-and-sonic-festival-johannesburg-gp-festival-music-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Constitution Hill Heritage &amp; Sonic Festival (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Constitution Hill Heritage &amp; Sonic Festival (Johannesburg)</h3>
+        <p class="event-venue">Constitution Hill Parade Ground · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R450</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/fourways-twilight-food-carnival-40-street-chefs-and-craft-drinks-gp-streetfood-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Fourways Twilight Food Carnival: 40+ Street Chefs &amp; Craft Drinks (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Fourways Twilight Food Carnival: 40+ Street Chefs &amp; Craft Drinks (Johannesburg)</h3>
+        <p class="event-venue">Market on Main at Arts on Main · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/fire-and-smoke-african-wood-fired-asado-showcase-johannesburg-the-gp-foodfestival-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1544025162-d76694265947?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Fire &amp; Smoke: African Wood-Fired Asado Showcase (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Fire &amp; Smoke: African Wood-Fired Asado Showcase (Johannesburg)</h3>
+        <p class="event-venue">The Culinary Table Lanseria · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R650</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/craft-hop-masterclass-6-highveld-hazy-ipas-and-stouts-johannesburg-gp-wine-tasting-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Craft Hop Masterclass: 6 Highveld Hazy IPAs &amp; Stouts (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Craft Hop Masterclass: 6 Highveld Hazy IPAs &amp; Stouts (Johannesburg)</h3>
+        <p class="event-venue">Mad Giant Craft Brewery · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R280</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/melville-hilltop-brunch-shakshuka-prosecco-and-live-sax-johannesburg-gp-brunch-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1525351484163-7529414344d8?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Melville Hilltop Brunch: Shakshuka, Prosecco &amp; Live Sax (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Melville Hilltop Brunch: Shakshuka, Prosecco &amp; Live Sax (Johannesburg)</h3>
+        <p class="event-venue">Pablo House Melville · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R380</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/tekken-8-and-street-fighter-6-dojo-fight-night-randburg-nexus-hub-gp-esports-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Tekken 8 &amp; Street Fighter 6 Dojo Fight Night (Randburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Tekken 8 &amp; Street Fighter 6 Dojo Fight Night (Randburg)</h3>
+        <p class="event-venue">Nexus Hub Randburg · Randburg</p>
+        <div class="event-footer">
+          <span class="event-price">R120</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/braamfontein-streetwear-block-party-20-independent-designers-gp-streetstyle-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Braamfontein Streetwear Block Party: 20 Independent Designers (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Braamfontein Streetwear Block Party: 20 Independent Designers (Johannesburg)</h3>
+        <p class="event-venue">Shelflife Store Rosebank · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R100</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/otaku-night-market-doujinshi-j-pop-and-ramen-alley-midrand-gallagher-gp-anime-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1563089145-599997674d42?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Otaku Night Market: Doujinshi, J-Pop &amp; Ramen Alley (Midrand)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Otaku Night Market: Doujinshi, J-Pop &amp; Ramen Alley (Midrand)</h3>
+        <p class="event-venue">Gallagher Convention Centre Midrand · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">R150</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/melville-vintage-curiosities-and-mid-century-market-rosebank-the-gp-flea-market-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1472851294608-062f824d29cc?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Melville Vintage Curiosities &amp; Mid-Century Market (Rosebank)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Melville Vintage Curiosities &amp; Mid-Century Market (Rosebank)</h3>
+        <p class="event-venue">The Rosebank Flea Market · Rosebank</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/emmarentia-dam-8k-tempo-run-and-hill-strides-johannesburg-emmarentia-gp-running-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1486218119243-13883505764c?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Emmarentia Dam 8K Tempo Run &amp; Hill Strides (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Emmarentia Dam 8K Tempo Run &amp; Hill Strides (Johannesburg)</h3>
+        <p class="event-venue">Emmarentia Dam &amp; Botanical Track · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/cradle-of-humankind-mindful-flow-and-sound-immersion-johannesburg-the-gp-yoga-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Cradle of Humankind Mindful Flow &amp; Sound Immersion (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Cradle of Humankind Mindful Flow &amp; Sound Immersion (Johannesburg)</h3>
+        <p class="event-venue">The Living Room Maboneng Deck · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R160</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/zoo-lake-outdoor-hiit-bootcamp-and-post-workout-protein-bar-sandton-gp-crossfit-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Zoo Lake Outdoor HIIT Bootcamp &amp; Post-Workout Protein Bar (Sandton)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Zoo Lake Outdoor HIIT Bootcamp &amp; Post-Workout Protein Bar (Sandton)</h3>
+        <p class="event-venue">CrossFit Platinum Sandton · Sandton</p>
+        <div class="event-footer">
+          <span class="event-price">R120</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/nervous-system-recovery-conscious-breathwork-and-cold-immersion-gp-breathwork-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1507652313519-d4e9174996dd?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Nervous System Recovery: Conscious Breathwork &amp; Cold Immersion (Muldersdrift)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Nervous System Recovery: Conscious Breathwork &amp; Cold Immersion (Muldersdrift)</h3>
+        <p class="event-venue">Ground The Venue Muldersdrift · Muldersdrift</p>
+        <div class="event-footer">
+          <span class="event-price">R250</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/singles-lock-and-key-mixer-high-energy-cocktails-at-melrose-arch-gp-dating-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Singles Lock &amp; Key Mixer: High-Energy Cocktails at Melrose Arch (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Singles Lock &amp; Key Mixer: High-Energy Cocktails at Melrose Arch (Johannesburg)</h3>
+        <p class="event-venue">The Whippet Linden · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R200</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/ai-highveld-jam-local-llm-agents-fintech-and-demos-johannesburg-gp-startup-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="AI Highveld Jam: Local LLM Agents, FinTech &amp; Demos (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">AI Highveld Jam: Local LLM Agents, FinTech &amp; Demos (Johannesburg)</h3>
+        <p class="event-venue">Tshimologong Innovation Precinct · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/braamfontein-underground-comedy-raw-uncut-and-savagely-funny-gp-comedy-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Braamfontein Underground Comedy: Raw, Uncut &amp; Savagely Funny (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Braamfontein Underground Comedy: Raw, Uncut &amp; Savagely Funny (Johannesburg)</h3>
+        <p class="event-venue">The Goliath Comedy Club at Melrose Arch · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R150</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/music-buffs-showdown-80s-90s-kwaito-and-rock-riffs-johannesburg-the-gp-trivia-night-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Music Buffs Showdown: 80s, 90s, Kwaito &amp; Rock Riffs (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Music Buffs Showdown: 80s, 90s, Kwaito &amp; Rock Riffs (Johannesburg)</h3>
+        <p class="event-venue">The Jolly Cool Parkhurst · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R50</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/zoo-lake-3v3-streetball-tournament-half-court-hoops-and-music-gp-football-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Zoo Lake 3v3 Streetball Tournament: Half-Court Hoops &amp; Music (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Zoo Lake 3v3 Streetball Tournament: Half-Court Hoops &amp; Music (Johannesburg)</h3>
+        <p class="event-venue">Discovery Soccer Park Wanderers · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R80</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/springboks-rugby-championship-live-huge-screens-and-braai-roodepoort-gp-f1-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Springboks Rugby Championship Live: Huge Screens &amp; Braai (Roodepoort)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Springboks Rugby Championship Live: Huge Screens &amp; Braai (Roodepoort)</h3>
+        <p class="event-venue">Hooters Ruimsig / Honey Crest · Roodepoort</p>
+        <div class="event-footer">
+          <span class="event-price">R80</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pickleball-social-club-doubles-tournament-and-sun-vibes-johannesburg-gp-padel-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1530549387789-4c1017266635?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Pickleball Social Club: Doubles Tournament &amp; Sun Vibes (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Pickleball Social Club: Doubles Tournament &amp; Sun Vibes (Johannesburg)</h3>
+        <p class="event-venue">Virgin Active Padel Club Old Eds · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R160</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/amateur-highveld-boxing-league-ring-fights-and-live-music-sandton-efc-gp-boxing-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1517438322307-e67111335449?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Amateur Highveld Boxing League: Ring Fights &amp; Live Music (Sandton)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Amateur Highveld Boxing League: Ring Fights &amp; Live Music (Sandton)</h3>
+        <p class="event-venue">EFC Performance Institute Paulshof · Sandton</p>
+        <div class="event-footer">
+          <span class="event-price">R180</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/the-bioscope-african-cinema-festival-and-director-q-and-a-gp-cinema-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="The Bioscope African Cinema Festival &amp; Director Q&amp;A (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">The Bioscope African Cinema Festival &amp; Director Q&amp;A (Johannesburg)</h3>
+        <p class="event-venue">The Bioscope Independent Cinema · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R130</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/contemporary-african-sculpture-opening-at-everard-read-rosebank-keyes-gp-gallery-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1536924940846-227afb31e2a5?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Contemporary African Sculpture Opening at Everard Read (Rosebank)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Contemporary African Sculpture Opening at Everard Read (Rosebank)</h3>
+        <p class="event-venue">Keyes Art Mile / CIRCA Gallery · Rosebank</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/braamfontein-spoken-word-raw-verse-and-double-bass-braamfontein-gp-poetry-2026-11-2">
+      <img class="event-img" src="https://images.unsplash.com/photo-1471107340929-a87cd0f5b5f3?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Braamfontein Spoken Word: Raw Verse &amp; Double Bass (Braamfontein)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 14:00</div>
+        <h3 class="event-title">Braamfontein Spoken Word: Raw Verse &amp; Double Bass (Braamfontein)</h3>
+        <p class="event-venue">Poetic Thursday at Kalashnikovv Gallery · Braamfontein</p>
+        <div class="event-footer">
+          <span class="event-price">R80</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/centurion-open-flame-cookout-and-craft-beers-kempton-park-sa-evt-2026-11-shisanyama-0005">
+      <img class="event-img" src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Centurion Open Flame Cookout &amp; Craft Beers (Kempton Park)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 20:00</div>
+        <h3 class="event-title">Centurion Open Flame Cookout &amp; Craft Beers (Kempton Park)</h3>
+        <p class="event-venue">Mashampoplano Lounge Kempton Park · Kempton Park</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/kunye-sunset-sessions-ancestral-rhythms-and-heavy-drums-johannesburg-sa-evt-2026-11-afro-tech-005c">
+      <img class="event-img" src="https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Kunye Sunset Sessions: Ancestral Rhythms &amp; Heavy Drums (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 06 Nov 2026 · 19:00</div>
+        <h3 class="event-title">Kunye Sunset Sessions: Ancestral Rhythms &amp; Heavy Drums (Johannesburg)</h3>
+        <p class="event-venue">The Marabi Club Maboneng · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R250</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/joburg-stand-up-heavyweights-5-top-sa-comedians-live-cape-town-cape-sa-evt-2026-11-comedy-0116">
+      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Joburg Stand-Up Heavyweights: 5 Top SA Comedians Live (Cape Town)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 15:30</div>
+        <h3 class="event-title">Joburg Stand-Up Heavyweights: 5 Top SA Comedians Live (Cape Town)</h3>
+        <p class="event-venue">Cape Town Comedy Club V&amp;A · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">R180</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/centurion-open-flame-cookout-and-craft-beers-midrand-busy-corner-sa-evt-2026-11-shisanyama-016d">
+      <img class="event-img" src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Centurion Open Flame Cookout &amp; Craft Beers (Midrand)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 06 Nov 2026 · 20:00</div>
+        <h3 class="event-title">Centurion Open Flame Cookout &amp; Craft Beers (Midrand)</h3>
+        <p class="event-venue">Busy Corner Imbizo Shisanyama · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/skyline-euphoria-golden-hour-cocktails-and-nu-disco-pretoria-priva-sa-evt-2026-11-rooftop-01c5">
+      <img class="event-img" src="https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Skyline Euphoria: Golden Hour Cocktails &amp; Nu-Disco (Pretoria)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 15:30</div>
+        <h3 class="event-title">Skyline Euphoria: Golden Hour Cocktails &amp; Nu-Disco (Pretoria)</h3>
+        <p class="event-venue">Priva Lounge Waterkloof · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">R250</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/piano-to-the-world-log-drum-and-private-school-amapiano-pretoria-sa-evt-2026-11-amapiano-021d">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Piano To The World: Log Drum &amp; Private School Amapiano (Pretoria)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 12:00</div>
+        <h3 class="event-title">Piano To The World: Log Drum &amp; Private School Amapiano (Pretoria)</h3>
+        <p class="event-venue">Propaganda Pretoria · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">R150</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sandton-celebrity-roast-and-cocktail-night-cape-town-cape-town-comedy-sa-evt-2026-11-comedy-027e">
+      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Sandton Celebrity Roast &amp; Cocktail Night (Cape Town)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 06 Nov 2026 · 19:00</div>
+        <h3 class="event-title">Sandton Celebrity Roast &amp; Cocktail Night (Cape Town)</h3>
+        <p class="event-venue">Cape Town Comedy Club V&amp;A · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">R230</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/rosebank-midnight-r-and-b-slow-jams-lounge-johannesburg-harem-sa-evt-2026-11-hiphop-02d6">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Rosebank Midnight R&amp;B Slow Jams Lounge (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 17:00</div>
+        <h3 class="event-title">Rosebank Midnight R&amp;B Slow Jams Lounge (Johannesburg)</h3>
+        <p class="event-venue">Harem Rosebank · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R250</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/polo-summer-fest-fashion-beats-and-luxury-picnic-johannesburg-marks-sa-evt-2026-11-festivals-032e">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Polo Summer Fest: Fashion, Beats &amp; Luxury Picnic (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 15:30</div>
+        <h3 class="event-title">Polo Summer Fest: Fashion, Beats &amp; Luxury Picnic (Johannesburg)</h3>
+        <p class="event-venue">Marks Park Sports Club · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R450</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/piano-to-the-world-log-drum-and-private-school-amapiano-soweto-zone-6-sa-evt-2026-11-amapiano-0385">
+      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Piano To The World: Log Drum &amp; Private School Amapiano (Soweto)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 06 Nov 2026 · 12:00</div>
+        <h3 class="event-title">Piano To The World: Log Drum &amp; Private School Amapiano (Soweto)</h3>
+        <p class="event-venue">Zone 6 Venue Soweto · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">R200</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/cape-town-waterfront-gallery-night-and-sculpture-walk-pretoria-sa-evt-2026-11-art-03e7">
+      <img class="event-img" src="https://images.unsplash.com/photo-1545987796-200677ee1011?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Cape Town Waterfront Gallery Night &amp; Sculpture Walk (Pretoria)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 15:30</div>
+        <h3 class="event-title">Cape Town Waterfront Gallery Night &amp; Sculpture Walk (Pretoria)</h3>
+        <p class="event-venue">Pretoria Art Museum Arcadia · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/boxing-day-cricket-test-match-and-beer-garden-celebration-sa-evt-2026-11-sport-043f">
+      <img class="event-img" src="https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Boxing Day Cricket Test Match &amp; Beer Garden Celebration (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 12:00</div>
+        <h3 class="event-title">Boxing Day Cricket Test Match &amp; Beer Garden Celebration (Johannesburg)</h3>
+        <p class="event-venue">Emirates Airline Park (Ellis Park) · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R120</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/durban-july-music-festival-and-soundstage-showcase-johannesburg-marks-sa-evt-2026-11-festivals-0496">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Durban July Music Festival &amp; Soundstage Showcase (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 06 Nov 2026 · 19:00</div>
+        <h3 class="event-title">Durban July Music Festival &amp; Soundstage Showcase (Johannesburg)</h3>
+        <p class="event-venue">Marks Park Sports Club · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R500</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/kunye-sunset-sessions-ancestral-rhythms-and-heavy-drums-johannesburg-sa-evt-2026-11-afro-tech-04ee">
+      <img class="event-img" src="https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Kunye Sunset Sessions: Ancestral Rhythms &amp; Heavy Drums (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 19:00</div>
+        <h3 class="event-title">Kunye Sunset Sessions: Ancestral Rhythms &amp; Heavy Drums (Johannesburg)</h3>
+        <p class="event-venue">The Carfax Newtown · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R300</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/bulls-vs-stormers-urc-north-vs-south-rugby-clash-johannesburg-sa-evt-2026-11-sport-05a7">
+      <img class="event-img" src="https://images.unsplash.com/photo-1517649763962-0c623266ddc0?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Bulls vs Stormers: URC North vs South Rugby Clash (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 06 Nov 2026 · 18:00</div>
+        <h3 class="event-title">Bulls vs Stormers: URC North vs South Rugby Clash (Johannesburg)</h3>
+        <p class="event-venue">Wanderers Cricket Stadium · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R170</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/centurion-open-flame-cookout-and-craft-beers-tembisa-caprivi-lounge-sa-evt-2026-11-shisanyama-05ff">
+      <img class="event-img" src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Centurion Open Flame Cookout &amp; Craft Beers (Tembisa)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 16:00</div>
+        <h3 class="event-title">Centurion Open Flame Cookout &amp; Craft Beers (Tembisa)</h3>
+        <p class="event-venue">Caprivi Lounge Tembisa · Tembisa</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/skyline-euphoria-golden-hour-cocktails-and-nu-disco-johannesburg-the-sa-evt-2026-11-rooftop-0657">
+      <img class="event-img" src="https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Skyline Euphoria: Golden Hour Cocktails &amp; Nu-Disco (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 15:30</div>
+        <h3 class="event-title">Skyline Euphoria: Golden Hour Cocktails &amp; Nu-Disco (Johannesburg)</h3>
+        <p class="event-venue">The Living Room Maboneng · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R150</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/cape-town-comedy-night-and-craft-beer-special-sandton-hard-rock-cafe-sa-evt-2026-11-comedy-0710">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Cape Town Comedy Night &amp; Craft Beer Special (Sandton)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 12:00</div>
+        <h3 class="event-title">Cape Town Comedy Night &amp; Craft Beer Special (Sandton)</h3>
+        <p class="event-venue">Hard Rock Cafe Sandton Live Stage · Sandton</p>
+        <div class="event-footer">
+          <span class="event-price">R280</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-hip-hop-cypher-and-lyricism-battle-sandton-club-vanity-sa-evt-2026-11-hiphop-0768">
+      <img class="event-img" src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Pretoria Hip-Hop Cypher &amp; Lyricism Battle (Sandton)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 08 Nov 2026 · 20:00</div>
+        <h3 class="event-title">Pretoria Hip-Hop Cypher &amp; Lyricism Battle (Sandton)</h3>
+        <p class="event-venue">Club Vanity Sandton · Sandton</p>
+        <div class="event-footer">
+          <span class="event-price">R150</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/botanical-rooftop-garden-sunset-sangria-and-saxophone-johannesburg-sa-evt-2026-11-rooftop-07bf">
+      <img class="event-img" src="https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Botanical Rooftop Garden: Sunset Sangria &amp; Saxophone (Johannesburg)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 06 Nov 2026 · 19:00</div>
+        <h3 class="event-title">Botanical Rooftop Garden: Sunset Sangria &amp; Saxophone (Johannesburg)</h3>
+        <p class="event-venue">The Living Room Maboneng · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">R200</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/piano-to-the-world-log-drum-and-private-school-amapiano-cape-town-sa-evt-2026-11-amapiano-0817">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?q=80&amp;w=1200&amp;auto=format&amp;fit=crop" alt="Piano To The World: Log Drum &amp; Private School Amapiano (Cape Town)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 12:00</div>
+        <h3 class="event-title">Piano To The World: Log Drum &amp; Private School Amapiano (Cape Town)</h3>
+        <p class="event-venue">Rands Cape Town Khayelitsha · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">R250</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    </div>
+  
+  </div>
+
+  <footer class="site-footer">
+    <p>© 2026 The Gruvs · South Africa's Live Event & Vibe Discovery Platform.</p>
+    <p style="margin-top: 8px;">
+      <a href="https://thegruvs.com/">Home</a> · 
+      <a href="https://thegruvs.com/events/ke-dezemba">Ke Dezemba</a> · 
+      <a href="https://thegruvs.com/events/johannesburg">Johannesburg</a> · 
+      <a href="https://thegruvs.com/events/pretoria">Pretoria</a> · 
+      <a href="https://thegruvs.com/events/midrand">Midrand</a> · 
+      <a href="https://theresidentcrew.com" target="_blank" rel="noopener">Find Stays on The Resident</a>
+    </p>
+  </footer>
+</body>
+</html>

@@ -65,6 +65,10 @@ const HUBS = [
   { loc: '/events/rooftop-sundowners', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/shisanyama', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/sports-derbies', changefreq: 'daily', priority: '0.90' },
+
+  // Date Horizons
+  { loc: '/events/this-weekend', changefreq: 'daily', priority: '0.95' },
+  { loc: '/events/nye-2027', changefreq: 'daily', priority: '0.95' },
 ];
 
 function readEnv() {
@@ -237,7 +241,24 @@ function buildXml(entries) {
           image,
         });
       }
-      console.log(`[gen-sitemap] Successfully indexed ${events.length} upcoming events with Google Image schema & semantic URLs.`);
+
+      // 3. Unique Venue Hub URLs
+      const venueSet = new Set();
+      for (const e of events) {
+        if (e.venue_name) {
+          const vSlug = slugify(e.venue_name.trim());
+          if (vSlug && !venueSet.has(vSlug)) {
+            venueSet.add(vSlug);
+            urls.push({
+              loc: `${SITE}/venues/${vSlug}`,
+              lastmod: today,
+              changefreq: 'daily',
+              priority: '0.88',
+            });
+          }
+        }
+      }
+      console.log(`[gen-sitemap] Successfully indexed ${events.length} upcoming events and ${venueSet.size} venues with Google Image schema & semantic URLs.`);
     } catch (err) {
       console.warn(`[gen-sitemap] Event fetch failed (${err.message}) — writing static sitemap.`);
     }
