@@ -1,25 +1,24 @@
 /**
- * gen-sitemap.js — writes dist/sitemap.xml with every published upcoming event.
+ * gen-sitemap.js — Advanced Google-optimized Sitemap Generator for The Gruvs.
  *
- * Why this exists: the static public/sitemap.xml lists 4 URLs (home, get,
- * privacy, terms). Google had literally nothing else to index, so the events —
- * the only pages anyone actually searches for — were invisible. Event URLs point
- * at /share/event/<id>, which nginx proxies to the og-meta edge function, so a
- * crawler gets real per-event HTML with a canonical back to this domain.
- *
- * Past events are deliberately excluded: a sitemap full of dead nights is a
- * quality signal problem, and they 302 into the SPA anyway.
- *
- * Runs on every build via `npm run postbuild`. Uses the anon key and only reads
- * already-public rows, so it is safe to run anywhere .env is present.
+ * Implements advanced search engine optimization (SEO) best practices:
+ * 1. Google Image Sitemap Extension (xmlns:image) for rich image/poster indexing in Google Search & Images.
+ * 2. Strict XML sanitization preventing indexing parse errors.
+ * 3. Event lifecycle priority scoring:
+ *    - Events in next 14 days: 0.9 priority, daily changefreq (high urgency)
+ *    - Events in 15-45 days: 0.8 priority, daily changefreq
+ *    - Events 45+ days out: 0.7 priority, weekly changefreq
+ * 4. Dual destination write: public/sitemap.xml (source) + dist/sitemap.xml (build artifact).
+ * 5. Automatic inclusion of core SPA hubs, PWA/legal endpoints, and upcoming published events.
  */
 const fs = require('fs');
 const path = require('path');
 
 const SITE = 'https://thegruvs.com';
+
 const STATIC = [
   { loc: '/', changefreq: 'daily', priority: '1.0' },
-  { loc: '/get.html', changefreq: 'monthly', priority: '0.6' },
+  { loc: '/get.html', changefreq: 'weekly', priority: '0.7' },
   { loc: '/privacy.html', changefreq: 'yearly', priority: '0.2' },
   { loc: '/terms.html', changefreq: 'yearly', priority: '0.2' },
   { loc: '/account-deletion.html', changefreq: 'yearly', priority: '0.2' },
@@ -40,59 +39,128 @@ function readEnv() {
   };
 }
 
-function xml(urls) {
-  const body = urls
-    .map(u => `  <url>\n    <loc>${u.loc}</loc>\n` +
-      (u.lastmod ? `    <lastmod>${u.lastmod}</lastmod>\n` : '') +
-      `    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`)
-    .join('\n');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
+function escapeXml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function buildXml(entries) {
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+    '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"',
+    '        xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+  ];
+
+  for (const entry of entries) {
+    lines.push('  <url>');
+    lines.push(`    <loc>${escapeXml(entry.loc)}</loc>`);
+    if (entry.lastmod) {
+      lines.push(`    <lastmod>${entry.lastmod}</lastmod>`);
+    }
+    lines.push(`    <changefreq>${entry.changefreq}</changefreq>`);
+    lines.push(`    <priority>${entry.priority}</priority>`);
+
+    if (entry.image) {
+      lines.push('    <image:image>');
+      lines.push(`      <image:loc>${escapeXml(entry.image.loc)}</image:loc>`);
+      if (entry.image.title) {
+        lines.push(`      <image:title>${escapeXml(entry.image.title)}</image:title>`);
+      }
+      if (entry.image.caption) {
+        lines.push(`      <image:caption>${escapeXml(entry.image.caption)}</image:caption>`);
+      }
+      lines.push('    </image:image>');
+    }
+    lines.push('  </url>');
+  }
+
+  lines.push('</urlset>');
+  lines.push('');
+  return lines.join('\n');
 }
 
 (async () => {
   const distDir = path.join(__dirname, '..', 'dist');
   const publicDir = path.join(__dirname, '..', 'public');
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
 
-  const urls = STATIC.map(s => ({ ...s, loc: `${SITE}${s.loc}` }));
+  const urls = STATIC.map(s => ({
+    ...s,
+    loc: `${SITE}${s.loc}`,
+    lastmod: today,
+  }));
+
   const { url, key } = readEnv();
 
   if (!url || !key) {
-    console.warn('[gen-sitemap] No Supabase creds — writing static-only sitemap (events will NOT be indexed).');
+    console.warn('[gen-sitemap] No Supabase credentials found — writing static-only sitemap.');
   } else {
     try {
-      const today = new Date().toISOString().slice(0, 10);
       const res = await fetch(
-        `${url}/rest/v1/events?select=id,updated_at,event_date` +
+        `${url}/rest/v1/events?select=id,title,description,venue_name,city,category,cover_url,cover_image,media_urls,updated_at,event_date,event_time` +
         `&is_published=eq.true&deleted_at=is.null&event_date=gte.${today}` +
         `&order=event_date.asc&limit=5000`,
         { headers: { apikey: key, Authorization: `Bearer ${key}` } }
       );
       if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
       const events = await res.json();
+
       for (const e of events) {
+        let priority = '0.7';
+        let changefreq = 'weekly';
+        if (e.event_date) {
+          const evtDate = new Date(`${e.event_date}T00:00:00`);
+          const diffDays = Math.ceil((evtDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 14) {
+            priority = '0.9';
+            changefreq = 'daily';
+          } else if (diffDays <= 45) {
+            priority = '0.8';
+            changefreq = 'daily';
+          }
+        }
+
+        const cover = e.cover_url || e.cover_image || (Array.isArray(e.media_urls) && e.media_urls[0]);
+        let image;
+        if (cover && /^https?:\/\//.test(cover)) {
+          const caption = [e.venue_name, e.city, e.category].filter(Boolean).join(' · ');
+          image = {
+            loc: cover,
+            title: e.title,
+            caption: caption || undefined,
+          };
+        }
+
         urls.push({
           loc: `${SITE}/share/event/${e.id}`,
-          lastmod: (e.updated_at || '').slice(0, 10) || undefined,
-          changefreq: 'daily',
-          priority: '0.8',
+          lastmod: (e.updated_at || e.event_date || today).slice(0, 10),
+          changefreq,
+          priority,
+          image,
         });
       }
-      console.log(`[gen-sitemap] Added ${events.length} upcoming events.`);
+      console.log(`[gen-sitemap] Successfully indexed ${events.length} upcoming events with Google Image schema.`);
     } catch (err) {
-      // A sitemap missing events beats a failed build.
-      console.warn(`[gen-sitemap] Event fetch failed (${err.message}) — static-only sitemap.`);
+      console.warn(`[gen-sitemap] Event fetch failed (${err.message}) — writing static sitemap.`);
     }
   }
 
-  const sitemapContent = xml(urls);
+  const sitemapXml = buildXml(urls);
 
   if (fs.existsSync(publicDir)) {
-    fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapContent);
+    fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapXml, 'utf8');
     console.log(`[gen-sitemap] Wrote public/sitemap.xml with ${urls.length} URLs.`);
   }
 
   if (fs.existsSync(distDir)) {
-    fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemapContent);
+    fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemapXml, 'utf8');
     console.log(`[gen-sitemap] Wrote dist/sitemap.xml with ${urls.length} URLs.`);
   }
 })();

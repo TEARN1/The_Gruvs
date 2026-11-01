@@ -39,6 +39,47 @@
     <meta name="twitter:image" content="https://thegruvs.com/og-default.jpg" />
     <meta name="twitter:image:alt" content="The Gruvs" />
 
+    <!-- Google Rich Results & Knowledge Graph (Schema.org) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://thegruvs.com/#organization",
+          "name": "The Gruvs",
+          "url": "https://thegruvs.com",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://thegruvs.com/logo.png",
+            "width": 512,
+            "height": 512
+          },
+          "description": "South Africa's premier live event discovery and vibe platform.",
+          "sameAs": [
+            "https://twitter.com/thegruvs"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://thegruvs.com/#website",
+          "url": "https://thegruvs.com",
+          "name": "The Gruvs",
+          "description": "Find the best local events — from music and nightlife to food and culture across Gauteng and South Africa.",
+          "publisher": { "@id": "https://thegruvs.com/#organization" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://thegruvs.com/?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- PWA & Mobile -->
     <meta name="theme-color" content="#0d1112" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -77,6 +77,7 @@ interface OGProps {
   siteName?: string;
   twitterCard?: 'summary' | 'summary_large_image' | 'player';
   themeColor?: string;
+  jsonLd?: Record<string, unknown>;
 }
 
 function buildHtml(og: OGProps, redirectUrl: string): string {
@@ -130,6 +131,8 @@ function buildHtml(og: OGProps, redirectUrl: string): string {
   <!-- Redirect real users instantly -->
   <meta http-equiv="refresh" content="0; url=${escapeHtml(redirectUrl)}" />
   <link rel="canonical" href="${escapeHtml(url)}" />
+
+  ${og.jsonLd ? `<!-- Schema.org Rich Results for Googlebot -->\n  <script type="application/ld+json">\n${JSON.stringify(og.jsonLd, null, 2).replace(/</g, '\\u003c')}\n  </script>` : ''}
 
   <style>
     body { margin:0; background:#0d1112; color:#fff; font-family:sans-serif;
@@ -231,6 +234,44 @@ async function handleEvent(id: string): Promise<OGProps & { redirect: string }> 
   const soldOut = event.capacity > 0 && (event.going || 0) >= event.capacity;
   const parts = [date, where, deal, soldOut ? '🔴 Sold out' : vibes].filter(Boolean);
 
+  const startDate = event.event_date
+    ? `${event.event_date}T${event.event_time ? (event.event_time.length === 5 ? `${event.event_time}:00` : event.event_time) : '18:00:00'}+02:00`
+    : undefined;
+
+  const eventJsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    'name': event.title,
+    'description': event.description || parts.join(' · ') || 'An event on The Gruvs',
+    ...(startDate ? { 'startDate': startDate } : {}),
+    'eventStatus': 'https://schema.org/EventScheduled',
+    'eventAttendanceMode': 'https://schema.org/OfflineEventAttendanceMode',
+    'location': {
+      '@type': 'Place',
+      'name': event.venue_name || event.city || 'Johannesburg, South Africa',
+      'address': {
+        '@type': 'PostalAddress',
+        'addressLocality': event.city || 'Johannesburg',
+        'addressRegion': 'Gauteng',
+        'addressCountry': 'ZA',
+      },
+    },
+    'image': [event.cover_url || event.cover_image || DEFAULT_OG_IMAGE],
+    'offers': {
+      '@type': 'Offer',
+      'url': `${APP_URL}/share/event/${id}`,
+      'price': typeof event.price === 'number' ? String(event.price) : (event.price === 'FREE' ? '0' : '0'),
+      'priceCurrency': 'ZAR',
+      'availability': soldOut ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
+      'validFrom': event.event_date || new Date().toISOString().slice(0, 10),
+    },
+    'organizer': {
+      '@type': 'Organization',
+      'name': APP_NAME,
+      'url': APP_URL,
+    },
+  };
+
   return {
     title: event.title,
     description: parts.join(' · ') || 'An event on The Gruvs',
@@ -239,6 +280,7 @@ async function handleEvent(id: string): Promise<OGProps & { redirect: string }> 
     url: `${APP_URL}/share/event/${id}`,
     redirect: `${APP_URL}/?event=${id}`,
     type: 'article',
+    jsonLd: eventJsonLd,
   };
 }
 
@@ -273,6 +315,25 @@ async function handleProfile(username: string): Promise<OGProps & { redirect: st
   const vibes     = profile.vibe_score      ? `${profile.vibe_score} vibes`           : '';
   const stats     = [followers, vibes, badges].filter(Boolean).join(' · ');
 
+  const profileJsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    'mainEntity': {
+      '@type': 'Person',
+      'name': displayName,
+      'alternateName': `@${profile.username}`,
+      'description': profile.bio || stats || 'A vibe on The Gruvs.',
+      'image': profile.avatar_url || DEFAULT_OG_IMAGE,
+      'interactionStatistic': [
+        {
+          '@type': 'InteractionCounter',
+          'interactionType': 'https://schema.org/FollowAction',
+          'userInteractionCount': profile.followers_count || 0,
+        },
+      ],
+    },
+  };
+
   return {
     title: `${displayName} (@${profile.username})`,
     description: profile.bio ? `${profile.bio}${stats ? ' · ' + stats : ''}` : stats || 'A vibe on The Gruvs.',
@@ -284,6 +345,7 @@ async function handleProfile(username: string): Promise<OGProps & { redirect: st
     redirect: `${APP_URL}/?profile=${profile.id}`,
     type: 'profile',
     twitterCard: 'summary',
+    jsonLd: profileJsonLd,
   };
 }
 
@@ -312,6 +374,16 @@ async function handleReel(id: string): Promise<OGProps & { redirect: string }> {
   const likes       = reel.like_count ? `${reel.like_count} likes` : '';
   const description = [reel.caption, `by ${creator}`, views, likes].filter(Boolean).join(' · ');
 
+  const reelJsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    'name': reel.caption ? reel.caption.slice(0, 70) : `${creator}'s Reel`,
+    'description': description || 'Watch this reel on The Gruvs.',
+    'thumbnailUrl': [reel.thumbnail_url || DEFAULT_OG_IMAGE],
+    ...(reel.media_url ? { 'contentUrl': reel.media_url } : {}),
+    'uploadDate': new Date().toISOString(),
+  };
+
   return {
     title: reel.caption ? reel.caption.slice(0, 70) : `${creator}'s Reel`,
     description,
@@ -321,6 +393,7 @@ async function handleReel(id: string): Promise<OGProps & { redirect: string }> {
     type: 'video.other',
     videoUrl: reel.media_url || undefined,
     twitterCard: reel.media_url ? 'player' : 'summary_large_image',
+    jsonLd: reelJsonLd,
   };
 }
 
