@@ -223,6 +223,7 @@ export function SportTournamentHub({
       <View style={styles.overlay}>
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
         <View style={[styles.sheet, { backgroundColor: 'rgba(10,14,16,0.98)', borderColor: `${primary}35` }]}>
+          <View style={[styles.notchHandle, { backgroundColor: `${textColor}25` }]} />
           {/* Header */}
           <View style={styles.headRow}>
             <View style={{ flex: 1 }}>
@@ -689,6 +690,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.80)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } : {}),
   },
   sheet: {
@@ -697,6 +699,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderBottomWidth: 0,
     maxHeight: '92%',
+    maxWidth: 680,
+    width: '100%',
+    alignSelf: 'center',
     padding: 18,
     paddingBottom: Platform.OS === 'ios' ? 36 : 24,
     gap: 12,
@@ -714,6 +719,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
     fontWeight: '600',
+  },
+  notchHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 2.5,
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   closeBtn: {
     padding: 4,

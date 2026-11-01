@@ -114,8 +114,8 @@ const TimePicker = ({ visible, value, onConfirm, onClose, primary, surface, text
 };
 
 const tp = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: '#00000088', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  overlay: { flex: 1, backgroundColor: '#00000088', justifyContent: 'flex-end', alignItems: 'center' },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, width: '100%', maxWidth: 580, alignSelf: 'center' },
   title: { fontSize: 16, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
   pickers: { flexDirection: 'row', gap: 16 },
   label: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8, marginBottom: 6 },
@@ -352,9 +352,9 @@ export const CarpoolDriverPanel = ({ visible, onClose, carpoolId, primary, surfa
 };
 
 const dp = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: '#00000088', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '75%' },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#ffffff30', alignSelf: 'center', marginBottom: 16 },
+  overlay: { flex: 1, backgroundColor: '#00000088', justifyContent: 'flex-end', alignItems: 'center' },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '75%', width: '100%', maxWidth: 580, alignSelf: 'center' },
+  handle: { width: 44, height: 5, borderRadius: 2.5, backgroundColor: '#ffffff30', alignSelf: 'center', marginBottom: 16 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   title: { fontSize: 16, fontWeight: '900' },
   empty: { textAlign: 'center', marginVertical: 24, fontSize: 14 },

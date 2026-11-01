@@ -1,5 +1,5 @@
 /**
- * NightlifeTimeDial — 4D Temporal Nightlife Time-Scrubber.
+ * NightlifeTimeDial — 4D Temporal Nightlife Time-Scrubber & City Pulse Telemetry.
  *
  * Nightlife changes hour by hour:
  *   • 8:00 PM:  Lounges, dining & sunset warmups 🌅
@@ -9,11 +9,13 @@
  *   • 3:00 AM:  Underground after-hours & warehouse raves 🌙
  *   • 5:00 AM:  Sunrise recovery & late night food ☀️
  *
- * Allows the viber to drag forward in time and watch the city pulse evolve.
+ * Automatically detects the city's current real-time nightlife tempo and
+ * gives vibers a tactile, acoustic scrubbing experience.
  */
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Animated } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
+import { cyberAudio } from '../utils/cyberAudio';
 
 export const NIGHT_PHASES = [
   { hour: null, label: 'All Hours', desc: 'Full city pulse', icon: 'compass' },
@@ -32,54 +34,109 @@ export function NightlifeTimeDial({
   primary = '#00f2ff',
   textColor = '#fff',
   muted = 'rgba(255,255,255,0.55)',
+  defaultExpanded = false,
 }) {
-  return (
-    <View style={styles.dialCard}>
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Feather name="clock" size={15} color={primary} />
-          <Text style={[styles.title, { color: textColor }]}>Nightlife Timeline Scrubber</Text>
-        </View>
-        <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Feather name="x" size={16} color={muted} />
-        </TouchableOpacity>
-      </View>
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded || selectedHour !== null);
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.slotsRow}
+  // Real-time city tempo detection
+  const currentTempo = useMemo(() => {
+    const h = new Date().getHours();
+    if (h >= 18 && h < 21) return { phase: 'SUNSET WARMUP', color: '#f59e0b', tag: 'PRE-GAME ACTIVE' };
+    if (h >= 21 && h < 23) return { phase: 'DOORS & EARLY SETS', color: '#10b981', tag: 'SURGE BUILDING' };
+    if (h >= 23 || h < 2) return { phase: 'PEAK HEADLINERS', color: '#00f2ff', tag: 'MAXIMUM ENERGY // 🔥' };
+    if (h >= 2 && h < 4) return { phase: 'UNDERGROUND AFTERS', color: '#a855f7', tag: 'WAREHOUSE PULSE' };
+    return { phase: 'RECOVERY & RETURN', color: '#38bdf8', tag: 'SAFE RETURN ACTIVE' };
+  }, []);
+
+  return (
+    <View style={[styles.dialCard, { borderColor: `${primary}35` }]}>
+      {/* Outer Cyber Reticles */}
+      <View style={[styles.reticle, styles.tl, { borderColor: primary }]} />
+      <View style={[styles.tr, styles.reticle, { borderColor: primary }]} />
+      <View style={[styles.bl, styles.reticle, { borderColor: primary }]} />
+      <View style={[styles.br, styles.reticle, { borderColor: primary }]} />
+
+      {/* Header bar / Micro-Capsule */}
+      <TouchableOpacity
+        style={styles.header}
+        activeOpacity={0.85}
+        onPress={() => {
+          cyberAudio.play('telemetryTick');
+          setIsExpanded(!isExpanded);
+        }}
       >
-        {NIGHT_PHASES.map((phase, idx) => {
-          const isActive = selectedHour === phase.hour;
-          return (
+        <View style={styles.titleRow}>
+          <Feather name="clock" size={13} color={primary} />
+          <Text style={[styles.title, { color: textColor }]}>TEMPO // {currentTempo.phase}</Text>
+          <View style={[styles.tempoBadge, { borderColor: `${currentTempo.color}55`, backgroundColor: `${currentTempo.color}15` }]}>
+            <View style={[styles.liveDot, { backgroundColor: currentTempo.color }]} />
+            <Text style={[styles.tempoText, { color: currentTempo.color }]}>
+              {selectedHour !== null ? `FILTER: ${selectedHour}:00` : 'LIVE'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Feather name={isExpanded ? "chevron-up" : "chevron-down"} size={15} color={primary} />
+          {onClose && (
             <TouchableOpacity
-              key={idx}
-              onPress={() => onSelectHour(phase.hour)}
-              style={[
-                styles.slotBtn,
-                {
-                  borderColor: isActive ? primary : 'rgba(255,255,255,0.12)',
-                  backgroundColor: isActive ? 'rgba(0,242,255,0.18)' : 'rgba(255,255,255,0.04)',
-                },
-              ]}
-              activeOpacity={0.8}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                cyberAudio.play('telemetryTick');
+                onClose?.();
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Feather
-                name={phase.icon}
-                size={14}
-                color={isActive ? primary : muted}
-              />
-              <Text style={[styles.slotLabel, { color: isActive ? primary : textColor }]}>
-                {phase.label}
-              </Text>
-              <Text style={[styles.slotDesc, { color: muted }]}>
-                {phase.desc}
-              </Text>
+              <Feather name="x" size={15} color={muted} />
             </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      {/* Expanded Scrubber Strip */}
+      {isExpanded && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.slotsRow}
+        >
+          {NIGHT_PHASES.map((phase, idx) => {
+            const isActive = selectedHour === phase.hour;
+            return (
+              <TouchableOpacity
+                key={idx}
+                onPress={() => {
+                  cyberAudio.play('telemetryTick');
+                  onSelectHour(phase.hour);
+                }}
+                style={[
+                  styles.slotBtn,
+                  {
+                    borderColor: isActive ? primary : 'rgba(255,255,255,0.12)',
+                    backgroundColor: isActive ? 'rgba(0,242,255,0.18)' : 'rgba(255,255,255,0.04)',
+                    shadowColor: isActive ? primary : 'transparent',
+                    shadowOpacity: isActive ? 0.6 : 0,
+                    shadowRadius: 8,
+                  },
+                ]}
+                activeOpacity={0.8}
+              >
+                <Feather
+                  name={phase.icon}
+                  size={14}
+                  color={isActive ? primary : muted}
+                />
+                <Text style={[styles.slotLabel, { color: isActive ? primary : textColor }]}>
+                  {phase.label}
+                </Text>
+                <Text style={[styles.slotDesc, { color: muted }]}>
+                  {phase.desc}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -89,13 +146,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1.5,
     backgroundColor: 'rgba(10,14,16,0.95)',
     paddingVertical: 12,
     paddingHorizontal: 14,
     gap: 10,
     zIndex: 36,
+    position: 'relative',
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
   },
   header: {
@@ -106,12 +163,32 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    flexWrap: 'wrap',
   },
   title: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  tempoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  liveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  tempoText: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   slotsRow: {
     gap: 8,
@@ -134,4 +211,13 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '600',
   },
+  reticle: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+  },
+  tl: { top: 2, left: 2, borderTopWidth: 1.5, borderLeftWidth: 1.5 },
+  tr: { top: 2, right: 2, borderTopWidth: 1.5, borderRightWidth: 1.5 },
+  bl: { bottom: 2, left: 2, borderBottomWidth: 1.5, borderLeftWidth: 1.5 },
+  br: { bottom: 2, right: 2, borderBottomWidth: 1.5, borderRightWidth: 1.5 },
 });

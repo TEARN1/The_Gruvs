@@ -3,18 +3,18 @@ import { TrustLedger } from './trustLedger';
 import { LevelManager } from './dataFlow';
 import { log } from '../utils/log';
 import { withRetry } from '../utils/retry';
-import { resilient } from '../utils/resilience';
 
 export const EscrowService = {
   /**
-   * Lock funds in escrow by inserting a service_bookings row.
+   * Create a booking via create_service_booking(). The server reads the
+   * provider from the listing, refuses self-booking and bounds the amount.
+   * No money moves here: the booking is 'unfunded' until a payment provider
+   * captures it (see supabase/migrations/20260927000900_service_bookings_integrity.sql).
    * Returns the new booking id, or null on failure.
    */
   async lockFunds(bookingData) {
     try {
       const {
-        requester_id,
-        provider_id,
         service_node_id,
         cargo_type,
         origin_address,
@@ -23,34 +23,24 @@ export const EscrowService = {
         dropoff_address,
         scheduled_at,
         amount_cents,
-      } = bookingData;
+      } = bookingData || {};
+      if (!service_node_id) return null;
 
-      const { data, error } = await supabase
-        .from('service_bookings')
-        .insert([
-          {
-            client_id: requester_id,
-            provider_id,
-            service_node_id,
-            cargo_type,
-            pickup_address: pickup_address || origin_address,
-            dropoff_address: dropoff_address || destination_address,
-            scheduled_at,
-            amount_cents,
-            estimated_price: amount_cents ? (amount_cents / 100) : null,
-            status: 'escrow_held',
-            created_at: new Date().toISOString(),
-          },
-        ])
-        .select('id')
-        .single();
+      const { data, error } = await supabase.rpc('create_service_booking', {
+        p_service_node_id: service_node_id,
+        p_amount_cents: Math.round(Number(amount_cents) || 0),
+        p_cargo_type: cargo_type ?? null,
+        p_pickup_address: pickup_address || origin_address || null,
+        p_dropoff_address: dropoff_address || destination_address || null,
+        p_scheduled_at: scheduled_at || null,
+      });
 
       if (error) {
         log.error('EscrowService:lockFunds', error);
         return null;
       }
 
-      return data?.id ?? null;
+      return data ?? null;
     } catch (err) {
       log.error('EscrowService:lockFunds', err);
       return null;
@@ -58,76 +48,64 @@ export const EscrowService = {
   },
 
   /**
-   * Release escrow to the provider:
-   *  - marks booking as 'completed'
-   *  - increments provider's wallet_balance in profiles
+   * Release escrow to the provider.
+   *
+   * One authorized, atomic server call. `release_escrow_to_provider` (see
+   * supabase/migrations/20260927000200_definer_rpc_hardening.sql) checks that the caller is the
+   * CLIENT who paid, that the booking is still `escrow_held`, then marks it
+   * completed and credits the provider's wallet under a row lock.
+   *
+   * SECURITY: there is deliberately NO client-side fallback here. The previous
+   * implementation fell back to `profiles.update({ wallet_balance })` on the
+   * PROVIDER's row when the RPC failed. That is a direct client write to a money
+   * column, and it only appeared to be safe because RLS happened to block it —
+   * `profiles_update_own` restricts updates to `id = auth.uid()`, and the payer
+   * is the one releasing. So the fallback could never actually pay anyone; it
+   * just masked the fact that the RPC call was malformed (it passed
+   * `user_id`/`amount` to a function whose parameters are `p_user_id`/`p_amount`,
+   * so PostgREST never resolved it). Net effect: bookings were marked completed
+   * and providers were never paid. A money movement either happens server-side,
+   * authorized and atomic, or it fails loudly.
+   *
+   * @param {string} bookingId
+   * @param {string} [providerId] unused — the server reads it from the booking.
+   *   Kept so existing call sites don't break.
    * Returns true on success, false on failure.
    */
   async releaseToProvider(bookingId, providerId) {
+    if (!bookingId) {
+      log.error('EscrowService:releaseToProvider', 'bookingId required');
+      return false;
+    }
     try {
-      // Fetch booking — verify providerId owns this booking (IDOR defense)
-      const { data: booking, error: fetchErr } = await supabase
-        .from('service_bookings')
-        .select('amount_cents, client_id, provider_id')
-        .eq('id', bookingId)
-        .eq('provider_id', providerId)   // ownership check
-        .eq('status', 'escrow_held')     // only release held funds
-        .single();
+      const { data, error } = await withRetry(() =>
+        supabase.rpc('release_escrow_to_provider', { p_booking_id: bookingId })
+      );
 
-      if (fetchErr || !booking) {
-        log.error('EscrowService:releaseToProvider', fetchErr || 'booking not found or not owned');
+      if (error) {
+        log.error('EscrowService:releaseToProvider', error);
         return false;
       }
 
-      // Mark booking completed — scoped to both id AND provider_id
-      const { error: updateErr } = await withRetry(() =>
-        supabase.from('service_bookings')
-          .update({ status: 'completed', completed_at: new Date().toISOString() })
-          .eq('id', bookingId)
-          .eq('provider_id', providerId)
-      );
-
-      if (updateErr) {
-        log.error('EscrowService:releaseToProvider', updateErr);
+      // The RPC returns the booking it settled; no rows means nothing was released.
+      const settled = Array.isArray(data) ? data[0] : data;
+      if (!settled) {
+        log.error('EscrowService:releaseToProvider', 'no booking settled');
         return false;
       }
 
-      // Increment provider wallet_balance (rands = cents / 100). This used to
-      // be an ad hoc if(walletErr) branch to a manual read-modify-write --
-      // exactly the "a fallback silently covers for a broken primary" shape
-      // that let 48 missing RPCs go unnoticed platform-wide (2026-07-19
-      // sweep). resilient() makes tier 1 (the RPC) failing loud instead of
-      // quiet: reportDegraded fires via the drift reporter the moment the
-      // manual path is what's actually running.
-      const amountRands = booking.amount_cents / 100;
-
-      await resilient(
-        [
-          () => supabase.rpc('increment_wallet_balance', { user_id: providerId, amount: amountRands }),
-          async () => {
-            const { data: prof } = await supabase
-              .from('profiles').select('wallet_balance').eq('id', providerId).single();
-            return supabase.from('profiles')
-              .update({ wallet_balance: (prof?.wallet_balance || 0) + amountRands })
-              .eq('id', providerId);
-          },
-        ],
-        // attemptsPerTier: 1 — matches the original behavior exactly (try
-        // the RPC once, fall back immediately on any failure, no retry
-        // storm against a possibly-still-broken RPC before falling back).
-        { attemptsPerTier: 1, baseMs: 300, label: 'EscrowService.releaseToProvider.wallet', fallbackValue: null }
-      );
+      const paidProvider = settled.provider_id || providerId;
 
       // ── Movement OS Integration: Update Social Integrity Score ──
       // Reward the provider for successful delivery
-      TrustLedger.updateAfterPath(providerId, {
+      TrustLedger.updateAfterPath(paidProvider, {
         checkinReliable: true,
         cargoIntact: true,
         socialPositive: true,
       }).catch(() => {});
 
       // ── Reward XP ──
-      LevelManager.addXP(providerId, 'BOOKING_COMPLETE').catch(() => {});
+      LevelManager.addXP(paidProvider, 'BOOKING_COMPLETE').catch(() => {});
 
       return true;
     } catch (err) {
@@ -142,38 +120,15 @@ export const EscrowService = {
    *  - inserts a row into disputes table
    * Returns true on success, false on failure.
    */
-  // callerId must be either the client_id or provider_id of the booking
+  // Via open_dispute(): the server checks the caller is a party, the booking
+  // is still live, and writes filed_by itself.
   async initiateDispute(bookingId, reason, callerId) {
     if (!callerId) { log.error('EscrowService:initiateDispute', 'callerId required'); return false; }
     try {
-      // Ownership check — only a party to the booking can open a dispute
-      const { data: booking, error: checkErr } = await supabase
-        .from('service_bookings')
-        .select('id')
-        .eq('id', bookingId)
-        .or(`client_id.eq.${callerId},provider_id.eq.${callerId}`)
-        .single();
-
-      if (checkErr || !booking) {
-        log.error('EscrowService:initiateDispute', 'booking not found or caller not a party');
-        return false;
-      }
-
-      const { error: updateErr } = await withRetry(() =>
-        supabase.from('service_bookings')
-          .update({ status: 'disputed' })
-          .eq('id', bookingId)
-          .or(`client_id.eq.${callerId},provider_id.eq.${callerId}`)
+      const { error } = await withRetry(() =>
+        supabase.rpc('open_dispute', { p_booking_id: bookingId, p_reason: reason ?? '' })
       );
-
-      if (updateErr) { log.error('EscrowService:initiateDispute', updateErr); return false; }
-
-      const { error: disputeErr } = await supabase
-        .from('disputes')
-        .insert([{ booking_id: bookingId, raised_by: callerId, reason, status: 'open', created_at: new Date().toISOString() }]);
-
-      if (disputeErr) { log.error('EscrowService:initiateDispute:insert', disputeErr); return false; }
-
+      if (error) { log.error('EscrowService:initiateDispute', error); return false; }
       return true;
     } catch (err) {
       log.error('EscrowService:initiateDispute', err);

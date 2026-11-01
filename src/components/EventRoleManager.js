@@ -13,7 +13,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
@@ -138,7 +138,8 @@ export const EventRoleManager = ({ visible, onClose, event, primary, textColor, 
       const [rolesRes, attendeesRes] = await Promise.all([
         supabase
           .from('event_roles')
-          .select('*, profiles(id, username, avatar_url, city)')
+          // event_roles links to profiles twice (user_id, granted_by): name the one we mean.
+          .select('*, profiles:user_id(id, username, avatar_url, city)')
           .eq('event_id', event.id),
         supabase
           .from('event_rsvps')

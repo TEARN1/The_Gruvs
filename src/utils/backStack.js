@@ -9,12 +9,19 @@
  *
  * Use the `useBackClose(active, onClose)` hook rather than calling this directly.
  */
+export const BACK_PRIORITY = {
+  PREVIEW: 40,
+  MODAL: 30,
+  SEARCH: 20,
+  TAB: 10,
+};
+
 let stack = [];
 
 export const backStack = {
-  /** Register a close handler; returns an unregister fn (call on unmount/hide). */
-  push(closeFn) {
-    const entry = { closeFn, openedAt: Date.now() };
+  /** Register a close handler with optional priority; returns an unregister fn (call on unmount/hide). */
+  push(closeFn, priority = BACK_PRIORITY.MODAL) {
+    const entry = { closeFn, priority, openedAt: Date.now() };
     stack.push(entry);
     return () => {
       const i = stack.indexOf(entry);
@@ -22,16 +29,22 @@ export const backStack = {
     };
   },
 
-  /** Close the topmost registered layer. Returns true if one was handled. */
+  /** Close the topmost registered layer (highest priority, then LIFO). Returns true if one was handled. */
   pop() {
-    const entry = stack[stack.length - 1];
-    if (!entry) return false;
+    if (stack.length === 0) return false;
+    let bestIdx = stack.length - 1;
+    for (let i = stack.length - 2; i >= 0; i--) {
+      if (stack[i].priority > stack[bestIdx].priority) {
+        bestIdx = i;
+      }
+    }
+    const entry = stack[bestIdx];
     // Ignore a back-pop that lands within 300ms of opening. No human presses back
     // that fast — on web a spurious history/popstate event can fire right as a
     // sheet mounts, which was slamming the reels comment box shut on open. We
     // consume the event (so it doesn't bubble) but keep the layer open.
     if (Date.now() - entry.openedAt < 300) return true;
-    stack.pop();
+    stack.splice(bestIdx, 1);
     try { entry.closeFn(); } catch { /* a broken close handler must not wedge back */ }
     return true;
   },

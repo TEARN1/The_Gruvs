@@ -10,7 +10,7 @@ import {
   ActivityIndicator, Image, Platform, Linking, Dimensions,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MonetizationService } from '../services/monetizationService';
@@ -204,6 +204,9 @@ const s = StyleSheet.create({
     borderBottomWidth: 0,
     maxHeight: SH * 0.7,
     paddingTop: 10,
+    maxWidth: 580,
+    width: '100%',
+    alignSelf: 'center',
   },
   handle: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 15 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 22, marginBottom: 15 },

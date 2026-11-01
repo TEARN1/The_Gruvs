@@ -8,6 +8,7 @@
  * - Festival Party Shuttle Passes & Convoy Tracker
  * - Venue Floorplan & Sound Zones (High-intensity, Chillout, Quiet Corner)
  */
+import { feature } from '../constants/launchConfig';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -20,7 +21,8 @@ import {
   Alert,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import { NightSafetyService } from '../services/nightSafetyService';
+import { NightSafetyService, buildSafetyShareUrl } from '../services/nightSafetyService';
+import { SecurityService } from '../services/securityService';
 import { ControlledGlitterBurst } from './ControlledGlitterBurst';
 import { haptics } from '../utils/haptics';
 import { useAuth } from '../context/AuthContext';
@@ -29,10 +31,10 @@ import { useToast } from './ToastNotification';
 const TABS = [
   { key: 'safe_home', label: 'Safe Ride Home', icon: 'shield' },
   { key: 'walk_car', label: 'Walk to Car', icon: 'map-pin' },
-  { key: 'lost_found', label: 'Lost & Found', icon: 'help-circle' },
-  { key: 'shuttles', label: 'Party Shuttles', icon: 'navigation' },
-  { key: 'floorplan', label: 'Venue Floorplan', icon: 'layout' },
-];
+  { flag: 'safetyExtras', key: 'lost_found', label: 'Lost & Found', icon: 'help-circle' },
+  { flag: 'safetyExtras', key: 'shuttles', label: 'Party Shuttles', icon: 'navigation' },
+  { flag: 'safetyExtras', key: 'floorplan', label: 'Venue Floorplan', icon: 'layout' },
+].filter((t) => !t.flag || feature(t.flag));
 
 export function NightSafetyLogisticsModal({
   visible,
@@ -94,14 +96,20 @@ export function NightSafetyLogisticsModal({
       destinationLabel: safeDest,
     });
     setActiveTimer(timer);
-    toast?.(`Safe Ride timer running for ${safeDuration} minutes! Have a safe trip. 🚗`, 'success');
+    // Nobody is alerted automatically (see buildSafetyShareUrl): the trip goes
+    // to whoever the user picks in WhatsApp.
+    await SecurityService.safeOpenURL(buildSafetyShareUrl('trip', {
+      eventTitle: event?.title, destination: safeDest, minutes: safeDuration,
+    }));
+    toast?.('Timer started on this phone. Send your trip to someone you trust in WhatsApp.', 'success');
   };
 
   const handleConfirmHomeSafe = async () => {
     triggerGlitter('home_safe');
     await NightSafetyService.confirmHomeSafe();
     setActiveTimer(null);
-    toast?.('You checked in Safe & Sound! Squad notified. Good night! 😴✨', 'success');
+    await SecurityService.safeOpenURL(buildSafetyShareUrl('home'));
+    toast?.('Timer cleared. Let your friend know you made it home.', 'success');
   };
 
   const handleWalkToCar = async () => {
@@ -112,7 +120,10 @@ export function NightSafetyLogisticsModal({
       eventId: event.id,
       parkingArea: parkingNote,
     });
-    toast?.('Buddy ping sent to mutuals & security in the venue! 🛡️', 'success');
+    await SecurityService.safeOpenURL(buildSafetyShareUrl('walk', {
+      eventTitle: event?.title, parkingArea: parkingNote,
+    }));
+    toast?.('Pick someone in WhatsApp to walk with you.', 'success');
   };
 
   const handlePostLostFound = async () => {
@@ -141,13 +152,14 @@ export function NightSafetyLogisticsModal({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}>
         <View style={[styles.sheetContainer, { backgroundColor: bg, borderColor: `${primary}35` }]}>
+          <View style={styles.notchHandle} />
           {/* Header */}
           <View style={[styles.headerRow, { borderBottomColor: `${primary}20` }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Feather name="shield" size={18} color="#10b981" />
               <Text style={[styles.headerTitle, { color: textColor }]}>Nightlife Safety & Squad Care</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Close">
               <Feather name="x" size={20} color={muted} />
             </TouchableOpacity>
           </View>
@@ -192,7 +204,7 @@ export function NightSafetyLogisticsModal({
                 <View style={[styles.infoBanner, { borderColor: '#10b98140', backgroundColor: '#10b98112' }]}>
                   <Feather name="shield" size={18} color="#10b981" />
                   <Text style={[styles.infoBannerText, { color: textColor }]}>
-                    Heading out? Set a Safe Ride timer. If you don't tap "I'm Home Safe" before time runs out, emergency contacts receive an alert with your last GPS location.
+                    Heading out? Start a Safe Ride timer and send your trip to someone you trust on WhatsApp. The timer runs on this phone only. The Gruvs does not alert anyone automatically, so make sure a friend knows where you're going.
                   </Text>
                 </View>
 
@@ -202,7 +214,7 @@ export function NightSafetyLogisticsModal({
                     <Text style={[styles.timerSub, { color: muted }]}>Heading to: {activeTimer.destination}</Text>
                     <View style={styles.timerClockBox}>
                       <Feather name="clock" size={32} color="#10b981" />
-                      <Text style={[styles.timerClockVal, { color: '#10b981' }]}>Active Protection</Text>
+                      <Text style={[styles.timerClockVal, { color: '#10b981' }]}>Timer Running</Text>
                     </View>
                     <TouchableOpacity
                       onPress={handleConfirmHomeSafe}
@@ -238,7 +250,7 @@ export function NightSafetyLogisticsModal({
                       activeOpacity={0.85}
                     >
                       <Feather name="play" size={14} color="#000" />
-                      <Text style={styles.primaryActionBtnText}>Activate Safe Ride Timer</Text>
+                      <Text style={styles.primaryActionBtnText}>Start Timer & Share Trip</Text>
                       <ControlledGlitterBurst trigger={glitters.start_timer} count={10} radius={28} colors={['#10b981', '#fff']} />
                     </TouchableOpacity>
                   </View>
@@ -252,7 +264,7 @@ export function NightSafetyLogisticsModal({
                 <View style={[styles.infoBanner, { borderColor: `${primary}35`, backgroundColor: `${primary}10` }]}>
                   <Feather name="users" size={18} color={primary} />
                   <Text style={[styles.infoBannerText, { color: textColor }]}>
-                    Never walk alone to dark parking lots late at night. Ping fellow checked-in vibers or on-site security to walk with you.
+                    Never walk alone to dark parking lots late at night. Ask a friend on WhatsApp to walk with you or stay on the phone. For an emergency, call 10111 (SAPS) or 112.
                   </Text>
                 </View>
 
@@ -271,7 +283,7 @@ export function NightSafetyLogisticsModal({
                     activeOpacity={0.85}
                   >
                     <Feather name="radio" size={15} color="#000" />
-                    <Text style={styles.primaryActionBtnText}>Broadcast "Walk Me to Car" Alert</Text>
+                    <Text style={styles.primaryActionBtnText}>Ask a Friend on WhatsApp</Text>
                     <ControlledGlitterBurst trigger={glitters.walk_car} count={12} radius={32} colors={[primary, '#fff']} />
                   </TouchableOpacity>
                 </View>
@@ -423,8 +435,9 @@ export function NightSafetyLogisticsModal({
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  sheetContainer: { maxHeight: '92%', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, overflow: 'hidden' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
+  sheetContainer: { maxHeight: '92%', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, overflow: 'hidden', width: '100%', maxWidth: 680, alignSelf: 'center' },
+  notchHandle: { width: 44, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.25)', alignSelf: 'center', marginTop: 10, marginBottom: 4 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
   headerTitle: { fontSize: 16, fontWeight: '900', letterSpacing: 0.3 },
   closeBtn: { padding: 4 },
@@ -447,7 +460,7 @@ const styles = StyleSheet.create({
   timerTitle: { fontSize: 16, fontWeight: '900' },
   timerSub: { fontSize: 12 },
   timerClockBox: { alignItems: 'center', gap: 6, paddingVertical: 10 },
-  timerClockVal: { fontSize: 18, fontWeight: '900', letterSpacing: 0.5 },
+  timerClockVal: { fontSize: 18, fontWeight: '900', letterSpacing: 0.5, fontVariant: ['tabular-nums'] },
   sectionSubtitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 6 },
   lfCard: { borderWidth: 1, borderRadius: 14, padding: 12, gap: 6 },
   lfTitle: { fontSize: 13, fontWeight: '800' },

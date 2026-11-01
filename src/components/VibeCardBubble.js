@@ -14,6 +14,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { SmartImage } from './SmartImage';
 import { getVibeLevel } from '../utils/vibeLevel';
+import { HoloVibeCard } from './HoloVibeCard';
 
 const memberSince = (ts) => {
   if (!ts) return null;
@@ -56,7 +57,12 @@ export function VibeCardBubble({ userId, primary, textColor, muted, onPress }) {
   const year = memberSince(p?.created_at);
 
   return (
-    <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={[s.card, { borderColor: `${level.color}55`, backgroundColor: `${level.color}0f` }]}>
+    <HoloVibeCard
+      primary={level.color || primary}
+      glowColor={level.color || primary}
+      onPress={onPress}
+      style={[s.card, { borderColor: `${level.color}55`, backgroundColor: `${level.color}0f` }]}
+    >
       {/* Header: avatar + handle + verified + tier pill */}
       <View style={s.headerRow}>
         {p?.avatar_url
@@ -109,7 +115,7 @@ export function VibeCardBubble({ userId, primary, textColor, muted, onPress }) {
         <Text style={[s.footerText, { color: primary }]}>View profile</Text>
         <Feather name="chevron-right" size={14} color={primary} />
       </View>
-    </TouchableOpacity>
+    </HoloVibeCard>
   );
 }
 

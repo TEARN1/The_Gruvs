@@ -201,7 +201,7 @@ export function NightlifeWrappedModal({ visible, onClose, wrappedData, primary }
 
         {/* Header Close */}
         <View style={s.header}>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Close">
             <Feather name="x" size={24} color={textColor} />
           </TouchableOpacity>
         </View>
@@ -222,7 +222,7 @@ export function NightlifeWrappedModal({ visible, onClose, wrappedData, primary }
 }
 
 const s = StyleSheet.create({
-  overlay: { flex: 1, paddingVertical: 20, justifyContent: 'space-between' },
+  overlay: { flex: 1, paddingVertical: 20, justifyContent: 'space-between', maxWidth: 520, width: '100%', alignSelf: 'center' },
   progressRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, marginTop: 12, zIndex: 100 },
   progressBarBg: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 2, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: 2 },
@@ -244,7 +244,7 @@ const s = StyleSheet.create({
   headlineText: { fontSize: 20, fontWeight: '900', textAlign: 'center', lineHeight: 26, marginVertical: 14 },
   statsGrid: { width: '100%', gap: 12, marginTop: 10 },
   statCard: { padding: 16, borderRadius: 16, borderWidth: 1, alignItems: 'center' },
-  statNum: { fontSize: 32, fontWeight: '950' },
+  statNum: { fontSize: 32, fontWeight: '950', fontVariant: ['tabular-nums'] },
   statSub: { fontSize: 12, fontWeight: '800', marginTop: 2, opacity: 0.8 },
 
   favRow: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 16, borderWidth: 1 },

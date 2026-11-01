@@ -6,6 +6,12 @@ const config = getDefaultConfig(__dirname);
 // Drop console.* calls in production builds to reduce noise and bundle size
 config.transformer = {
   ...config.transformer,
+  // Inline requires: a module's top-level code runs the first time something
+  // uses it, not at app start. Standard in React Native apps; on web it cut
+  // the time a mid-range phone spends executing the bundle before first paint.
+  getTransformOptions: async () => ({
+    transform: { experimentalImportSupport: false, inlineRequires: true },
+  }),
   minifierConfig: {
     compress: {
       drop_console: process.env.NODE_ENV === 'production',

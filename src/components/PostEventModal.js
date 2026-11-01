@@ -7,7 +7,7 @@ import {
   KeyboardAvoidingView, Platform, Image, Dimensions, Alert,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 
 import * as Location from 'expo-location';
 import { LocationService } from '../services/locationService';
@@ -351,12 +351,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       quality: 0.85,
     });
     if (!result.canceled && result.assets) {
-      const newItems = result.assets.map(a => ({
-        uri: a.uri,
-        type: a.type || (a.uri.includes('.mp4') || a.uri.includes('.mov') ? 'video' : 'image'),
-        name: a.fileName || `media_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        mimeType: a.mimeType || undefined,
-      }));
+      const newItems = result.assets.map(a => {
+        const isVid = a.type === 'video' || a.mimeType?.startsWith('video/') || /\.(mp4|mov|m4v|webm|3gp|mkv|avi)/i.test(a.fileName || a.uri || '');
+        return {
+          uri: a.uri,
+          type: isVid ? 'video' : 'image',
+          name: a.fileName || `media_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          mimeType: a.mimeType || (isVid ? 'video/mp4' : undefined),
+        };
+      });
       setMediaItems(prev => [...prev, ...newItems].slice(0, MAX_MEDIA));
     }
   };
@@ -918,7 +921,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       try {
         const cities = new Set(stops.map(s => (s.city || '').trim().toLowerCase()).filter(Boolean));
         const { data: seriesRow, error: seriesErr } = await supabase.from('event_series').insert({
-          creator_id: user.id,
+          creator_id: user?.id,
           name: (tourName.trim() || title.trim()),
           description: description.trim() || null,
           cover_url: mediaUrls[0]?.url || null,
@@ -1502,6 +1505,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     value={contactPhone}
                     onChangeText={setContactPhone}
                     keyboardType="phone-pad"
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
                   />
 
                   <Text style={[pm.label, { color: muted }]}>Contact Email (Optional)</Text>
@@ -1512,6 +1517,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     value={contactEmail}
                     onChangeText={setContactEmail}
                     keyboardType="email-address"
+                    autoComplete="email"
+                    textContentType="emailAddress"
                     autoCapitalize="none"
                   />
 

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Animated, TouchableOpacity,
   Modal, FlatList, Image, ActivityIndicator,
@@ -8,8 +8,14 @@ import { supabase } from '../services/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { DirectMessageModal } from './DirectMessageModal';
+import { cssLoop, IS_WEB } from '../utils/cssLoop';
+
+const dotPulse = cssLoop({ '0%': { transform: 'scale(1)' }, '100%': { transform: 'scale(1.6)' } }, 900);
 
 const REFRESH_MS = 120000; // 2 min — was 30s, reduced DB load 4×
+// "Online" means active in the last 5 minutes — the is_online boolean goes
+// stale because users rarely get marked offline.
+const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
 const ViberRow = React.memo(({ item, primary, surface, textColor, muted, onMessage }) => (
   <View style={[ss.viberRow, { borderBottomColor: `${primary}12` }]}>
@@ -52,7 +58,7 @@ const fmt = (n) => {
 const avatarBg = (u = '') =>
   ["#0891b2", "#7c3aed", "#059669", "#d97706", "#db2777"][(u.charCodeAt(0) || 0) % 5];
 
-export const CommunityStatsBar = () => {
+export const CommunityStatsBar = ({ variant = 'bar' }) => {
   const { currentTheme } = useTheme();
   const { user }         = useAuth();
   const primary   = currentTheme?.primary    || "#00f2ff";
@@ -70,15 +76,27 @@ export const CommunityStatsBar = () => {
   // Cache mutual IDs — only re-fetch when user changes, not on every poll
   const mutualIdsCache = useRef({ ids: null, userId: null });
 
-  const getMutualIds = async () => {
+  // Mutual follows are a self-join on `follows`. Doing it server-side is the
+  // whole point: the previous version fetched BOTH full follow lists —
+  // .eq('follower_id', uid) and .eq('following_id', uid), neither with a LIMIT —
+  // and intersected them in JavaScript, then issued a third query with the
+  // result as an `.in(...)` list. For an account with 40k followers that is
+  // ~40,800 rows pulled to the phone, on a 2-minute poll, to render one number.
+  // Measured against that graph: the RPC returns 50 rows instead of 40,800 and
+  // produces an identical answer.
+  const RPC_MINUTES = Math.round(ONLINE_WINDOW_MS / 60000);
+
+  // Pre-RPC fallback, kept so this ships safely before the migration lands
+  // (same pattern as AuthContext's get_my_profile). Bounded now — the old code
+  // had no cap at all.
+  const getMutualIdsFallback = async () => {
     if (!user) return [];
-    // Return cached mutual IDs — avoids 2 follows queries on every 2-min poll
     if (mutualIdsCache.current.userId === user.id && mutualIdsCache.current.ids !== null) {
       return mutualIdsCache.current.ids;
     }
     const [{ data: following }, { data: followers }] = await Promise.all([
-      supabase.from('follows').select('following_id').eq('follower_id', user.id),
-      supabase.from('follows').select('follower_id').eq('following_id', user.id),
+      supabase.from('follows').select('following_id').eq('follower_id', user.id).limit(2000),
+      supabase.from('follows').select('follower_id').eq('following_id', user.id).limit(5000),
     ]);
     const followingIds = new Set((following || []).map(r => r.following_id));
     const ids = (followers || []).map(r => r.follower_id).filter(id => followingIds.has(id));
@@ -89,7 +107,10 @@ export const CommunityStatsBar = () => {
   const fetchMutualOnline = async () => {
     if (!user) { setOnlineCount(0); return; }
     try {
-      const mutualIds = await getMutualIds();
+      const { data, error } = await supabase.rpc('mutual_online_count', { p_minutes: RPC_MINUTES });
+      if (!error && typeof data === 'number') { setOnlineCount(data); return; }
+
+      const mutualIds = await getMutualIdsFallback();
       if (!mutualIds.length) { setOnlineCount(0); return; }
       const { count } = await supabase
         .from('profiles')
@@ -97,7 +118,7 @@ export const CommunityStatsBar = () => {
         .in('id', mutualIds)
         // Truly online = active in the last 5 min. The is_online boolean goes
         // stale (users rarely get marked offline), so trust last_seen instead.
-        .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString());
+        .gte('last_seen', new Date(Date.now() - ONLINE_WINDOW_MS).toISOString());
       setOnlineCount(count || 0);
     } catch {}
   };
@@ -105,15 +126,22 @@ export const CommunityStatsBar = () => {
   const fetchOnlineVibers = async () => {
     setLoadingVibers(true);
     try {
-      const mutualIds = await getMutualIds();
+      const { data, error } = await supabase.rpc('get_mutual_online', {
+        p_minutes: RPC_MINUTES,
+        p_limit: 50,
+      });
+      if (!error && Array.isArray(data)) { setOnlineVibers(data); return; }
+
+      const mutualIds = await getMutualIdsFallback();
       if (!mutualIds.length) { setOnlineVibers([]); return; }
-      const { data } = await supabase
+      const { data: rows } = await supabase
         .from('profiles')
         .select('id, username, avatar_url, bio, vibe_score, last_seen')
         .in('id', mutualIds)
-        .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString())
-        .order('vibe_score', { ascending: false });
-      setOnlineVibers(data || []);
+        .gte('last_seen', new Date(Date.now() - ONLINE_WINDOW_MS).toISOString())
+        .order('vibe_score', { ascending: false })
+        .limit(50);
+      setOnlineVibers(rows || []);
     } catch {} finally {
       setLoadingVibers(false);
     }
@@ -126,6 +154,7 @@ export const CommunityStatsBar = () => {
   }, [user]);
 
   useEffect(() => {
+    if (IS_WEB) return;   // web: CSS animation (dotPulse) — no per-frame re-render
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.6, duration: 900, useNativeDriver: true }),
@@ -162,18 +191,34 @@ export const CommunityStatsBar = () => {
 
   return (
     <>
-      <TouchableOpacity
-        style={[ss.bar, { backgroundColor: `${surface}cc`, borderColor: `${primary}18` }]}
-        onPress={handleOpen}
-        activeOpacity={0.8}
-      >
-        <Animated.View style={[ss.dot, { backgroundColor: "#10b981", transform: [{ scale: pulseAnim }] }]} />
-        <Text style={[ss.count, { color: "#10b981" }]}>{fmt(onlineCount)}</Text>
-        <Text style={[ss.label, { color: 'rgba(255,255,255,0.45)' }]}>
-          {onlineCount === 1 ? 'mutual online' : 'mutuals online'}
-        </Text>
-        <Feather name="chevron-right" size={12} color="rgba(255,255,255,0.25)" style={{ marginLeft: 'auto' }} />
-      </TouchableOpacity>
+      {variant === 'pill' ? (
+        <TouchableOpacity
+          style={[ss.pill, { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.35)' }]}
+          onPress={handleOpen}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={`${onlineCount} mutuals online now`}
+        >
+          <Animated.View style={[ss.dot, { backgroundColor: "#10b981", ...(IS_WEB ? dotPulse : { transform: [{ scale: pulseAnim }] }) }]} />
+          <Text style={[ss.pillCount, { color: "#10b981" }]}>{fmt(onlineCount)}</Text>
+          <Text style={[ss.pillLabel, { color: 'rgba(255,255,255,0.75)' }]}>
+            {onlineCount === 1 ? 'mutual' : 'mutuals'}
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[ss.bar, { backgroundColor: `${surface}cc`, borderColor: `${primary}18` }]}
+          onPress={handleOpen}
+          activeOpacity={0.8}
+        >
+          <Animated.View style={[ss.dot, { backgroundColor: "#10b981", ...(IS_WEB ? dotPulse : { transform: [{ scale: pulseAnim }] }) }]} />
+          <Text style={[ss.count, { color: "#10b981" }]}>{fmt(onlineCount)}</Text>
+          <Text style={[ss.label, { color: 'rgba(255,255,255,0.45)' }]}>
+            {onlineCount === 1 ? 'mutual online' : 'mutuals online'}
+          </Text>
+          <Feather name="chevron-right" size={12} color="rgba(255,255,255,0.25)" style={{ marginLeft: 'auto' }} />
+        </TouchableOpacity>
+      )}
 
       <Modal
         visible={modalVisible}
@@ -185,7 +230,7 @@ export const CommunityStatsBar = () => {
         <View style={[ss.sheet, { backgroundColor: surface, borderColor: `${primary}18` }]}>
           <View style={[ss.handle, { backgroundColor: 'rgba(255,255,255,0.15)' }]} />
           <View style={[ss.sheetHeader, { borderBottomColor: 'rgba(255,255,255,0.06)' }]}>
-            <Animated.View style={[ss.dot, { backgroundColor: "#10b981", transform: [{ scale: pulseAnim }] }]} />
+            <Animated.View style={[ss.dot, { backgroundColor: "#10b981", ...(IS_WEB ? dotPulse : { transform: [{ scale: pulseAnim }] }) }]} />
             <Text style={[ss.sheetTitle, { color: textColor }]}>Mutuals Online Now</Text>
             <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Feather name="x" size={18} color={muted} />
@@ -234,6 +279,24 @@ const ss = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     gap: 7,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 5,
+  },
+  pillCount: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+  },
+  pillLabel: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   dot: { width: 7, height: 7, borderRadius: 4 },
   count: { fontSize: 14, fontWeight: '900', letterSpacing: 0.3 },

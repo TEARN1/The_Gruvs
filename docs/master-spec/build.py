@@ -1,0 +1,759 @@
+#!/usr/bin/env python3
+"""
+Builds docs/master-spec/master-spec-v2.5.html from the data below.
+Render to PDF with:  node docs/master-spec/render.mjs
+
+Every status in FEATURES was checked against the code on 5 October 2026
+(branch claude/future-failure-analysis-df20ej, merged with main ff486c1).
+Update the data, not the HTML.
+"""
+import html, pathlib, datetime
+
+OUT = pathlib.Path(__file__).with_name("master-spec-v2.5.html")
+E = html.escape
+
+STATUS = {
+    "works":   ("Works",        "Built, and backed by the server."),
+    "partial": ("Partial",      "Exists, but part of it is missing."),
+    "demo":    ("Demo only",    "Looks finished, but the data is simulated or stays on one phone. Other users never see it."),
+    "none":    ("Not started",  "No code yet."),
+    "blocked": ("Blocked",      "Needs a decision or an outside account first."),
+    "unrev":   ("Not reviewed", "Exists; not checked in this pass."),
+}
+
+def chip(s):
+    return f'<span class="chip s-{s}">{STATUS[s][0]}</span>'
+
+# ── Feature register ──────────────────────────────────────────────────────────
+# (group, feature, status, what is actually there, next step)
+FEATURES = [
+  ("The night out", "Lock In (RSVP and ticket tiers)", "works",
+   "RSVP with tiers, saved through a checked server function (upsert_rsvp_tier).", "None."),
+  ("The night out", "Touch Down (I'm here)", "works",
+   "Saved in live_checkins. The server marks it verified if the phone is within about 2 km of the venue. Failed check-ins are queued and resent when signal returns.",
+   "Tighten to a rotating door code plus 150 m (section 7.2)."),
+  ("The night out", "Door QR scanning by staff", "works",
+   "QRCheckInScanner plus secure_check_in. Only the organiser, co-host or a scanner role can admit someone.",
+   "Needs signal. The QR never changes, so a screenshot works for anyone: move to signed passes (7.3)."),
+  ("The night out", "Offline ticket cache", "partial",
+   "Your tickets are kept on the phone for 24 to 48 hours so they still display with no signal.",
+   "Display only. Doors can't verify them offline yet."),
+  ("The night out", "Ticket Vault (\"cryptographic\")", "demo",
+   "The \"signature\" is the plain text HMAC_ticket_event_time, with no secret key. Any text starting with HMAC_ passes the check. \"Save to vault\" creates a ticket for any event with no booking behind it.",
+   "Remove the \"cryptographically vaulted\" claim now. Replace with server-signed passes (7.3)."),
+  ("The night out", "Ticket resale (face value)", "demo",
+   "The listing is saved on the seller's phone only. The server save fails and the table doesn't exist. No money moves.",
+   "Needs payments (section 9) and a server ledger."),
+  ("The night out", "On Decks (who's playing)", "partial",
+   "The host sets the current artist or song, and a live bar updates for everyone (event_now_playing).",
+   "Add scheduled set times and a countdown to the next act."),
+  ("The night out", "Crowd meter", "partial",
+   "Anonymous crowd-level votes, averaged over the last 45 minutes (CrowdMeter). Its table (event_crowd_votes) isn't in any repo SQL file, so it only works if it was created on the live database by hand.",
+   "Add queue speed (Breeze, Moving, Packed)."),
+  ("The night out", "Door queue thermometer", "demo",
+   "Writes to venue_door_queue, which doesn't exist, and is cached on the phone.",
+   "Add the table with door-staff-only writes."),
+  ("The night out", "Carpool board", "partial",
+   "Offer or find a lift to an event (event_carpools), with live seat counts.",
+   "Match people by verified Resident building later (section 2)."),
+  ("The night out", "Poster scan (OCR)", "works",
+   "Reads text off an uploaded flyer in the browser (Tesseract) and fills in the event form.",
+   "No server worker is needed yet."),
+
+  ("Money", "Service bookings and escrow", "partial",
+   "Bookings go through checked server functions. No money is held: every booking stays 'unfunded' until a payment provider confirms payment.",
+   "Connect a payment provider (section 9)."),
+  ("Money", "Table kitty and split bill", "demo",
+   "Stored on one phone only, so your squad can't see it. No payment.", "Needs payments."),
+  ("Money", "Talent fee escrow", "demo",
+   "Stored on the phone. \"Releases on check-in\" isn't implemented on the server.", "Needs payments."),
+  ("Money", "Promoter flyer bounties", "demo",
+   "Stored on the phone. event_flyers and increment_flyer_claims aren't in any database file.",
+   "Add the tables and functions, then pay out through the ledger."),
+  ("Money", "Business plans and boosts", "partial",
+   "Plan limits are enforced by the server. Upgrades aren't charged, so the prices shown are decorative.",
+   "Bill through the payment provider."),
+  ("Money", "Gifting and coins", "partial",
+   "Turned off in launch mode. Cash-out is off because there's no payout rail.", "After payments."),
+  ("Money", "Flash Drops (paid push blasts)", "none",
+   "", "Needs payments and marketing-consent opt-in (POPIA)."),
+
+  ("Identity and social", "Vibe Card", "works",
+   "Level, score, verified badge and crew. The share link was fixed on 27 September.",
+   "The level perks list promises features that don't exist yet."),
+  ("Identity and social", "Crossed paths and co-presence", "works",
+   "Reads real check-ins (live_checkins, public_profiles).", "Needs the coordinates decision (7.4)."),
+  ("Identity and social", "Proof of Sweat", "demo",
+   "No microphone, step counter or Bluetooth is read. Built-in numbers (52 min loud music, 3,120 steps, 8 peers) make everyone \"VERIFIED\".",
+   "Drop it or rebuild it on real signals with consent (7.4)."),
+  ("Identity and social", "Vibe Handshake, Where's My Crew", "demo",
+   "Stored on the phone only (inPersonVibeService), with some random values.", "Needs tables and real presence."),
+  ("Identity and social", "Booth and Street (DJ drops, track ID, kota tracker, car-meet decibels)", "demo",
+   "Stored on the phone only (boothAndStreetService).", "Pick the one or two worth building for real."),
+  ("Identity and social", "Sensory UI, haptics, face-down stealth, shake", "works",
+   "Uses the real accelerometer (expo-sensors) and haptics on phones.", "Limited on the web."),
+  ("Identity and social", "Chats, crews and calls (Linked Up)", "unrev", "", ""),
+
+  ("Safety", "Safe Ride timer, Walk me to my car", "partial",
+   "Fixed 5 October: until then the panel claimed contacts and security were alerted, and nothing was sent. Now it says the truth and shares the trip with a friend through WhatsApp.",
+   "Real alerts need tables and a job that fires when time runs out, even with the phone off."),
+  ("Safety", "Emergency SOS", "none",
+   "A function exists but no button uses it, and it writes to a table that doesn't exist.",
+   "Keep it unconnected until it really alerts someone."),
+  ("Safety", "Lost and found, shuttles, venue floor plan", "demo",
+   "Sample data, stored on the phone.", "Make it real per venue, or hide it."),
+
+  ("Food, sport, business", "The Meal (restaurants and specials)", "works",
+   "Posting, boosts and reach limits, enforced by the server since 27 September.", "Run its SQL on the database."),
+  ("Food, sport, business", "Kota and food section, birthday radar, sports hub", "unrev",
+   "New on main (3 October).", ""),
+
+  ("Platform", "Shared login with The Resident", "works",
+   "One-time, single-use handoff codes bound to the target app (sso-redeem).", "None."),
+  ("Platform", "Guardian monitoring", "works",
+   "GitHub Actions checks of the database, site and error log every 6 hours.", "None."),
+  ("Platform", "Account deletion", "works",
+   "delete-account Edge Function plus purge.", "Run account_deletion.sql."),
+  ("Platform", "POPIA location purge", "partial",
+   "Purge functions exist (90 days). The nightly schedule is commented out and pg_cron isn't enabled.",
+   "Enable it, and decide 48 hours or 90 days."),
+  ("Platform", "Live Activities, Dynamic Island, home widgets", "none",
+   "", "Needs native apps (section 6)."),
+  ("Platform", "Play Integrity / App Attest", "none", "", "Needs native apps."),
+  ("Platform", "WhatsApp promoter bot", "blocked",
+   "", "Needs a Meta WhatsApp Business Platform account."),
+  ("Platform", "Excellency Academy link", "none",
+   "No Excellency code in this repository.", "Where does Excellency live?"),
+]
+
+def counts():
+    c = {k: 0 for k in STATUS}
+    for f in FEATURES:
+        c[f[2]] += 1
+    return c
+
+def register():
+    # One <tbody> per group, header row + first row kept together, so a group
+    # title is never stranded at the bottom of a page.
+    groups = {}
+    for f in FEATURES:
+        groups.setdefault(f[0], []).append(f)
+    out = []
+    for g, rows in groups.items():
+        cells = [
+            f"<tr><td class='f'>{E(name)}</td><td>{chip(s)}</td>"
+            f"<td>{E(there) or '<span class=dim>—</span>'}</td>"
+            f"<td>{E(nxt) or '<span class=dim>—</span>'}</td></tr>"
+            for _, name, s, there, nxt in rows]
+        out.append(f'<tbody class="keep"><tr class="grp"><td colspan="4">{E(g)}</td></tr>{cells[0]}</tbody>')
+        if len(cells) > 1:
+            out.append("<tbody>" + "".join(cells[1:]) + "</tbody>")
+    return "\n".join(out)
+
+C = counts()
+TOTAL = len(FEATURES)
+
+def legend():
+    return "".join(
+        f'<div class="lg">{chip(k)}<span>{E(v[1])}</span></div>' for k, v in STATUS.items())
+
+def tally():
+    return "".join(
+        f'<div class="tl"><div class="n">{C[k]}</div>{chip(k)}</div>' for k in STATUS)
+
+TODAY = "5 October 2026"
+
+HTML = f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>The Gruvs Master Specification v2.5</title>
+<style>
+@page {{ size: A4; margin: 18mm 15mm 18mm 15mm; }}
+:root {{
+  --ink:#0f172a; --muted:#475569; --line:#e2e8f0; --soft:#f8fafc; --accent:#0e7490; --accent2:#06b6d4;
+}}
+* {{ box-sizing:border-box; }}
+html {{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+body {{ font-family:"Liberation Sans","DejaVu Sans",Arial,sans-serif; color:var(--ink); font-size:9.6pt; line-height:1.45; margin:0; background:#fff; }}
+h1 {{ font-size:19pt; margin:0 0 6pt; letter-spacing:-.2pt; }}
+h2 {{ font-size:14pt; margin:0 0 6pt; padding-bottom:4pt; border-bottom:2px solid var(--accent2); }}
+h3 {{ font-size:11pt; margin:12pt 0 4pt; color:var(--accent); }}
+p {{ margin:0 0 6pt; }}
+ul, ol {{ margin:0 0 6pt 15pt; padding:0; }}
+li {{ margin:0 0 2.5pt; }}
+code {{ font-family:"DejaVu Sans Mono",monospace; font-size:8.2pt; background:#f1f5f9; padding:0 2pt; border-radius:2pt; }}
+pre {{ font-family:"DejaVu Sans Mono",monospace; font-size:7.8pt; background:#0f172a; color:#e2e8f0; padding:7pt 9pt; border-radius:5pt; white-space:pre-wrap; margin:4pt 0 8pt; break-inside:avoid; }}
+section {{ break-before:page; }}
+section.flow {{ break-before:auto; margin-top:16pt; }}
+table {{ width:100%; border-collapse:collapse; margin:4pt 0 9pt; font-size:8.6pt; }}
+th {{ text-align:left; background:var(--ink); color:#fff; font-weight:700; padding:4pt 5pt; }}
+td {{ border-bottom:1px solid var(--line); padding:4pt 5pt; vertical-align:top; }}
+tr {{ break-inside:avoid; }}
+tbody.keep {{ break-inside:avoid; }}
+thead {{ display:table-header-group; }}
+tr.grp td {{ background:#ecfeff; color:var(--accent); font-weight:700; font-size:8.8pt; padding-top:5pt; }}
+td.f {{ font-weight:700; width:24%; }}
+.dim {{ color:#94a3b8; }}
+.chip {{ display:inline-block; font-size:7.4pt; font-weight:700; padding:1.2pt 5pt; border-radius:8pt; white-space:nowrap; border:1px solid transparent; }}
+.s-works   {{ background:#dcfce7; color:#166534; border-color:#86efac; }}
+.s-partial {{ background:#fef3c7; color:#92400e; border-color:#fcd34d; }}
+.s-demo    {{ background:#fee2e2; color:#991b1b; border-color:#fca5a5; }}
+.s-none    {{ background:#e2e8f0; color:#334155; border-color:#cbd5e1; }}
+.s-blocked {{ background:#dbeafe; color:#1e3a8a; border-color:#93c5fd; }}
+.s-unrev   {{ background:#fff; color:#64748b; border-color:#cbd5e1; }}
+.box {{ border:1px solid var(--line); border-left:4px solid var(--accent2); background:var(--soft); padding:7pt 10pt; border-radius:4pt; margin:6pt 0 9pt; break-inside:avoid; }}
+.box.warn {{ border-left-color:#dc2626; background:#fef2f2; }}
+.box.ok {{ border-left-color:#16a34a; background:#f0fdf4; }}
+.box h4 {{ margin:0 0 3pt; font-size:9.8pt; }}
+.grid2 {{ display:grid; grid-template-columns:1fr 1fr; gap:8pt; }}
+.grid3 {{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8pt; }}
+.card {{ border:1px solid var(--line); border-radius:6pt; padding:7pt 9pt; break-inside:avoid; background:#fff; }}
+.card h4 {{ margin:0 0 3pt; font-size:10pt; }}
+.card .sub {{ color:var(--muted); font-size:8.2pt; margin-bottom:4pt; }}
+.card ul {{ margin-left:12pt; }}
+.lg {{ display:flex; gap:6pt; align-items:baseline; margin:2pt 0; }}
+.lg .chip {{ min-width:62pt; text-align:center; }}
+.tally {{ display:flex; gap:6pt; margin:6pt 0 8pt; }}
+.tl {{ flex:1; border:1px solid var(--line); border-radius:6pt; text-align:center; padding:5pt 2pt; }}
+.tl .n {{ font-size:17pt; font-weight:800; line-height:1.1; }}
+.cover {{ height:250mm; display:flex; flex-direction:column; justify-content:space-between; }}
+.brand {{ font-size:34pt; font-weight:900; letter-spacing:3pt; color:var(--ink); }}
+.brand span {{ color:var(--accent2); }}
+.kicker {{ text-transform:uppercase; letter-spacing:1.5pt; font-size:8.5pt; color:var(--accent); font-weight:700; }}
+.lead {{ font-size:11.5pt; color:#334155; max-width:150mm; }}
+.meta {{ color:var(--muted); font-size:8.6pt; }}
+.toc ol {{ margin-left:14pt; }} .toc li {{ margin:2.5pt 0; font-size:10pt; }}
+/* diagrams */
+.arch {{ display:grid; gap:6pt; }}
+.tier {{ border:1.5px solid var(--ink); border-radius:6pt; padding:6pt 8pt; break-inside:avoid; }}
+.tier .t {{ font-weight:800; font-size:8.6pt; text-transform:uppercase; letter-spacing:.8pt; color:var(--accent); margin-bottom:3pt; }}
+.row {{ display:flex; gap:5pt; flex-wrap:wrap; }}
+.pill {{ border:1px solid var(--line); background:var(--soft); border-radius:4pt; padding:3pt 6pt; font-size:8.2pt; }}
+.pill b {{ display:block; font-size:8.6pt; }}
+.arrow {{ text-align:center; color:var(--muted); font-size:8pt; line-height:1; }}
+.ladder .rung {{ display:flex; gap:8pt; align-items:stretch; margin:3pt 0; break-inside:avoid; }}
+.ladder .lvl {{ width:44pt; flex:none; border-radius:4pt; color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; font-size:9pt; }}
+.ladder .d {{ flex:1; border:1px solid var(--line); border-radius:4pt; padding:4pt 7pt; }}
+.nav {{ display:flex; gap:4pt; flex-wrap:wrap; }}
+.tab {{ border:1px solid #cbd5e1; border-radius:4pt; padding:3pt 6pt; font-size:8.2pt; background:#fff; }}
+.tab.big {{ flex:1; border:1.5px solid var(--accent); background:#ecfeff; }}
+.phase {{ border:1px solid var(--line); border-radius:6pt; padding:7pt 9pt; margin:0 0 7pt; break-inside:avoid; }}
+.phase .h {{ display:flex; justify-content:space-between; align-items:baseline; }}
+.phase .h b {{ font-size:10.5pt; }}
+.phase .when {{ color:var(--accent); font-weight:700; font-size:8.6pt; }}
+.small {{ font-size:8.4pt; color:var(--muted); }}
+</style></head><body>
+
+<!-- ══ COVER ══════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div>
+    <div class="kicker">thegruvs.com · Master specification</div>
+    <div class="brand" style="margin-top:14pt">THE <span>GRUVS</span></div>
+    <h1 style="font-size:22pt;margin-top:10pt">Product, Architecture, Security<br>and Roadmap · Version 2.5</h1>
+    <p class="lead" style="margin-top:10pt">Restructured from version 2.4 and checked line by line against the
+    code on {TODAY}. Every feature now shows what is really built, what is partly there, and what only looks
+    finished. Proposals that would be unsafe as written have been redesigned.</p>
+  </div>
+
+  <div>
+    <div class="box">
+      <h4>What changed from version 2.4</h4>
+      <ol>
+        <li><b>Every feature has a real status</b>, taken from the code rather than the plan (section 5).</li>
+        <li><b>The architecture matches what's deployed:</b> one Expo app for web and Android, with the website served from a DigitalOcean server. It isn't Next.js on Vercel.</li>
+        <li><b>Six new parts:</b> database and operations, money and payments, discovery and SEO, safety, a decisions page, and a work log.</li>
+        <li><b>Four proposals rewritten so they're safe:</b> Touch Down checks, offline passes, flyer collection (no Instagram scraping), and cross-app logins.</li>
+        <li><b>The roadmap is re-ordered:</b> unblock, then trust, then the live night, then money, then native apps and the ecosystem.</li>
+      </ol>
+    </div>
+    <h3 style="margin-top:4pt">How to read the status labels</h3>
+    {legend()}
+    <p class="meta" style="margin-top:12pt">Source: TEARN1/The_Gruvs · branch <code>claude/future-failure-analysis-df20ej</code>
+    (merged with <code>main</code> at ff486c1) · Supersedes v2.4</p>
+  </div>
+</div>
+
+<!-- ══ CONTENTS ═══════════════════════════════════════════════════════════ -->
+<section class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li>Where things stand</li>
+    <li>The ecosystem: Live · Play · Work</li>
+    <li>Architecture, as built</li>
+    <li>Product structure</li>
+    <li>Feature register: every feature and its real status</li>
+    <li>Widgets and glanceable surfaces</li>
+    <li>Security, trust and privacy</li>
+    <li>Database and operations</li>
+    <li>Money and payments</li>
+    <li>Discovery and SEO</li>
+    <li>Growth and revenue</li>
+    <li>Roadmap</li>
+    <li>Decisions needed from you</li>
+    <li>Appendix: work completed on this branch</li>
+  </ol>
+
+  <section class="flow">
+  <h2>1. Where things stand</h2>
+  <p>The Gruvs is a real-time nightlife and social coordination app for South African cities. Its promise is
+  <b>ground truth</b>: who is really at a venue, what's playing, how long the queue is, and how everyone gets home.
+  It's the <b>Play</b> part of a Live · Play · Work ecosystem with The Resident (housing) and Excellency Academy (skills).</p>
+
+  <table>
+    <tr><th style="width:28%">Area</th><th>State on {TODAY}</th></tr>
+    <tr><td class="f">Website / PWA</td><td>Live at thegruvs.com. It's an Expo (React Native for Web) build served by nginx on a DigitalOcean server.</td></tr>
+    <tr><td class="f">Android</td><td>Built with EAS. Not yet published on Google Play.</td></tr>
+    <tr><td class="f">iOS</td><td>Not started. Live Activities and Dynamic Island depend on it.</td></tr>
+    <tr><td class="f">Database</td><td>Supabase (Postgres with PostGIS). It was <b>paused</b> when last checked (the free tier pauses after about 7 days without activity). Move to the paid tier at launch.</td></tr>
+    <tr><td class="f">Code</td><td>The work branch is merged with <code>main</code> and is <b>21 commits ahead</b> (including this document), waiting for a pull request.</td></tr>
+    <tr><td class="f">Quality gates</td><td>1,031 automated tests and a clean lint. Database CI builds the schema, applies every migration twice and runs 5 security tests. Secret scanning blocks leaked keys.</td></tr>
+  </table>
+
+  <h3>The features, by status ({TOTAL} tracked)</h3>
+  <div class="tally">{tally()}</div>
+
+  <div class="box warn">
+    <h4>The biggest finding in this review</h4>
+    <p>The 9 commits on <code>main</code> from 2 to 4 October added about 12,600 lines and a lot of great-looking screens.
+    <b>{C['demo']} of those features are demos:</b> they save to the phone only, use built-in numbers, or try to save to
+    tables that don't exist. Some also tell users things that aren't true: "cryptographically vaulted", "Squad notified",
+    "VERIFIED". The safety panel has been corrected. The rest should be hidden or labelled as previews until they're real.
+    Every push to <code>main</code> deploys the website, so <b>these demos are live on thegruvs.com now</b>.
+    The app already has the switch to hide them (<code>feature()</code> in <code>launchConfig.js</code>).</p>
+  </div>
+
+  <h3>The five things that matter most right now</h3>
+  <ol>
+    <li><b>Restore the database and merge the branch.</b> Nothing below reaches users until both are done.</li>
+    <li><b>Hide or label the demo features</b>, starting with tickets, money and safety.</li>
+    <li><b>Choose a payment provider.</b> Every money feature waits on it.</li>
+    <li><b>Make Touch Down trustworthy</b> with a rotating door code (section 7.2). It's the heart of "ground truth".</li>
+    <li><b>Give Google real pages</b> for events and cities (section 10).</li>
+  </ol>
+  </section>
+</section>
+
+<!-- ══ 2. ECOSYSTEM ═══════════════════════════════════════════════════════ -->
+<section>
+  <h2>2. The ecosystem: Live · Play · Work</h2>
+  <p>All three apps share <b>one Supabase project and one set of user accounts</b>. A person signs in once and can hop
+  between apps with a one-time code.</p>
+
+  <div class="tier" style="text-align:center;margin:6pt 0">
+    <div class="t">Shared identity</div>
+    One user account (Supabase Auth) · one-time, single-use, app-bound login codes (<code>sso_handoff_codes</code> + <code>sso-redeem</code>) {chip('works')}
+    · a separate display name per app (<code>app_user_profiles</code>) {chip('works')}
+  </div>
+  <div class="arrow">▼ &nbsp; ▼ &nbsp; ▼</div>
+  <div class="grid3">
+    <div class="card"><h4>The Resident · Live</h4><div class="sub">Verified housing, tenant ID, building logistics</div>
+      <ul><li>Resident tables in this repo {chip('partial')}</li><li>Ride pooling by building {chip('none')}</li><li>Resident door perks {chip('none')}</li></ul></div>
+    <div class="card" style="border:1.5px solid var(--accent)"><h4>The Gruvs · Play</h4><div class="sub">Discovery, presence, coordination</div>
+      <ul><li>The Drop, Explore, Map, Lineup {chip('works')}</li><li>Touch Down {chip('works')}</li><li>Live night tools: see section 5</li></ul></div>
+    <div class="card"><h4>Excellency · Work</h4><div class="sub">Microsoft 365 workplace simulations</div>
+      <ul><li>No code in this repository {chip('none')}</li><li>Sunday Reset banner {chip('none')}</li><li>Culture Credits {chip('none')}</li></ul></div>
+  </div>
+
+  <h3>Rules that keep the ecosystem safe</h3>
+  <ul>
+    <li><b>Separation comes from database rules, not from headers.</b> The app sends an <code>x-app-id</code> header, but the app
+    sets it itself, so anyone can change it. It's fine as a label. It must never decide who can see what. Each app's tables need their own row-level rules.</li>
+    <li><b>Sharing data between apps needs consent.</b> Under POPIA, using someone's Resident data in The Gruvs (or passing Gruvs users
+    to Excellency as leads) needs a clear opt-in for that purpose.</li>
+    <li><b>Cross-app rewards are money-like.</b> Culture Credits earned on Excellency and spent on The Gruvs need the same server-only
+    ledger rules as the wallet (section 9). Never let a phone write a balance.</li>
+  </ul>
+
+  <h3>Integration blueprints from v2.4, with status</h3>
+  <table>
+    <tr><th style="width:24%">Blueprint</th><th style="width:12%">Status</th><th>How to build it safely</th></tr>
+    <tr><td class="f">Campus-to-Club Ride Pooler</td><td>{chip('partial')}</td><td>Build on the existing Carpool Board. Match by "same verified building" without ever showing where anyone lives. Opt-in only, shown only to verified residents of that building.</td></tr>
+    <tr><td class="f">Verified housing on the map</td><td>{chip('none')}</td><td>A map layer from The Resident's accredited listings. Show the building, never the tenants.</td></tr>
+    <tr><td class="f">Resident VIP door perks</td><td>{chip('none')}</td><td>Needs venue agreements. The door scanner checks the Resident pass on the server.</td></tr>
+    <tr><td class="f">Sunday Reset banner</td><td>{chip('none')}</td><td>Needs Excellency to exist and expose its challenges. Time-based placement is fine for this one.</td></tr>
+    <tr><td class="f">Skill-to-Chill credits</td><td>{chip('none')}</td><td>A server ledger shared across apps. Excellency's server grants the credits; The Gruvs' server spends them.</td></tr>
+    <tr><td class="f">"Verified Pro" Vibe Card badge</td><td>{chip('none')}</td><td>Set only by Excellency's server after a certification, never from the phone.</td></tr>
+  </table>
+</section>
+
+<!-- ══ 3. ARCHITECTURE ════════════════════════════════════════════════════ -->
+<section>
+  <h2>3. Architecture, as built</h2>
+  <div class="arch">
+    <div class="tier"><div class="t">Clients: one Expo codebase (SDK 52)</div>
+      <div class="row">
+        <div class="pill"><b>Web / PWA</b>expo export → nginx on a DigitalOcean droplet {chip('works')}</div>
+        <div class="pill"><b>Android</b>EAS build · Play Store pending {chip('partial')}</div>
+        <div class="pill"><b>iOS</b>not started {chip('none')}</div>
+      </div></div>
+    <div class="arrow">▼ HTTPS and WebSocket (realtime)</div>
+    <div class="tier"><div class="t">Supabase: data, auth and server code</div>
+      <div class="row">
+        <div class="pill"><b>Postgres + PostGIS</b>row-level security on every table</div>
+        <div class="pill"><b>Auth</b>shared across the three apps</div>
+        <div class="pill"><b>Realtime</b>Now Playing, chat, check-ins</div>
+        <div class="pill"><b>Storage</b>flyers, media, documents</div>
+        <div class="pill"><b>Edge Functions</b>og-meta · push-notify · delete-account · spotify-token · sso-redeem</div>
+      </div></div>
+    <div class="arrow">▲ checks, migrations, monitoring</div>
+    <div class="tier"><div class="t">GitHub Actions</div>
+      <div class="row">
+        <div class="pill"><b>CI</b>lint, 1,031 tests, bundle build</div>
+        <div class="pill"><b>DB Schema CI</b>fresh build, migrations twice, 5 security tests</div>
+        <div class="pill"><b>Security</b>gitleaks secret scan (blocking)</div>
+        <div class="pill"><b>Guardian</b>health checks every 6 hours</div>
+        <div class="pill"><b>Deploy</b>website on every push to main; database by hand</div>
+      </div></div>
+  </div>
+
+  <h3>Corrections to v2.4</h3>
+  <table>
+    <tr><th style="width:32%">v2.4 said</th><th>What is actually true</th></tr>
+    <tr><td>Web on Next.js (SSR) on Vercel</td><td>An Expo web build served by nginx on a DigitalOcean droplet. The Vercel projects are abandoned; delete them.</td></tr>
+    <tr><td>GoDaddy DNS → Vercel Edge network</td><td>DNS → the droplet's nginx, which also sends <code>/share/*</code> links to the og-meta Edge Function.</td></tr>
+    <tr><td>DigitalOcean workers for OCR, the WhatsApp gateway and dispatch</td><td>No background workers run. Flyer OCR runs in the browser.</td></tr>
+    <tr><td>Supabase in "AWS Cape Town / Frankfurt"</td><td>Not recorded in the repo. Check the region in the Supabase dashboard.</td></tr>
+    <tr><td>7-tab menu "consolidated into three"</td><td>Not done: there are 8 tabs (7 visible in launch mode). Section 4 has the plan.</td></tr>
+    <tr><td>"Raw coordinates never stored or transmitted"</td><td>Not true today: check-ins store exact latitude and longitude, and signed-in users can read them. See 7.4.</td></tr>
+  </table>
+
+  <div class="box"><h4>Decision: keep Expo for the web. Don't rewrite in Next.js.</h4>
+  <p>One codebase ships web and Android today. The only thing Next.js would add is server-rendered pages for Google, and the
+  og-meta Edge Function already does that for share links. Section 10 extends it to full event, city and venue pages.
+  A rewrite would cost months and add nothing users would notice.</p></div>
+</section>
+
+<!-- ══ 4. PRODUCT STRUCTURE ═══════════════════════════════════════════════ -->
+<section>
+  <h2>4. Product structure</h2>
+  <h3>Navigation: today and proposed</h3>
+  <p class="small">Today: 8 tabs (Reels is hidden in launch mode)</p>
+  <div class="nav">
+    <div class="tab">The Drop</div><div class="tab">Reels</div><div class="tab">Explore</div><div class="tab">Map</div>
+    <div class="tab">Lineup</div><div class="tab">Linked Up</div><div class="tab">Pings</div><div class="tab">Vibe Card</div>
+  </div>
+  <div class="arrow" style="margin:5pt 0">▼ proposed {chip('none')}</div>
+  <div class="nav">
+    <div class="tab big"><b>Radar</b><br><span class="small">The Drop · Explore · Map · Lineup, as filters of one discovery surface</span></div>
+    <div class="tab big"><b>Live</b><br><span class="small">Shows when you're Locked In tonight or near the venue: Touch Down, On Decks, crowd, queue, crew, ride, safety</span></div>
+    <div class="tab big"><b>Passport</b><br><span class="small">Vibe Card, tickets, wallet, history</span></div>
+  </div>
+  <p class="small" style="margin-top:4pt">Linked Up (chats) and Pings become icons in the header: messaging is how crews coordinate, so it can't be buried.</p>
+
+  <h3>Planning mode and Live mode</h3>
+  <p>v2.4 switched modes by the clock (weekdays plan, weekends live). Events also happen on weekdays, so
+  <b>switch on context instead</b>: Live mode when an event you're Locked In to starts within 3 hours, or when you're
+  inside a venue's radius. Planning mode otherwise. The Sunday Reset slot can stay time-based.</p>
+
+  <table>
+    <tr><th style="width:30%">From v2.4</th><th style="width:12%">Status</th><th>Note</th></tr>
+    <tr><td class="f">Locked In → Touch Down pipeline</td><td>{chip('works')}</td><td>RSVP, then verified presence. Already the core loop.</td></tr>
+    <tr><td class="f">One primary action per event card</td><td>{chip('none')}</td><td>Cards still carry many actions. Keep [Lock In] or [Touch Down]; move the rest into the event page.</td></tr>
+    <tr><td class="f">Remove open social feeds</td><td>{chip('partial')}</td><td>Reels is hidden in launch mode. The Drop stays as a curated feed.</td></tr>
+    <tr><td class="f">No background GPS</td><td>{chip('works')}</td><td>No background location tracking found. Keep it foreground-only: Google Play reviews "all the time" location strictly.</td></tr>
+    <tr><td class="f">Offline-first</td><td>{chip('partial')}</td><td>Check-ins are queued and replayed; tickets are cached for display. Signed passes (7.3) finish it.</td></tr>
+    <tr><td class="f">AVIF/WebP flyers</td><td>{chip('partial')}</td><td>WebP is used in places. Convert on upload with one pipeline.</td></tr>
+  </table>
+</section>
+
+<!-- ══ 5. FEATURE REGISTER ════════════════════════════════════════════════ -->
+<section>
+  <h2>5. Feature register</h2>
+  <p>Every feature in v2.4, plus everything added on <code>main</code> up to 4 October, with what the code actually does.</p>
+  <table>
+    <thead><tr><th>Feature</th><th style="width:9%">Status</th><th style="width:38%">What's actually there</th><th style="width:27%">Next step</th></tr></thead>
+    {register()}
+  </table>
+
+  <div class="box warn">
+    <h4>Why so many features are demos, and the fix pattern</h4>
+    <ol>
+      <li><b>Saved on one phone only.</b> AsyncStorage never leaves the device, so a "squad kitty" is invisible to the squad.</li>
+      <li><b>Server saves that can't work.</b> <code>supabase.from(...).insert(...).catch(...)</code> throws, because a Supabase query has no
+      <code>.catch</code>. The surrounding <code>try</code> hides the error, so even a real table would never be written.</li>
+      <li><b>Tables that don't exist.</b> ticket_resales, venue_door_queue, talent_escrow, emergency_alerts, safety_pings, lost_and_found
+      and event_flyers aren't in any SQL file. Neither is the function increment_flyer_claims.</li>
+    </ol>
+    <p><b>Fix pattern for each one:</b> a migration (table plus row rules) → a checked server function → in the app,
+    <code>const {{ error }} = await ...</code> with the error shown to the user → a test. The Meal and the bookings fix from
+    27 September are working examples.</p>
+  </div>
+</section>
+
+<!-- ══ 6. WIDGETS ═════════════════════════════════════════════════════════ -->
+<section>
+  <h2>6. Widgets and glanceable surfaces</h2>
+  <p>v2.4's widget catalog is the right idea. All of it is {chip('none')}, and most of it needs <b>native apps</b>, while production
+  today is the website. So build each widget as an <b>in-app Live card first</b> (works everywhere, including the web), then the
+  Android ongoing notification, then iOS Live Activities.</p>
+  <table>
+    <tr><th style="width:18%">Widget</th><th style="width:27%">First version (in-app, all platforms)</th><th style="width:27%">Native version</th><th>Needs</th></tr>
+    <tr><td class="f">Lineup and Stage Radar</td><td>Live card: on decks now, next act and countdown</td><td>Live Activity, Dynamic Island; Android ongoing notification</td><td>Scheduled set times (On Decks is {chip('partial')})</td></tr>
+    <tr><td class="f">Door Watcher and Pass</td><td>Live card: queue time and your pass</td><td>Lock-screen activity</td><td>Real queue data; signed pass. <b>Start it on Lock In or app open, not automatically within 1 km</b>: automatic start needs "all the time" location.</td></tr>
+    <tr><td class="f">Safe Crew and Ride Beacon</td><td>Safe Ride card (now honest, shares through WhatsApp)</td><td>Lock-screen activity with a "Home safe" button</td><td>Server alerts that fire when the phone is off</td></tr>
+    <tr><td class="f">The Tonight Radar</td><td>Top 3 tonight on Radar</td><td>Home-screen widget</td><td>Native apps</td></tr>
+    <tr><td class="f">Table Pitch-In tracker</td><td>Live card showing funding progress</td><td>Not needed</td><td>Payments (section 9)</td></tr>
+    <tr><td class="f">Crowd Sense pulse</td><td>Prompt 15 minutes after Touch Down (CrowdMeter exists)</td><td>Notification action buttons</td><td>Queue-speed field</td></tr>
+  </table>
+  <div class="box"><h4>Native groundwork, in order</h4>
+  <ol><li>Publish Android (EAS production build) and add the ongoing-notification module.</li>
+  <li>Apple Developer account and an iOS build. Live Activities need a widget extension added through an Expo config plugin and a development build (not Expo Go).</li>
+  <li>App attestation: Play Integrity and App Attest, used by Touch Down (7.2).</li></ol></div>
+</section>
+
+<!-- ══ 7. SECURITY ════════════════════════════════════════════════════════ -->
+<section>
+  <h2>7. Security, trust and privacy</h2>
+  <h3>7.1 Already in place</h3>
+  <div class="grid2">
+    <div class="card"><h4>Database</h4><ul>
+      <li>Row-level security on every table, tested in CI</li>
+      <li>Admin self-promotion closed; money-minting functions locked</li>
+      <li>Report brigading fixed: two new accounts can't auto-hide anyone</li>
+      <li>Bookings, disputes and the wallet ledger are server-only, and unfunded bookings can't create balance</li>
+      <li>The Meal's boost and view limits can't be set from the phone</li>
+      <li>Unused privileged functions closed to clients</li></ul></div>
+    <div class="card"><h4>App and pipeline</h4><ul>
+      <li>Share pages hide reported content</li>
+      <li>Secret scanning blocks the build on a leaked key</li>
+      <li>Edge Functions check the signed-in user explicitly</li>
+      <li>Uploads re-checked for their real file type (stops stored XSS)</li>
+      <li>External links opened safely (phishing checks)</li>
+      <li>Safety panel no longer claims alerts it didn't send</li></ul></div>
+  </div>
+
+  <h3>7.2 Touch Down v2: proof of presence that holds up</h3>
+  <p><b>Why v2.4's <code>record_touch_down</code> won't work as written:</b> it uses tables that don't exist (<code>venues.location</code>,
+  <code>touch_downs</code>, <code>active_event_nonces</code>). It never checks that someone is signed in. And the location and
+  "accuracy" come from the phone, so checking them on the server doesn't stop someone faking their GPS. Distance is useful
+  evidence, but it isn't proof.</p>
+  <div class="ladder">
+    <div class="rung"><div class="lvl" style="background:#15803d">L3</div><div class="d"><b>Scanned at the door by staff.</b> Exists today (QRCheckInScanner + secure_check_in). The strongest proof.</div></div>
+    <div class="rung"><div class="lvl" style="background:#0e7490">L2</div><div class="d"><b>Rotating door code (new).</b> A screen at the door shows a 6-digit code or QR that changes every 30 seconds. The phone sends it with the check-in, and the server checks it against the event's secret. You can't fake it from home. This is the real anti-spoofing step.</div></div>
+    <div class="rung"><div class="lvl" style="background:#a16207">L1</div><div class="d"><b>GPS within 150 m</b>, tightened from about 2 km today, plus app attestation once native. Counts, but weighs less.</div></div>
+    <div class="rung"><div class="lvl" style="background:#64748b">L0</div><div class="d"><b>Unverified.</b> Still allowed (visibility is a safety feature), but it never earns score or trending weight.</div></div>
+  </div>
+<pre>-- sketch: L2 check, on the real table (live_checkins)
+create table event_door_secrets (event_id uuid primary key references events on delete cascade,
+                                 secret bytea not null);           -- no client access at all
+create function touch_down_with_code(p_event uuid, p_code text, p_lat float8, p_lon float8)
+returns jsonb security definer set search_path = public language plpgsql as $$
+begin
+  if auth.uid() is null then raise exception 'not signed in'; end if;
+  -- accept the current 30-second window and the one before it (clock drift)
+  if not door_code_valid(p_event, p_code, now()) then
+    return jsonb_build_object('ok', false, 'reason', 'code expired');
+  end if;
+  insert into live_checkins (user_id, event_id, lat, lon, verified, verify_level)
+  values (auth.uid(), p_event, round(p_lat::numeric, 3), round(p_lon::numeric, 3), true, 2)
+  on conflict (user_id, event_id) do update set verify_level = greatest(live_checkins.verify_level, 2);
+  return jsonb_build_object('ok', true, 'level', 2);
+end $$;</pre>
+
+  <h3>7.3 Offline "Pocket Pass": signed properly</h3>
+  <p>Today's vault "signature" is plain text that anyone can type. A real offline pass works like this:</p>
+  <ol>
+    <li><b>The server signs</b> (Edge Function) with an Ed25519 private key that never leaves the server. The pass holds the ticket, event, holder, tier and expiry.</li>
+    <li><b>Door scanners hold only the public key</b>, synced with the event's revocation list before doors open. They verify with no signal.</li>
+    <li><b>Screenshots don't work:</b> the pass shows a short code that rotates every 30 seconds, derived from a per-ticket secret the scanner can check. An animated watermark alone doesn't stop screen recording.</li>
+    <li><b>Resale is done by the server:</b> it revokes the seller's pass and issues a new one only after payment clears (section 9).</li>
+    <li><b>The phone stores the pass in secure storage</b> (Expo SecureStore), not AsyncStorage.</li>
+  </ol>
+
+  <h3>7.4 Privacy and POPIA</h3>
+  <table>
+    <tr><th style="width:30%">Topic</th><th>Today → recommendation</th></tr>
+    <tr><td class="f">Exact check-in coordinates</td><td>Stored, and readable by any signed-in user (the map uses them). → Store <b>venue-level</b> presence, or round to about 100 m, and show "at Venue X". Decision 4.</td></tr>
+    <tr><td class="f">Retention</td><td>Purge set to 90 days, but not scheduled. v2.4 says 48 hours. → Choose (decision 5), enable pg_cron, and confirm it runs with Guardian.</td></tr>
+    <tr><td class="f">Proof of Sweat</td><td>Proposes the microphone (85 dB), steps and Bluetooth peers. → Microphone use needs explicit consent and store disclosures, and drains the battery. Recommend dropping it in favour of Touch Down L2 and L3.</td></tr>
+    <tr><td class="f">Cross-app data</td><td>→ Opt-in per purpose (rides, perks, leads), recorded with a timestamp, and withdrawable.</td></tr>
+    <tr><td class="f">Marketing pushes (Flash Drops)</td><td>→ Separate opt-in for promotional messages; unsubscribe in one tap.</td></tr>
+  </table>
+
+  <h3>7.5 Two v2.4 proposals to change</h3>
+  <div class="grid2">
+    <div class="card"><h4>Cross-app tokens (aud "gruvs_api")</h4><p>One shared Supabase project issues the same kind of token for every app, so custom audiences aren't available.
+    Keep what's built: row-level rules per app, plus app-bound one-time login codes.</p></div>
+    <div class="card"><h4>Instagram flyer scraping</h4><p>Against Instagram's terms: it risks account bans and legal claims, and the data is unreliable. Use what promoters send:
+    upload or WhatsApp-forward a flyer, read in the browser (exists), with one-tap admin approval.</p></div>
+  </div>
+</section>
+
+<!-- ══ 8. DATABASE ════════════════════════════════════════════════════════ -->
+<section>
+  <h2>8. Database and operations</h2>
+  <h3>How database changes ship now</h3>
+  <p>Pending changes live in <code>supabase/migrations/</code> as <b>11 numbered files</b>. CI builds the schema, applies every
+  migration twice to prove each is safe to re-run, and runs the security tests. To ship: add the GitHub secret
+  <code>SUPABASE_PRODUCTION_DB_URL</code>, then run the Deploy workflow by hand. Steps are in <code>DB_UPDATE_RUNBOOK.md</code>.</p>
+
+  <h3>Owner checklist</h3>
+  <table>
+    <tr><th style="width:5%">#</th><th>Action</th><th style="width:22%">Why</th></tr>
+    <tr><td>1</td><td>Restore the Supabase project</td><td>The app has no data without it</td></tr>
+    <tr><td>2</td><td>Merge the branch into main (open the pull request)</td><td>21 commits of fixes and docs</td></tr>
+    <tr><td>3</td><td>Run the migrations (Deploy workflow, or paste the files in order)</td><td>Security and integrity fixes</td></tr>
+    <tr><td>4</td><td>Run <code>admin_grants.sql</code> with the Google account's email</td><td>The two admin accounts</td></tr>
+    <tr><td>5</td><td>Enable pg_cron, then run the retention and maintenance files</td><td>POPIA purge, clean-up</td></tr>
+    <tr><td>6</td><td>Run <code>the_meal.sql</code> and <code>account_deletion.sql</code> if the contract check lists them</td><td>The Meal, store compliance</td></tr>
+    <tr><td>7</td><td>Rotate the Spotify client secret</td><td>It was once exposed in builds</td></tr>
+    <tr><td>8</td><td>Delete the Vercel projects; close PR #28</td><td>Failed-build noise</td></tr>
+    <tr><td>9</td><td>Move to the paid Supabase tier at launch</td><td>No pausing; daily backups</td></tr>
+  </table>
+
+  <h3>Known gaps</h3>
+  <ul>
+    <li><b>17 app features</b> call database functions that no repo file defines. Each is a feature that does nothing, with no error.
+    Run <code>APP_DB_CONTRACT_CHECK.sql</code> on the restored database to see which actually exist.</li>
+    <li><b>7 tables and 1 function</b> used by the new <code>main</code> features don't exist (section 5).</li>
+    <li><b>No snapshot of the live schema yet.</b> Take one with <code>supabase db pull</code> once restored, so a rebuild can't lose what was applied by hand.</li>
+  </ul>
+</section>
+
+<!-- ══ 9. MONEY ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2>9. Money and payments</h2>
+  <div class="box warn"><h4>One decision unlocks seven features</h4>
+  <p>Escrow, Table Pitch-In, the table kitty, ticket resale, Flash Drops, business plan billing and cash-out all need a
+  <b>payment provider</b>. Until there is one, none of them should show prices as if money is moving.</p></div>
+  <h3>Principles</h3>
+  <ol>
+    <li><b>The provider holds the money, not The Gruvs.</b> Holding customers' money yourselves can make you a regulated payments business.
+    Use the provider's split-payment or marketplace product. Confirm with the provider and a lawyer.</li>
+    <li><b>Only the server writes money.</b> The ledger (<code>wallet_transactions</code>) is append-only and clients can't write to it {chip('works')}.</li>
+    <li><b>Payment is confirmed by the provider's webhook,</b> never by the phone. The bookings table already waits for
+    <code>payment_status = 'captured'</code>, which only the server can set {chip('works')}.</li>
+    <li><b>Fees are taken in the split</b> (for example 3% on Pitch-In), shown before paying, and itemised on receipts.</li>
+  </ol>
+  <h3>Candidate providers</h3>
+  <p>South African options include <b>Paystack, Peach Payments, PayFast and Ozow</b>. Some of them offer Capitec Pay and instant EFT.
+  Compare split-payment support, payout speed, fees, and how refunds and disputes work.</p>
+  <table>
+    <tr><th>Feature</th><th style="width:12%">Status</th><th>Once payments exist</th></tr>
+    <tr><td class="f">Service escrow</td><td>{chip('partial')}</td><td>The webhook marks captured; release pays the provider through the ledger. The plumbing is ready.</td></tr>
+    <tr><td class="f">Table Pitch-In / kitty</td><td>{chip('demo')}</td><td>Up to 6 payers fund one table; the table pass is issued when fully funded; refunds if it isn't.</td></tr>
+    <tr><td class="f">Ticket resale</td><td>{chip('demo')}</td><td>Face-value cap enforced by the server; pass reissued on payment (7.3).</td></tr>
+    <tr><td class="f">Flash Drops</td><td>{chip('none')}</td><td>Prepaid; sent only to people who opted in to promotions.</td></tr>
+    <tr><td class="f">Business plans</td><td>{chip('partial')}</td><td>Monthly billing; the plan is set by the webhook, never the app.</td></tr>
+    <tr><td class="f">Cash-out</td><td>{chip('partial')}</td><td>Last: needs identity checks and payout limits.</td></tr>
+  </table>
+</section>
+
+<!-- ══ 10. SEO ════════════════════════════════════════════════════════════ -->
+<section>
+  <h2>10. Discovery and SEO</h2>
+  <p><b>Today:</b> the sitemap lists 4 static pages plus upcoming events. When Google opens a share link, it gets a logo, one sentence
+  and an instant redirect, so <b>there is almost nothing to rank</b>. The fix is real pages first, then a rich sitemap.</p>
+  <table>
+    <tr><th style="width:12%">Phase</th><th>What</th><th style="width:34%">Result</th></tr>
+    <tr><td class="f">0</td><td>Keep the generated events catalog out of Google</td><td>Avoids a spam penalty for the whole domain</td></tr>
+    <tr><td class="f">1</td><td>Full event and profile pages with structured data (Event, Place, Offer in ZAR, performers), a sitemap index, built live and cached hourly</td><td>Events can appear in Google's event results</td></tr>
+    <tr><td class="f">2</td><td>City, category, city + category ("amapiano Johannesburg"), venue and "this weekend" pages</td><td>The pages people actually search for</td></tr>
+    <tr><td class="f">3</td><td>The Meal, series and tours, sports, reels, recaps</td><td>Food, sport and video searches</td></tr>
+    <tr><td class="f">4</td><td>City guides, IndexNow, generated preview images, more languages</td><td>Evergreen content, faster indexing</td></tr>
+  </table>
+  <h3>Quality rules</h3>
+  <ul>
+    <li>A city, category or venue page exists only with at least 3 real upcoming events. Otherwise it stays out of Google.</li>
+    <li>Never listed: private or crew-only events, reported content, non-discoverable profiles, deleted accounts.</li>
+    <li>Ratings and "going" counts come only from real reviews and real RSVPs.</li>
+    <li>Profiles on Google: organisers, artists and businesses only (recommended, decision 7).</li>
+  </ul>
+  <div class="box warn"><h4>The generated events catalog</h4>
+  <p><code>public/data/events-catalog.json</code> (formerly <code>globalEventsCatalog.js</code>) holds 870 events built from template titles, real venue names and stock photos, and labels them
+  "real authentic events". They aren't happening. Shown as real, they send people to real venues on nights with no event.
+  In Google they'd break its spam rules. <b>Label them as examples or remove them</b> (decision 3), and never list them in the sitemap.</p></div>
+</section>
+
+<!-- ══ 11. GROWTH ═════════════════════════════════════════════════════════ -->
+<section>
+  <h2>11. Growth and revenue</h2>
+  <h3>Cold start (weeks 1 to 8)</h3>
+  <table>
+    <tr><th style="width:26%">Lever (v2.4)</th><th style="width:12%">Readiness</th><th>Note</th></tr>
+    <tr><td class="f">The Bouncer Trojan Horse</td><td>{chip('works')}</td><td>The door scanner and guest list already exist. Pick 5 venues, give their door staff the scanner role, and guests claim passes in the app. The strongest lever.</td></tr>
+    <tr><td class="f">Residence corridor takeovers</td><td>{chip('partial')}</td><td>Needs The Resident live in 2 or 3 buildings, plus the carpool board.</td></tr>
+    <tr><td class="f">Editorial seeding</td><td>{chip('partial')}</td><td>Must be <b>real</b> events from promoters and venues, not the generated catalog.</td></tr>
+    <tr><td class="f">Flyer intake</td><td>{chip('partial')}</td><td>In-browser OCR exists. Add the WhatsApp forwarding bot once there's a Meta Business account.</td></tr>
+  </table>
+  <h3>Revenue streams</h3>
+  <table>
+    <tr><th style="width:26%">Stream</th><th style="width:12%">Status</th><th>Depends on</th></tr>
+    <tr><td class="f">Promoter Flash Drops (about R500 per blast)</td><td>{chip('none')}</td><td>Payments and promotional opt-in</td></tr>
+    <tr><td class="f">Pitch-In convenience fee (2.5 to 3.5%)</td><td>{chip('blocked')}</td><td>Payments</td></tr>
+    <tr><td class="f">Business plans and boosts</td><td>{chip('partial')}</td><td>Billing</td></tr>
+    <tr><td class="f">The Meal boosts</td><td>{chip('works')}</td><td>Free today; paid boosts need billing</td></tr>
+    <tr><td class="f">Ecosystem leads (Resident, Excellency)</td><td>{chip('none')}</td><td>Explicit cross-app consent (7.4)</td></tr>
+  </table>
+</section>
+
+<!-- ══ 12. ROADMAP ════════════════════════════════════════════════════════ -->
+<section>
+  <h2>12. Roadmap</h2>
+  <div class="phase"><div class="h"><b>Phase 0 · Unblock</b><span class="when">This week</span></div><ul>
+    <li>Restore Supabase · merge the branch · run the migrations and the owner checklist (section 8)</li>
+    <li>Hide money, ticket and safety demos behind <code>feature()</code> flags; label the rest "Preview"</li>
+    <li>Decide what happens to the generated catalog</li></ul></div>
+  <div class="phase"><div class="h"><b>Phase 1 · Trust</b><span class="when">Weeks 1 to 3</span></div><ul>
+    <li>Touch Down v2: rotating door code (L2), 150 m GPS (L1), verify levels in scoring</li>
+    <li>Venue-level coordinates; POPIA purge scheduled and monitored</li>
+    <li>Make the demos real one at a time with the fix pattern (section 5), starting with the door queue and the server-side Safe Ride alert</li>
+    <li>Resolve the 17 missing functions · publish on Google Play</li></ul></div>
+  <div class="phase"><div class="h"><b>Phase 2 · The live night</b><span class="when">Weeks 4 to 6</span></div><ul>
+    <li>Navigation becomes Radar · Live · Passport, with context-aware Live mode</li>
+    <li>In-app Live cards: On Decks with set times and countdown, queue speed, crew status</li>
+    <li>Signed Pocket Pass (7.3) replacing the text "vault"</li>
+    <li>SEO phases 1 and 2: real event, city and category pages, plus a sitemap index</li></ul></div>
+  <div class="phase"><div class="h"><b>Phase 3 · Money</b><span class="when">Weeks 7 to 9</span></div><ul>
+    <li>Payment provider integration and webhooks → escrow capture</li>
+    <li>Table Pitch-In, ticket resale, Flash Drops, business plan billing · cash-out last</li></ul></div>
+  <div class="phase"><div class="h"><b>Phase 4 · Native and ecosystem</b><span class="when">Weeks 10 to 12 and beyond</span></div><ul>
+    <li>iOS app · Android ongoing notifications · iOS Live Activities and widgets · app attestation</li>
+    <li>Resident ride pooler and door perks · Excellency Sunday Reset and credits (if Excellency is ready)</li>
+    <li>WhatsApp promoter bot · pilot with 5 anchor venues in Braamfontein and Rosebank</li></ul></div>
+</section>
+
+<!-- ══ 13. DECISIONS ══════════════════════════════════════════════════════ -->
+<section>
+  <h2>13. Decisions needed from you</h2>
+  <table>
+    <tr><th style="width:4%">#</th><th style="width:30%">Decision</th><th>Recommendation</th></tr>
+    <tr><td>1</td><td class="f">Demo features</td><td>Hide the ticket, money and safety demos until they're real; label the fun ones (sensory, Booth and Street) "Preview".</td></tr>
+    <tr><td>2</td><td class="f">Payment provider</td><td>Compare Paystack, Peach Payments, PayFast and Ozow on split payments and fees, then pick one.</td></tr>
+    <tr><td>3</td><td class="f">Generated events catalog</td><td>Label as examples, or remove. Never in the sitemap.</td></tr>
+    <tr><td>4</td><td class="f">Who sees check-in coordinates</td><td>Venue-level only.</td></tr>
+    <tr><td>5</td><td class="f">Location retention</td><td>48 hours for exact points, if they're kept at all; aggregate counts kept longer.</td></tr>
+    <tr><td>6</td><td class="f">SEO URL style</td><td>Keep <code>/share/...</code> (no server change), or cleaner paths (needs nginx changes).</td></tr>
+    <tr><td>7</td><td class="f">Profiles on Google</td><td>Organisers, artists and businesses only.</td></tr>
+    <tr><td>8</td><td class="f">Proof of Sweat</td><td>Drop the microphone and Bluetooth measures; rely on Touch Down levels.</td></tr>
+    <tr><td>9</td><td class="f">Excellency</td><td>Where does its code live? The ecosystem features need its server.</td></tr>
+    <tr><td>10</td><td class="f">Level perks on the Vibe Card</td><td>Build them, or mark the unbuilt ones "Coming soon".</td></tr>
+  </table>
+</section>
+
+<!-- ══ APPENDIX ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2>14. Appendix: work completed on this branch</h2>
+  <p class="small">Branch <code>claude/future-failure-analysis-df20ej</code>, 21 commits ahead of <code>main</code> (including this document). Each fix has a test unless noted.</p>
+  <table>
+    <tr><th style="width:22%">Area</th><th>Fixed</th></tr>
+    <tr><td class="f">Privileges</td><td>Four privileged database functions could mint money or delete any row; the admin-role guard never fired; vibe counts could be forged for other users. All closed and tested.</td></tr>
+    <tr><td class="f">Moderation</td><td>Two fresh accounts could auto-hide anyone. Reports are now weighted by account trust and age; one report per person per target.</td></tr>
+    <tr><td class="f">Money</td><td>"Escrow" created balance from nothing. Bookings and disputes now go through the server only; the ledger is append-only; unfunded bookings credit nothing.</td></tr>
+    <tr><td class="f">The Meal</td><td>Owners could boost themselves and reset view counts directly. Locked.</td></tr>
+    <tr><td class="f">Unused functions</td><td>4 privileged functions callable by anyone, even logged out (one leaked any user's unread count). Closed.</td></tr>
+    <tr><td class="f">Migrations</td><td>New <code>supabase/migrations/</code>; CI applies each twice and runs 5 security tests; the deploy pipeline can push them. Two broken paste-in files fixed.</td></tr>
+    <tr><td class="f">Pipeline</td><td>Secret scanning had never run; the Spotify secret was plumbed into builds; share pages bypassed moderation; Edge Function auth tightened.</td></tr>
+    <tr><td class="f">Sign-in</td><td>Users with the right password were told it was wrong (unconfirmed email); clearer errors; resend-confirmation button.</td></tr>
+    <tr><td class="f">Vibe Card</td><td>Every shared card linked to a page that didn't exist; a profile-load failure could send the user's email as their name.</td></tr>
+    <tr><td class="f">Crashes on main</td><td>Missing imports in EventDetailScreen; Explore and Profile crashed after the responsive overhaul (<code>width</code> undefined).</td></tr>
+    <tr><td class="f">Safety (5 Oct)</td><td>The Night Safety panel claimed contacts and security were alerted when nothing was sent. Now truthful, with WhatsApp sharing that reaches a real person.</td></tr>
+    <tr><td class="f">Scale</td><td>109 cascading foreign keys indexed (account deletion stays within time limits); the follower list is no longer shipped to every phone.</td></tr>
+  </table>
+  <p class="small" style="margin-top:10pt">Generated {datetime.date(2026,10,5).isoformat()} from <code>docs/master-spec/build.py</code>. To update: edit the data in that file and re-run
+  <code>python3 docs/master-spec/build.py &amp;&amp; node docs/master-spec/render.mjs</code>.</p>
+</section>
+</body></html>
+"""
+
+OUT.write_text(HTML, encoding="utf-8")
+print(f"wrote {OUT} · {TOTAL} features · " + ", ".join(f"{k}={v}" for k, v in C.items()))

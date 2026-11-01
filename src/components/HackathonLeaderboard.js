@@ -90,7 +90,7 @@ export const HackathonLeaderboard = ({ eventId, style }) => {
   if (!teams.length) return null;
 
   return (
-    <View style={style}>
+    <View style={[{ maxWidth: 680, width: '100%', alignSelf: 'center' }, style]}>
       <View style={s.header}>
         <Feather name="award" size={16} color={primary} />
         <Text style={[s.headerTitle, { color: textColor }]}>Leaderboard</Text>
@@ -111,6 +111,7 @@ export const HackathonLeaderboard = ({ eventId, style }) => {
             style={[s.row, { backgroundColor: surface, borderColor: idx < 3 ? `${primary}40` : `${primary}15` }]}
             onPress={() => setExpanded(isExpanded ? null : team.id)}
             activeOpacity={0.8}
+            accessibilityRole="button"
           >
             {/* Rank + medal */}
             <View style={s.rankCell}>
@@ -216,7 +217,7 @@ const s = StyleSheet.create({
   techRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 5 },
   techChip:     { fontSize: 10, fontWeight: '700', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
   scoreCell:    { alignItems: 'flex-end' },
-  score:        { fontSize: 18, fontWeight: '900' },
+  score:        { fontSize: 18, fontWeight: '900', fontVariant: ['tabular-nums'] },
   scoreLabel:   { fontSize: 9, fontWeight: '700', marginTop: 1 },
   detail:       { width: '100%', borderTopWidth: 1, marginTop: 12, paddingTop: 12 },
   detailDesc:   { fontSize: 13, lineHeight: 18 },

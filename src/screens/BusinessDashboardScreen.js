@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Animated, TextInput, ActivityIndicator, RefreshControl, Dimensions, Modal } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
@@ -676,7 +676,7 @@ export const BusinessDashboardScreen = ({ onClose }) => {
 
       const { error } = await supabase.from('business_tier_requests').insert({
         business_id: biz.id,
-        requested_by: user.id,
+        requested_by: user?.id,
         requested_tier: newTier,
       });
       if (error) { showToast(error.message || 'Could not send request.', 'error'); return; }

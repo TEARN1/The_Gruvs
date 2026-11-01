@@ -16,6 +16,7 @@
  * "both RSVP'd" or "both follow the same page". Intent is not attendance.
  */
 import { supabase } from './supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const cache = new Map(); // "a|b" -> { events, at }
 const TTL_MS = 5 * 60 * 1000;
@@ -137,3 +138,31 @@ export async function findNearbyCoPresence(userId, eventId) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Radio Proximity Tracking — "Passing-By Radar"
+// Notifies user when a crew member or friend is passing by (~500m) to say hi.
+// Strictly opt-in: only active when user enables it in settings/profile.
+//
+// Only the opt-in preference lives here for now. The old lookup read
+// `user_presence` — a table that never existed (Guardian schema drift) — and
+// selected EVERY recent user's lat/lon, not just friends'. Nothing wrote to that
+// table or called the lookup. Rebuild it server-side (an RPC that returns only
+// mutual follows, coarse distance, never raw coordinates) before wiring it up.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const RADIO_PREF_KEY = '@gruvs_radio_proximity_enabled';
+
+export async function isRadioTrackingEnabled() {
+  try {
+    const val = await AsyncStorage.getItem(RADIO_PREF_KEY);
+    return val === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function setRadioTrackingEnabled(enabled) {
+  try {
+    await AsyncStorage.setItem(RADIO_PREF_KEY, enabled ? 'true' : 'false');
+  } catch {}
+}

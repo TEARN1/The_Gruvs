@@ -13,6 +13,7 @@ import { GlassView } from './GlassView';
 import { buildVibePassport } from '../utils/vibePassport';
 import { rankByHeat } from '../utils/heatScore';
 import { detectSceneLevelUp } from '../utils/sceneLevelUp';
+import { cyberAudio } from '../utils/cyberAudio';
 
 export function SceneLevelUpCard({ userId }) {
   const { currentTheme } = useTheme();
@@ -48,7 +49,11 @@ export function SceneLevelUpCard({ userId }) {
         }));
         const regulars = buildVibePassport(tds).regulars;
         const hot = rankByHeat(ev.data || []).slice(0, 12).map((e) => e.venue_name).filter(Boolean);
-        if (alive) setMatches(detectSceneLevelUp(regulars, hot));
+        if (alive) {
+          const found = detectSceneLevelUp(regulars, hot);
+          if (found && found.length) cyberAudio.play('lockVibe');
+          setMatches(found);
+        }
       } catch { /* RLS-gated or offline — stay hidden */ }
     })();
     return () => { alive = false; };

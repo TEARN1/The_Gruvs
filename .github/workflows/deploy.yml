@@ -121,6 +121,17 @@ jobs:
         if: steps.check.outputs.has_migrations == 'true'
         run: psql -v ON_ERROR_STOP=1 -X -q -f supabase/test/bootstrap.sql
 
+      # No `supabase db pull` baseline exists yet, so stand up the repo's own
+      # schema first (same order as db-schema-ci.yml). Once a pulled
+      # *_remote_schema.sql baseline lands in supabase/migrations, drop this step.
+      - name: Build base schema (repo schema_part_* files)
+        if: steps.check.outputs.has_migrations == 'true'
+        run: |
+          set -e
+          for f in schema_part_2 schema_part_3 schema_part_4 schema_part_1 schema_drift_fixes; do
+            psql -v ON_ERROR_STOP=1 -X -q -f "supabase/queries/$f.sql"
+          done
+
       - name: Apply pending migrations to the throwaway clone (in order)
         if: steps.check.outputs.has_migrations == 'true'
         run: |
@@ -203,7 +214,6 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
           EXPO_PUBLIC_SPOTIFY_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_SPOTIFY_CLIENT_ID }}
-          EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET: ${{ secrets.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET }}
 
       - name: Run Fastlane Google Play Deployment
         run: bundle exec fastlane deploy_internal

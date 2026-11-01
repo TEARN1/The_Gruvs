@@ -11,7 +11,7 @@
  * - 7.2 Vibrating Commercial Restaurant Kitchen Buzzer Cadence
  */
 import { Platform, Vibration } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 
 class SensoryHapticEngine {
   constructor() {

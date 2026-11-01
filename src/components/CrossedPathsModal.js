@@ -94,7 +94,7 @@ export function CrossedPathsModal({ visible, onClose, userId, onAuthRequired }) 
       <View style={[s.screen, { backgroundColor: bg, paddingTop: insets.top }]}>
         {/* Header */}
         <View style={s.header}>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Back">
             <Feather name="arrow-left" size={20} color={textColor} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
@@ -213,7 +213,7 @@ export function CrossedPathsModal({ visible, onClose, userId, onAuthRequired }) 
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1 },
+  screen: { flex: 1, maxWidth: 880, width: '100%', alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 14 },
   title: { fontSize: 20, fontWeight: '900', letterSpacing: 0.3 },
   sub: { fontSize: 11, fontWeight: '600', marginTop: 1 },
@@ -239,7 +239,7 @@ const s = StyleSheet.create({
     alignItems: 'center', borderWidth: 1, borderRadius: 12,
     paddingHorizontal: 9, paddingVertical: 3,
   },
-  crossNum: { fontSize: 14, fontWeight: '900' },
+  crossNum: { fontSize: 14, fontWeight: '900', fontVariant: ['tabular-nums'] },
   crossLabel: { fontSize: 8, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
   msgBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   empty: { alignItems: 'center', paddingTop: 70, gap: 12, paddingHorizontal: 28 },

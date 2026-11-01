@@ -46,7 +46,10 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
     let blockedIds = new Set();
     try {
       const [{ data }, { data: blocks }] = await Promise.all([
-        supabase.from('follows').select('following_id').eq('follower_id', user.id),
+        // Capped (was unbounded). This is only an exclusion set — "don't
+        // suggest people I already follow" — so the worst case past 2000 is one
+        // already-followed suggestion, not a broken screen.
+        supabase.from('follows').select('following_id').eq('follower_id', user.id).limit(2000),
         // Block is ABSOLUTE — never SUGGEST someone the viewer blocked (B-sweep 2).
         supabase.from('user_blocks').select('blocked_id').eq('blocker_id', user.id),
       ]);
@@ -65,10 +68,10 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
       .filter(Boolean);
     // F5 — rank people by RELEVANCE (shared interests, mutuals, proximity,
     // recency, trust), not by fame. The viewer context feeds personScore.
-    const viewer = { id: user.id, interests: profile?.interests, lat: profile?.lat, lon: profile?.lon };
+    const viewer = { id: user?.id, interests: profile?.interests, lat: profile?.lat, lon: profile?.lon };
     const scored = await resilientRead(
       async () => {
-        const { data, error } = await supabase.rpc('suggested_follows', { p_user: user.id, p_limit: 14 });
+        const { data, error } = await supabase.rpc('suggested_follows', { p_user: user?.id, p_limit: 14 });
         if (error) throw error;
         if (!data?.length) return [];
         const ids = data.map(r => r.suggested_id);
@@ -104,10 +107,10 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
     setFollowFx({ id, t: Date.now() }); // sparkle on follow
     try {
       // RPC is the reliable, RLS-proof primary path; fall back to a direct upsert.
-      let { error } = await supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: id });
+      let { error } = await supabase.rpc('follow_user', { p_follower_id: user?.id, p_following_id: id });
       if (error) {
         ({ error } = await supabase.from('follows')
-          .upsert({ follower_id: user.id, following_id: id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }));
+          .upsert({ follower_id: user?.id, following_id: id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }));
       }
       // resolved (not thrown) errors must be surfaced so the optimistic add reverts
       if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error;

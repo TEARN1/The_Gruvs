@@ -36,24 +36,32 @@ export function startGroup(event, now = Date.now()) {
 }
 
 /**
- * Insert header pseudo-items ({ _header, id }) into a date-ASCENDING event
- * list wherever the bucket changes. Events keep their order; undated events
- * fall at the end under no header. List renderers branch on `_header`.
+ * Group events under one header per time bucket, buckets in time order
+ * (Tonight → Tomorrow → This week …), undated events last with no header.
+ *
+ * Within a bucket the incoming order is kept, so a ranked feed (e.g. the guest
+ * "most exciting first" order) still ranks inside each group. Earlier this only
+ * added a header where the bucket changed, assuming a date-sorted list. A ranked
+ * list interleaves buckets, so the feed showed "Next week / Later this month /
+ * Next week …" dozens of times, every header sharing one React key.
  */
 export function insertStartHeaders(events, now = Date.now()) {
   const list = (Array.isArray(events) ? events : []).filter(Boolean);
   if (list.length < 2) return list; // headers on a 1-item list are noise
-  const out = [];
-  let lastKey = null;
+  const groups = new Map(BUCKETS.map(b => [b.key, []]));
+  const undated = [];
   for (const e of list) {
     const g = startGroup(e, now);
-    if (g && g.key !== lastKey) {
-      out.push({ _header: g.label, id: `hdr-${g.key}` });
-      lastKey = g.key;
-    }
-    out.push(e);
+    if (g) groups.get(g.key).push(e); else undated.push(e);
   }
-  return out;
+  const out = [];
+  for (const b of BUCKETS) {
+    const items = groups.get(b.key);
+    if (!items.length) continue;
+    out.push({ _header: b.label, id: `hdr-${b.key}` });
+    out.push(...items);
+  }
+  return out.concat(undated);
 }
 
 export default { startGroup, insertStartHeaders };

@@ -14,6 +14,17 @@ const TILE_W = 118, TILE_H = 176;
 
 const fmt = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n || 0));
 
+// How old a clip is, so a July clip is never passed off as last night's.
+const ago = (iso) => {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (!Number.isFinite(s)) return '';
+  if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  if (s < 86400 * 30) return `${Math.floor(s / 86400)}d`;
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+};
+const FRESH_MS = 72 * 3600 * 1000;
+
 export const ReelsRail = ({ onOpenReel, primary, textColor, muted }) => {
   const [reels, setReels] = useState([]);
 
@@ -23,12 +34,14 @@ export const ReelsRail = ({ onOpenReel, primary, textColor, muted }) => {
       try {
         // Tolerate an un-migrated DB missing thumbnail_url.
         let r = await supabase.from('reels')
-          .select('id, media_url, media_type, thumbnail_url, caption, like_count, view_count, profiles:user_id(username, avatar_url)')
+          .select('id, media_url, media_type, thumbnail_url, caption, like_count, view_count, created_at, event_title, profiles:user_id(username, avatar_url)')
+          .is('deleted_at', null)
+          .eq('is_deleted', false) // the app's delete button sets this one
           .order('created_at', { ascending: false })
           .limit(12);
         if (r.error) {
           r = await supabase.from('reels')
-            .select('id, media_url, media_type, caption, like_count, view_count, profiles:user_id(username, avatar_url)')
+            .select('id, media_url, media_type, caption, like_count, view_count, created_at, profiles:user_id(username, avatar_url)')
             .order('created_at', { ascending: false })
             .limit(12);
         }
@@ -39,12 +52,13 @@ export const ReelsRail = ({ onOpenReel, primary, textColor, muted }) => {
   }, []);
 
   if (!reels.length) return null;
+  const fresh = reels[0]?.created_at && Date.now() - new Date(reels[0].created_at).getTime() < FRESH_MS;
 
   return (
     <View style={rr.wrap}>
       <View style={rr.header}>
         <Feather name="film" size={15} color={primary} />
-        <Text style={[rr.title, { color: textColor }]}>Reels</Text>
+        <Text style={[rr.title, { color: textColor }]}>{fresh ? 'Fresh clips' : 'Clips'}</Text>
         <Text style={[rr.sub, { color: muted }]}>tap to watch</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 10 }}>
@@ -58,7 +72,7 @@ export const ReelsRail = ({ onOpenReel, primary, textColor, muted }) => {
               onPress={() => onOpenReel?.(reel.id)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel={`Watch reel by ${reel.profiles?.username || 'a viber'}`}
+              accessibilityLabel={`Watch reel by ${reel.profiles?.username || 'a viber'}${reel.event_title ? ` at ${reel.event_title}` : ''}`}
             >
               {thumb
                 ? <Image source={{ uri: storageThumb(thumb, 240, 360, 60) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
@@ -69,10 +83,17 @@ export const ReelsRail = ({ onOpenReel, primary, textColor, muted }) => {
                   <Feather name="play" size={16} color="#fff" style={{ marginLeft: 2 }} />
                 </View>
               </View>
+              {/* which event it shows — tagged clips are the ones that lead somewhere */}
+              {!!reel.event_title && (
+                <View style={rr.eventTag}>
+                  <Feather name="calendar" size={9} color="#fff" />
+                  <Text style={rr.eventText} numberOfLines={1}>{reel.event_title}</Text>
+                </View>
+              )}
               {/* bottom meta */}
               <View style={rr.meta}>
                 <Text style={rr.author} numberOfLines={1}>{reel.profiles?.username || 'viber'}</Text>
-                <Text style={rr.stats}>❤️ {fmt(reel.like_count)}</Text>
+                <Text style={rr.stats}>❤️ {fmt(reel.like_count)}{reel.created_at ? `  ·  ${ago(reel.created_at)}` : ''}</Text>
               </View>
             </TouchableOpacity>
           );
@@ -93,6 +114,8 @@ const rr = StyleSheet.create({
   meta: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 8, backgroundColor: 'rgba(0,0,0,0.55)' },
   author: { color: '#fff', fontSize: 10.5, fontWeight: '800' },
   stats: { color: 'rgba(255,255,255,0.8)', fontSize: 10, fontWeight: '700', marginTop: 1 },
+  eventTag: { position: 'absolute', top: 6, left: 6, maxWidth: TILE_W - 12, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.55)' },
+  eventText: { color: '#fff', fontSize: 9.5, fontWeight: '800', flexShrink: 1 },
 });
 
 export default ReelsRail;

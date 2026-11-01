@@ -29,7 +29,7 @@ import { SmartImage } from '../components/SmartImage';
 import { GLASS } from '../constants/DesignTokens';
 import { MapReports } from '../services/mapReports';
 import { MAP_REPORT_BY_KEY } from '../constants/mapContributions';
-import { MapZones, ZONE_KINDS, ZONE_STATUS } from '../services/mapZones';
+import { MapZones, ZONE_KINDS, ZONE_STATUS, parseZoneTags, calculateDetourNavigation } from '../services/mapZones';
 import { supabase } from '../services/supabase';
 // Nearby vibers used DiscoveryManager without ever importing it — the FAB threw
 // a ReferenceError into a silent catch, so that layer has never once worked.
@@ -51,6 +51,7 @@ import { Accommodation } from '../services/accommodation';
 import { residentUrl, hasResident } from '../constants/residentUrl';
 import { SecurityService } from '../services/securityService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fx } from '../styles/webFx';
 
 const NUDGE_COOLDOWN_KEY = 'gruvs_map_nudge_ts';
 const NUDGE_COOLDOWN_MS = 2 * 3600 * 1000; // don't nag — at most every 2h
@@ -175,7 +176,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
       const { data: mine } = await supabase
         .from('live_checkins').select('event_id')
-        .eq('user_id', user.id).gte('checked_in_at', since)
+        .eq('user_id', user?.id).gte('checked_in_at', since)
         .order('checked_in_at', { ascending: false }).limit(1).maybeSingle();
       if (mine?.event_id) {
         const { data: shared } = await supabase
@@ -186,7 +187,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       }
     } catch (_err) { /* ranking degrades to proximity-only */ }
 
-    const viewer = { id: user.id, lat: userLoc?.lat, lon: userLoc?.lng };
+    const viewer = { id: user?.id, lat: userLoc?.lat, lon: userLoc?.lng };
     const extras = Object.fromEntries(raw.map((v) => [v.id, { sameEventNow: sameEventIds.has(v.id) }]));
     return rankPeople(viewer, raw, extras);
   }, [user?.id, userLoc?.lat, userLoc?.lng]);
@@ -212,7 +213,8 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const [followMe, setFollowMe] = useState(false);
   const [mapStyle, setMapStyle] = useState('dark');
-  const [show3D, setShow3D] = useState(false);
+  // On by default: the tilted neon city is the Vibe Map's signature look.
+  const [show3D, setShow3D] = useState(true);
   const [showWeather, setShowWeather] = useState(false);
   const [searchQuery, setSearchBar] = useState('');
   const [searching, setSearchBusy] = useState(false);
@@ -722,6 +724,30 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             </TouchableOpacity>
           </View>
 
+          {/* Futuristic Cyber Telemetry HUD Bar (cleanly integrated under search, never overlapping filters) */}
+          {!drawing && (
+            <View pointerEvents="none" style={[cs.cyberTelemetryBar, { backgroundColor: 'rgba(8,12,14,0.85)', borderColor: `${primary}30` }]}>
+              <View style={cs.cyberHudItem}>
+                <View style={[cs.cyberHudDot, { backgroundColor: '#10b981' }]} />
+                <Text style={[cs.cyberHudText, { color: primary }]}>
+                  {center?.lat != null ? `${center.lat.toFixed(3)}°S, ${center.lng.toFixed(3)}°E` : 'GPS SYNCING'}
+                </Text>
+              </View>
+              <Text style={[cs.cyberHudDivider, { color: `${muted}40` }]}>|</Text>
+              <View style={cs.cyberHudItem}>
+                <Feather name="shield" size={10} color="#10b981" />
+                <Text style={[cs.cyberHudText, { color: textColor }]}>LOCAL GRID</Text>
+              </View>
+              <Text style={[cs.cyberHudDivider, { color: `${muted}40` }]}>|</Text>
+              <View style={cs.cyberHudItem}>
+                <Feather name="zap" size={10} color="#f59e0b" />
+                <Text style={[cs.cyberHudText, { color: textColor }]}>
+                  {shownEvents.length} {shownEvents.length === 1 ? 'NODE' : 'NODES'}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Quick Filter Pill Strip */}
           {isMapSupported() && !drawing && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -846,6 +872,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               followUser={followMe}
               onMapClick={onMapClick}
               onReady={(map) => { mapApiRef.current = map; }}
+              focusId={previewId}
               onEventPress={(id) => {
                 setActiveZone(null); setActiveStay(null); setPreviewId(id);
                 // Focus the tapped pin (A7) so it sits above the preview sheet.
@@ -856,13 +883,22 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             />
           </ErrorBoundary>
 
+          {/* Futuristic Cyber Reticle Brackets */}
+          <View pointerEvents="none" style={cs.reticleContainer}>
+            <View style={[cs.reticleCorner, cs.reticleTL, { borderColor: `${primary}55` }]} />
+            <View style={[cs.reticleCorner, cs.reticleTR, { borderColor: `${primary}55` }]} />
+            <View style={[cs.reticleCorner, cs.reticleBL, { borderColor: `${primary}55` }]} />
+            <View style={[cs.reticleCorner, cs.reticleBR, { borderColor: `${primary}55` }]} />
+          </View>
+
           {/* Luminous Thumb Control Pod */}
           {isMapSupported() && !drawing && !activeZone && (
-            <View style={cs.thumbPod} pointerEvents="box-none">
+            <View style={[cs.thumbPod, { bottom: (!drawing && !activeZone && shownEvents.length > 0) ? 315 : 95 }]} pointerEvents="box-none">
               {/* Recenter GPS */}
               <TouchableOpacity
+                {...fx('glass rise', 0)}
                 onPress={recenter}
-                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.92)', borderColor: 'rgba(255,255,255,0.15)' }]}
+                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.6)', borderColor: 'rgba(255,255,255,0.15)' }]}
                 accessibilityLabel="Recenter GPS"
               >
                 <Feather name="crosshair" size={17} color={primary} />
@@ -870,11 +906,12 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
               {/* Nightlife Timeline Dial Trigger */}
               <TouchableOpacity
+                {...fx('glass rise', 1)}
                 onPress={() => setShowTimeDial((v) => !v)}
                 style={[
                   cs.thumbBtn,
                   {
-                    backgroundColor: showTimeDial ? 'rgba(0,242,255,0.22)' : 'rgba(12,16,18,0.92)',
+                    backgroundColor: showTimeDial ? 'rgba(0,242,255,0.22)' : 'rgba(12,16,18,0.6)',
                     borderColor: showTimeDial ? primary : 'rgba(255,255,255,0.15)',
                   },
                 ]}
@@ -885,8 +922,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
               {/* Layers Drawer Trigger */}
               <TouchableOpacity
+                {...fx('glass rise', 2)}
                 onPress={() => setLayersModalVisible(true)}
-                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.92)', borderColor: 'rgba(255,255,255,0.15)' }]}
+                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.6)', borderColor: 'rgba(255,255,255,0.15)' }]}
                 accessibilityLabel="Open map layers and visual modes"
               >
                 <Feather name="layers" size={17} color={primary} />
@@ -894,8 +932,9 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
               {/* Vibe Roulette */}
               <TouchableOpacity
+                {...fx('glass rise', 3)}
                 onPress={() => setShowRoulette(true)}
-                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.92)', borderColor: 'rgba(255,255,255,0.15)' }]}
+                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.6)', borderColor: 'rgba(255,255,255,0.15)' }]}
                 accessibilityLabel="Vibe roulette"
               >
                 <Feather name="compass" size={17} color={primary} />
@@ -903,6 +942,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
               {/* Report button */}
               <TouchableOpacity
+                {...fx('rise pulse', 4)}
                 onPress={() => (user ? setReportSheet(true) : onAuthRequired?.())}
                 style={[cs.thumbBtnPrimary, { backgroundColor: primary }]}
                 accessibilityLabel="Report incident or live tip"
@@ -1185,6 +1225,25 @@ const StayDetail = ({ stay, onClose, bg, textColor, muted }) => {
 // ── Zone detail sheet ─────────────────────────────────────────────────────────
 const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textColor, muted }) => {
   const [endpoints, setEndpoints] = useState({ start: '', end: '' });
+  const tags = useMemo(() => parseZoneTags(zone.note), [zone.note]);
+
+  const nav = useMemo(() => {
+    let lat = -26.2041;
+    let lon = 28.0473;
+    if (zone.geometry?.type === 'Point') {
+      lon = zone.geometry.coordinates[0];
+      lat = zone.geometry.coordinates[1];
+    } else if (zone.geometry?.coordinates && zone.geometry.coordinates.length > 0) {
+      lon = zone.geometry.coordinates[0][0];
+      lat = zone.geometry.coordinates[0][1];
+    }
+    return calculateDetourNavigation({
+      lat,
+      lon,
+      coordinates: zone.geometry?.type === 'LineString' ? zone.geometry.coordinates : null,
+      detourCoords: tags.detourCoords,
+    });
+  }, [zone.geometry, tags.detourCoords]);
 
   useEffect(() => {
     if (zone.geometry?.type === 'LineString' && zone.geometry.coordinates.length >= 2) {
@@ -1271,7 +1330,66 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
         );
       })()}
 
-      {zone.note ? <Text style={{ color: muted, fontSize: 12, lineHeight: 17 }}>{zone.note}</Text> : null}
+      {/* Civic & Traffic Meta Badges */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {tags.traffic && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.14)', borderColor: '#ef4444', borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+            <Feather name="alert-triangle" size={11} color="#ef4444" />
+            <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '800' }}>{tags.traffic}</Text>
+          </View>
+        )}
+        {tags.pointsman && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: tags.pointsman === 'police' ? 'rgba(59,130,246,0.18)' : tags.pointsman === 'volunteer' ? 'rgba(234,179,8,0.18)' : 'rgba(239,68,68,0.14)', borderColor: tags.pointsman === 'police' ? '#3b82f6' : tags.pointsman === 'volunteer' ? '#eab308' : '#ef4444', borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+            <Text style={{ fontSize: 11 }}>{tags.pointsman === 'police' ? '👮' : tags.pointsman === 'volunteer' ? '🦺' : '⚠️'}</Text>
+            <Text style={{ color: tags.pointsman === 'police' ? '#60a5fa' : tags.pointsman === 'volunteer' ? '#fde047' : '#f87171', fontSize: 11, fontWeight: '800' }}>
+              {tags.pointsman === 'police' ? 'Metro Police on duty' : tags.pointsman === 'volunteer' ? 'Volunteer Pointsman' : '4-Way Stop (Unmanned)'}
+            </Text>
+          </View>
+        )}
+        {tags.routeCoords && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.15)', borderColor: '#10b981', borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+            <Feather name="navigation" size={11} color="#10b981" />
+            <Text style={{ color: '#10b981', fontSize: 11, fontWeight: '800' }}>{tags.routeCoords.length} Course Waypoints</Text>
+          </View>
+        )}
+      </View>
+
+      {tags.cleanNote ? <Text style={{ color: muted, fontSize: 12, lineHeight: 17 }}>{tags.cleanNote}</Text> : null}
+
+      {/* Smart Detour Guidance Card */}
+      {(tags.detour || tags.detourCoords || zone.geometry?.type === 'LineString') && (
+        <View style={{ gap: 8, padding: 12, backgroundColor: 'rgba(0,242,255,0.05)', borderRadius: 14, borderWidth: 1, borderColor: `${primary}30` }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Feather name="corner-up-right" size={14} color={primary} />
+            <Text style={{ color: primary, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 }}>SMART DETOUR GUIDANCE</Text>
+          </View>
+          {tags.detour ? (
+            <Text style={{ color: textColor, fontSize: 12, fontWeight: '600', lineHeight: 16 }}>
+              Suggested alternate: <Text style={{ color: primary, fontWeight: '800' }}>{tags.detour}</Text>
+            </Text>
+          ) : (
+            <Text style={{ color: muted, fontSize: 11 }}>
+              Active road restriction ahead. 1-tap navigation bypass routes around the closure corridor.
+            </Text>
+          )}
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(nav.googleMapsUrl).catch(() => {})}
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: primary, paddingVertical: 9, borderRadius: 10 }}
+            >
+              <Feather name="navigation" size={13} color="#000" />
+              <Text style={{ color: '#000', fontSize: 12, fontWeight: '900' }}>Google Maps ↗</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(nav.wazeUrl).catch(() => {})}
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, paddingVertical: 9, borderRadius: 10 }}
+            >
+              <Feather name="compass" size={13} color={textColor} />
+              <Text style={{ color: textColor, fontSize: 12, fontWeight: '800' }}>Waze ↗</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Point A to Point B explanation (for lines) */}
       {zone.geometry?.type === 'LineString' && (
@@ -1447,6 +1565,9 @@ const cs = StyleSheet.create({
     right: 0,
     zIndex: 30,
     gap: 10,
+    maxWidth: 680,
+    alignSelf: 'center',
+    width: '100%',
   },
   glassSearchRow: {
     flexDirection: 'row',
@@ -1502,7 +1623,7 @@ const cs = StyleSheet.create({
   thumbPod: {
     position: 'absolute',
     right: 16,
-    bottom: 250,
+    bottom: 205,
     alignItems: 'center',
     gap: 10,
     zIndex: 36,
@@ -1755,6 +1876,74 @@ const cs = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
+  },
+  reticleContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+    pointerEvents: 'none',
+  },
+  reticleCorner: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+  },
+  reticleTL: {
+    top: 135,
+    left: 12,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopLeftRadius: 6,
+  },
+  reticleTR: {
+    top: 135,
+    right: 12,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderTopRightRadius: 6,
+  },
+  reticleBL: {
+    bottom: 96,
+    left: 12,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomLeftRadius: 6,
+  },
+  reticleBR: {
+    bottom: 96,
+    right: 12,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomRightRadius: 6,
+  },
+  cyberTelemetryBar: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 8,
+  },
+  cyberHudItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  cyberHudDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  cyberHudText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  cyberHudDivider: {
+    fontSize: 10,
+    fontWeight: '300',
   },
 });
 

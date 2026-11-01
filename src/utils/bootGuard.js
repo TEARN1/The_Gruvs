@@ -61,6 +61,23 @@ export async function shouldEnterSafeMode() {
   return times.filter((t) => t > cutoff).length >= TRIP_THRESHOLD;
 }
 
+/**
+ * Same answer, synchronously, where storage is synchronous (web localStorage,
+ * which AsyncStorage wraps under the same key). Returns null when it can't
+ * know without async storage (native), so the caller falls back to the async
+ * check. Lets the web shell skip a spinner frame at startup.
+ */
+export function shouldEnterSafeModeSync() {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return null;
+    const arr = JSON.parse(window.localStorage.getItem(STORE_KEY) || '[]');
+    const cutoff = Date.now() - TRIP_WINDOW_MS;
+    return (Array.isArray(arr) ? arr : []).filter((t) => typeof t === 'number' && t > cutoff).length >= TRIP_THRESHOLD;
+  } catch {
+    return false; // fail open, same as the async path
+  }
+}
+
 /** Exit safe mode — call when the user taps "Exit safe mode" in the shell. */
 export async function clearCrashLog() {
   try { await AsyncStorage.removeItem(STORE_KEY); } catch { /* best-effort */ }

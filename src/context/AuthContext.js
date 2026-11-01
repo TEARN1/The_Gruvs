@@ -123,22 +123,56 @@ export const AuthProvider = ({ children }) => {
     };
   }, [fetchProfile]);
 
-  // Password-reset return (web): the recovery link comes back with the tokens
-  // in the URL hash. detectSessionInUrl is false, so establish the session
-  // ourselves, flag recovery, and scrub the tokens from the address bar.
+  // OAuth & Auth return handler (web):
+  // When returning from Facebook/Google OAuth or a password-reset link, the tokens
+  // arrive in the URL hash (#access_token=...&refresh_token=...) or PKCE code (?code=...).
+  // We establish the Supabase session, trigger recovery mode if applicable, and scrub
+  // the tokens from the browser address bar for security.
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    const hash = window.location.hash || '';
-    if (!hash.includes('type=recovery')) return;
-    const params = new URLSearchParams(hash.replace(/^#/, ''));
-    const access_token = params.get('access_token');
-    const refresh_token = params.get('refresh_token');
-    if (access_token && refresh_token) {
-      supabase.auth.setSession({ access_token, refresh_token })
-        .then(() => setRecoveryMode(true))
-        .catch(() => {});
-      try { window.history.replaceState(null, '', window.location.pathname + window.location.search); } catch { /* noop */ }
-    }
+    // 1. PKCE Auth Code exchange: ?code=...
+    try {
+      const searchParams = new URLSearchParams(window.location.search || '');
+      const code = searchParams.get('code');
+      if (code) {
+        supabase.auth.exchangeCodeForSession?.(code).then(({ data, error }) => {
+          if (!error && data?.session) {
+            searchParams.delete('code');
+            const remaining = searchParams.toString();
+            const cleanUrl = window.location.pathname + (remaining ? ('?' + remaining) : '') + window.location.hash;
+            try { window.history.replaceState(null, '', cleanUrl); } catch { /* noop */ }
+          }
+        }).catch(() => {});
+      }
+    } catch { /* noop */ }
+
+    // 2. Implicit OAuth tokens / Password recovery in hash: #access_token=...&refresh_token=...
+    try {
+      const hash = window.location.hash || '';
+      if (hash.includes('access_token=') && hash.includes('refresh_token=')) {
+        const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+        const access_token = hashParams.get('access_token');
+        const refresh_token = hashParams.get('refresh_token');
+        const isRecovery = hash.includes('type=recovery');
+
+        if (access_token && refresh_token) {
+          supabase.auth.setSession?.({ access_token, refresh_token })
+            .then(({ data, error }) => {
+              if (!error && data?.session && isRecovery) {
+                setRecoveryMode(true);
+              }
+            })
+            .catch(() => {});
+          try {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          } catch { /* noop */ }
+        }
+      } else if (hash.includes('error=') && hash.includes('error_description=')) {
+        try {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        } catch { /* noop */ }
+      }
+    } catch { /* noop */ }
   }, []);
 
   // Session monitor — verify token every 10 min and refresh if stale

@@ -142,13 +142,14 @@ export function CultureArtifactsModal({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={[styles.modalSheet, { backgroundColor: bg }]}>
+          <View style={[styles.notchHandle, { backgroundColor: `${textColor}25` }]} />
           {/* Header */}
           <View style={[styles.sheetHeader, { borderBottomColor: `${primary}20` }]}>
             <View>
               <Text style={[styles.sheetTitle, { color: textColor }]}>Cultural Artifacts Hub</Text>
               <Text style={[styles.sheetSub, { color: muted }]}>Receipts · Sparklers · Dials · Scoreboards · Scratch Cards</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: surface }]}>
+            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: surface }]} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Close">
               <Feather name="x" size={18} color={textColor} />
             </TouchableOpacity>
           </View>
@@ -511,6 +512,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
+  },
+  notchHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 2.5,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 4,
   },
   sheetHeader: {
     flexDirection: 'row',

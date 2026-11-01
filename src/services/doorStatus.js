@@ -12,6 +12,8 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
+import { MapReports } from './mapReports';
+import { logError } from '../utils/logError';
 
 export const DOOR_LEVELS = {
   walk_in: {
@@ -54,18 +56,34 @@ export const DOOR_LEVELS = {
 
 const CACHE_KEY_PREFIX = 'gruvs_door_status_';
 const memoryCache = new Map();
-const TTL_MS = 2.5 * 3600 * 1000; // Line statuses expire after 2.5 hours
+// Line statuses go stale fast — same 2h life as the map's long/short queue pins.
+export const DOOR_TTL_HOURS = 2;
+const TTL_MS = DOOR_TTL_HOURS * 3600 * 1000;
+export const DOOR_REPORT_KINDS = Object.keys(DOOR_LEVELS).map((k) => `door_${k}`);
+// map_reports has no event_id, so a door report is a pin AT the venue. ~60 m
+// box: wide enough for GPS jitter in the organiser's pin, tight enough not to
+// borrow the line from the club next door.
+const VENUE_RADIUS_DEG = 60 / 111000;
+
+const coordsOf = (c) => {
+  const lat = Number(c?.lat ?? c?.latitude);
+  const lon = Number(c?.lon ?? c?.lng ?? c?.longitude);
+  return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+};
 
 export const DoorStatusService = {
   /**
-   * Get the current verified line status for an event.
+   * The current crowd-reported line status for an event, or null when nobody
+   * has reported one in the last couple of hours. Null is the honest answer:
+   * defaulting to "Walk in" sent people across town on a claim no one made.
+   * `coords` is the venue's { lat, lon } — the server lookup needs it.
    */
-  async getStatus(eventId) {
-    if (!eventId) return DOOR_LEVELS.walk_in;
+  async getStatus(eventId, coords = null) {
+    if (!eventId) return null;
 
     const mem = memoryCache.get(eventId);
     if (mem && Date.now() - mem.updatedAt < TTL_MS) {
-      return DOOR_LEVELS[mem.status] || DOOR_LEVELS.walk_in;
+      return DOOR_LEVELS[mem.status] || null;
     }
 
     try {
@@ -74,37 +92,45 @@ export const DoorStatusService = {
         const parsed = JSON.parse(local);
         if (Date.now() - parsed.updatedAt < TTL_MS) {
           memoryCache.set(eventId, parsed);
-          return DOOR_LEVELS[parsed.status] || DOOR_LEVELS.walk_in;
+          return DOOR_LEVELS[parsed.status] || null;
         }
       }
     } catch {}
 
-    // Fall back to server query if table exists (graceful degradation)
+    const at = coordsOf(coords);
+    if (!at) return null;
     try {
-      const { data } = await supabase
+      const d = VENUE_RADIUS_DEG;
+      const { data, error } = await supabase
         .from('map_reports')
         .select('kind, created_at')
-        .eq('event_id', eventId)
-        .in('kind', ['door_walk_in', 'door_steady', 'door_packed', 'door_capacity'])
+        .in('kind', DOOR_REPORT_KINDS)
+        .gt('expires_at', new Date().toISOString())
+        .gte('lat', at.lat - d).lte('lat', at.lat + d)
+        .gte('lon', at.lon - d).lte('lon', at.lon + d)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (error) throw error;
 
       if (data?.kind) {
         const mapped = data.kind.replace('door_', '');
         const entry = { status: mapped, updatedAt: new Date(data.created_at).getTime() };
         memoryCache.set(eventId, entry);
-        return DOOR_LEVELS[mapped] || DOOR_LEVELS.walk_in;
+        return DOOR_LEVELS[mapped] || null;
       }
-    } catch {}
+    } catch (e) { logError('DoorStatus.getStatus', e); }
 
-    return DOOR_LEVELS.walk_in;
+    return null;
   },
 
   /**
    * Report door line status for an event (crowdsourced verification).
+   * Shared through map_reports (report_map stamps the author and clamps the
+   * TTL), so it needs a signed-in user and the venue's coords; without either
+   * it is still remembered on this device.
    */
-  async reportStatus(eventId, userId, statusKey) {
+  async reportStatus(eventId, userId, statusKey, coords = null) {
     if (!eventId || !DOOR_LEVELS[statusKey]) return false;
 
     const entry = { status: statusKey, updatedAt: Date.now(), reportedBy: userId || 'anon' };
@@ -114,14 +140,17 @@ export const DoorStatusService = {
       await AsyncStorage.setItem(`${CACHE_KEY_PREFIX}${eventId}`, JSON.stringify(entry));
     } catch {}
 
-    try {
-      await supabase.from('map_reports').insert({
-        kind: `door_${statusKey}`,
-        event_id: eventId,
-        user_id: userId || null,
-        note: `Door status update: ${DOOR_LEVELS[statusKey].label}`,
-      });
-    } catch {}
+    const at = coordsOf(coords);
+    if (userId && at) {
+      try {
+        await MapReports.create({
+          kind: `door_${statusKey}`,
+          lat: at.lat,
+          lon: at.lon,
+          note: `Door status update: ${DOOR_LEVELS[statusKey].label}`,
+        });
+      } catch { /* MapReports.create already logged it; the local status still stands */ }
+    }
 
     return true;
   },

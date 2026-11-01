@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
+import { buildVibeCardShareText, vibeCardLink } from '../utils/vibeCardShare';
 import { AwardManager, MembershipManager, ClubManager } from '../services/clubEngine';
 import {
   View, Text, StyleSheet, TouchableOpacity,
@@ -13,7 +14,7 @@ import { SettingsScreen } from './SettingsScreen';
 import { CrossedPathsModal } from '../components/CrossedPathsModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -64,6 +65,7 @@ import { SocialIntegrityBadge } from '../components/SocialIntegrityBadge';
 import { ResidentTrustBadge } from '../components/ResidentTrustBadge';
 import { VerifiedRequestCard } from '../components/VerifiedRequestCard';
 import { ClubScreen } from './ClubScreen';
+import { getZodiacSign, daysUntilBirthday } from '../utils/birthday';
 
 // ── Static imports — avoids "unknown module" chunk failures on web ──
 import { DirectMessageModal }      from '../components/DirectMessageModal';
@@ -86,16 +88,21 @@ import { EventTicketModal }        from '../components/EventTicketModal';
 import { CreateReelModal }         from '../components/CreateReelModal';
 import { GetAppModal }            from '../components/GetAppModal';
 import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
-import { BusinessActivationPortal } from '../components/BusinessActivationPortal';
-import { SportTournamentHub } from '../components/SportTournamentHub';
-import { FoodKotaSection } from '../components/FoodKotaSection';
-import { BirthdayCelebrationHub } from '../components/BirthdayCelebrationHub';
 import { BusinessStoreBuilder } from './BusinessStoreBuilder';
-import { TicketVaultExchangeModal } from '../components/TicketVaultExchangeModal';
-import { NightSafetyLogisticsModal } from '../components/NightSafetyLogisticsModal';
-import { NightlifeSensoryModal } from '../components/NightlifeSensoryModal';
-import { CultureArtifactsModal } from '../components/CultureArtifactsModal';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
+import { deferred } from '../utils/deferred';
+import { fx } from '../styles/webFx';
+import { cssLoop, IS_WEB as IS_WEB_FX } from '../utils/cssLoop';
+
+// Panels load on first open, not at app start (see src/utils/deferred.js).
+const BusinessActivationPortal = deferred(() => require('../components/BusinessActivationPortal').BusinessActivationPortal, 'BusinessActivationPortal');
+const SportTournamentHub = deferred(() => require('../components/SportTournamentHub').SportTournamentHub, 'SportTournamentHub');
+const FoodKotaSection = deferred(() => require('../components/FoodKotaSection').FoodKotaSection, 'FoodKotaSection');
+const BirthdayCelebrationHub = deferred(() => require('../components/BirthdayCelebrationHub').BirthdayCelebrationHub, 'BirthdayCelebrationHub');
+const TicketVaultExchangeModal = deferred(() => require('../components/TicketVaultExchangeModal').TicketVaultExchangeModal, 'TicketVaultExchangeModal');
+const NightSafetyLogisticsModal = deferred(() => require('../components/NightSafetyLogisticsModal').NightSafetyLogisticsModal, 'NightSafetyLogisticsModal');
+const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
+const CultureArtifactsModal = deferred(() => require('../components/CultureArtifactsModal').CultureArtifactsModal, 'CultureArtifactsModal');
 
 const DIST_OPTIONS = [1, 5, 10, 25, 50];
 
@@ -241,34 +248,63 @@ const pAvatarBg = (name) => {
   return colors[(name?.charCodeAt(0) || 0) % colors.length];
 };
 
-const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage }) => (
-  <View style={[pcard.wrap, { borderColor: `${primary}18` }]}>
-    {person.avatar_url
-      ? <SmartImage source={thumb.avatar(person.avatar_url)} style={[pcard.avatar, { borderColor: `${primary}50` }]} />
-      : <View style={[pcard.avatar, { borderColor: `${primary}50`, backgroundColor: pAvatarBg(person.username), alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{pAvatarInitials(person.username)}</Text>
+const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage, onKeepBusy }) => {
+  const isBored = person.beacon_intent === 'bored' || person.intent === 'bored';
+  const intentLabel = person.beacon_intent === 'bored' ? '🥱 Bored · Keep Me Busy' :
+    person.beacon_intent === 'late_bites' ? '🍔 Late Bites / Drive' :
+    person.beacon_intent === 'crew' ? '👥 Squad Hangout' :
+    person.beacon_intent === 'music' ? '🎧 Jam Session' :
+    person.beacon_intent === 'chill' ? '🛋️ Deep Talks & Chill' :
+    person.beacon_intent === 'open' ? '👋 Open to Meet' : null;
+
+  return (
+    <View style={[pcard.wrap, { borderColor: isBored ? `${primary}50` : `${primary}18`, backgroundColor: isBored ? `${primary}08` : 'transparent' }]}>
+      {person.avatar_url
+        ? <SmartImage source={thumb.avatar(person.avatar_url)} style={[pcard.avatar, { borderColor: `${primary}50` }]} />
+        : <View style={[pcard.avatar, { borderColor: `${primary}50`, backgroundColor: pAvatarBg(person.username), alignItems: 'center', justifyContent: 'center' }]}>
+          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{pAvatarInitials(person.username)}</Text>
+        </View>
+      }
+      {checkOnline(person) && <View style={pcard.onlineDot} />}
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Row style={{ gap: 6, alignItems: 'center' }}>
+          <Text style={[pcard.name, { color: textColor }]}>{person.username}</Text>
+          {person.is_verified ? <Feather name="check-circle" size={12} color={primary} /> : null}
+        </Row>
+        <Text style={[pcard.meta, { color: muted }]}>{person.distance_km?.toFixed(1) || '?'} km away · {person.cloak_location ? 'Approx Area 🛡️' : 'Live Pin 📍'}</Text>
+        {intentLabel ? (
+          <View style={{ marginTop: 4, alignSelf: 'flex-start', backgroundColor: `${primary}20`, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: `${primary}45` }}>
+            <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>{intentLabel}</Text>
+          </View>
+        ) : null}
+        <View style={pcard.interestRow}>
+          {(person.interests || []).slice(0, 2).map(int => (
+            <Text key={int} style={[pcard.pill, { backgroundColor: `${primary}18`, color: primary }]}>{int}</Text>
+          ))}
+        </View>
       </View>
-    }
-    {checkOnline(person) && <View style={pcard.onlineDot} />}
-    <View style={{ flex: 1, marginLeft: 12 }}>
-      <Text style={[pcard.name, { color: textColor }]}>{person.username}</Text>
-      <Text style={[pcard.meta, { color: muted }]}>{person.distance_km?.toFixed(1) || '?'} km away</Text>
-      <View style={pcard.interestRow}>
-        {(person.interests || []).slice(0, 2).map(int => (
-          <Text key={int} style={[pcard.pill, { backgroundColor: `${primary}18`, color: primary }]}>{int}</Text>
-        ))}
+      <View style={pcard.actions}>
+        {isBored ? (
+          <TouchableOpacity
+            style={[pcard.keepBusyBtn, { backgroundColor: '#10b981' }]}
+            onPress={() => onKeepBusy ? onKeepBusy(person) : onMessage?.("Hey! Saw your 2 AM beacon — down to keep you busy?")}
+            accessibilityRole="button"
+            accessibilityLabel={`Keep ${person.username} busy`}
+          >
+            <Text style={pcard.keepBusyText}>Keep Busy ⚡</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={[pcard.followBtn, { backgroundColor: primary }]} onPress={onFollow}>
+            <Text style={pcard.followText}>Follow</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity style={[pcard.msgBtn, { borderColor: `${primary}40` }]} onPress={() => onMessage?.()}>
+          <Feather name="message-circle" size={16} color={primary} />
+        </TouchableOpacity>
       </View>
     </View>
-    <View style={pcard.actions}>
-      <TouchableOpacity style={[pcard.followBtn, { backgroundColor: primary }]} onPress={onFollow}>
-        <Text style={pcard.followText}>Follow</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[pcard.msgBtn, { borderColor: `${primary}40` }]} onPress={onMessage}>
-        <Feather name="message-circle" size={16} color={primary} />
-      </TouchableOpacity>
-    </View>
-  </View>
-);
+  );
+};
 
 const pcard = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 10, position: 'relative' },
@@ -281,14 +317,32 @@ const pcard = StyleSheet.create({
   actions: { gap: 8, alignItems: 'center' },
   followBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   followText: { color: '#000', fontWeight: '900', fontSize: 12 },
+  keepBusyBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  keepBusyText: { color: '#000', fontWeight: '900', fontSize: 11.5 },
   msgBtn: { padding: 8, borderRadius: 20, borderWidth: 1 },
 });
 
 // ── Find Me Sub-View ──────────────────────────────────────────────────────────
 const BEACON_INTENTS = [
-  { key: 'open',  label: 'Open to meeting people', emoji: '👋' },
-  { key: 'crew',  label: 'With my crew',           emoji: '👥' },
-  { key: 'music', label: 'Here for the music',     emoji: '🎧' },
+  { key: 'bored',      label: 'Bored / Keep Me Busy', emoji: '🥱' },
+  { key: 'late_bites', label: 'Late Bites / Drive',   emoji: '🍔' },
+  { key: 'open',       label: 'Open to meeting',      emoji: '👋' },
+  { key: 'crew',       label: 'Squad / Crew Only',    emoji: '👥' },
+  { key: 'music',      label: 'Music & Jam Session',  emoji: '🎧' },
+  { key: 'chill',      label: 'Deep Talks & Chill',   emoji: '🛋️' },
+];
+
+const BEACON_DURATIONS = [
+  { mins: 30,  label: '30m' },
+  { mins: 60,  label: '1h' },
+  { mins: 120, label: '2h' },
+  { mins: 240, label: '4h' },
+];
+
+const BEACON_AUDIENCES = [
+  { key: 'all',     label: 'Radius (Anyone Nearby)', emoji: '🌍', desc: 'Vibers in your neighborhood radius' },
+  { key: 'mutuals', label: 'People Who Know Me',     emoji: '✨', desc: 'Mutual follows / people you follow back' },
+  { key: 'crew',    label: 'Squad / Crew Only',      emoji: '🔒', desc: 'Restricted strictly to your squad' },
 ];
 
 /** Minutes remaining until an ISO timestamp, floored at 0. Null-safe. */
@@ -305,8 +359,12 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
   const [beaconBusy, setBeaconBusy] = useState(false);
   // Not an access-control gate (see beacon_intent.sql) — purely what a viber
   // sees before deciding whether to walk over.
-  const [beaconIntent, setBeaconIntentState] = useState(profile?.beacon_intent || 'open');
+  const [beaconIntent, setBeaconIntentState] = useState(profile?.beacon_intent || 'bored');
   const [beaconExpiresAt, setBeaconExpiresAt] = useState(profile?.beacon_expires_at || null);
+  const [beaconDuration, setBeaconDuration] = useState(60);
+  const [beaconAudience, setBeaconAudience] = useState(profile?.beacon_audience || 'all');
+  const [cloakLocation, setCloakLocation] = useState(profile?.cloak_location ?? true);
+  const [requireHandshake, setRequireHandshake] = useState(profile?.require_handshake ?? true);
   const [intentGlitter, setIntentGlitter] = useState({});
   // Ticks once a minute so the countdown text below actually counts down,
   // without needing a full profile refetch just to redraw a label.
@@ -343,17 +401,19 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
         } catch { /* beacon still works without a fresh fix */ }
         // A3 — the Beacon PRODUCT: going live also pings your mutuals
         // ("X is out — pull up 📍"), not just a silent flag flip.
-        const expires = await PresenceManager.dropBeacon(user.id, { coords, minutes: 60, intent: beaconIntent });
+        const expires = await PresenceManager.dropBeacon(user.id, {
+          coords,
+          minutes: beaconDuration,
+          intent: beaconIntent,
+          audience: beaconAudience,
+          isFuzzy: cloakLocation,
+          requireHandshake,
+        });
         setBeaconActive(true);
         setBeaconExpiresAt(expires);
         haptics.success?.();
-        toast?.show?.("You're live — your people just got the 'pull up' ping. On for 1 hour. Opening map...", 'success');
-        // Was `onNavigateToTab` — never a prop on FindMePage (that name only
-        // exists on the outer ProfilePage, which passed onShowMap in here for
-        // exactly this). Referencing an identifier that was never declared
-        // ANYWHERE in scope throws a ReferenceError even through `?.` — this
-        // fired on every single successful "go live", ~1.5s after the toast,
-        // outside the try/catch above by the time it threw.
+        const audLabel = beaconAudience === 'crew' ? 'your crew' : (beaconAudience === 'mutuals' ? 'people who know you' : 'nearby radius');
+        toast?.show?.(`You're live for ${beaconDuration}m (${audLabel}). Opening map...`, 'success');
         setTimeout(() => onShowMap?.(), 1500);
       }
     } catch (e) {
@@ -361,7 +421,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
     } finally {
       setBeaconBusy(false);
     }
-  }, [user, beaconActive, beaconBusy, toast, onShowMap, beaconIntent]);
+  }, [user, beaconActive, beaconBusy, toast, onShowMap, beaconIntent, beaconDuration, beaconAudience, cloakLocation, requireHandshake]);
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
@@ -433,6 +493,8 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
   const [surname, setSurname] = useState(profile?.surname || '');
   const [clanName, setClanName] = useState(profile?.clan_name || '');
   const [birthDate, setBirthDate] = useState(profile?.birth_date || ''); // YYYY-MM-DD
+  const monthInputRef = useRef(null);
+  const yearInputRef = useRef(null);
   // Derive day/month/year from birthDate for the split inputs, and recompose on edit.
   const _bparts = (birthDate || '').split('-');
   const birthY = _bparts[0] || '', birthM = _bparts[1] || '', birthD = _bparts[2] || '';
@@ -442,7 +504,14 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
     const m = which === 'm' ? val : (birthDate.split('-')[1] || '');
     const d = which === 'd' ? val : (birthDate.split('-')[2] || '');
     setBirthDate([y, m, d].join('-')); // raw while typing; normalized at save time
+    if (which === 'd' && val.length >= 2) {
+      monthInputRef.current?.focus();
+    } else if (which === 'm' && val.length >= 2) {
+      yearInputRef.current?.focus();
+    }
   };
+  const zodiac = useMemo(() => getZodiacSign(birthDate), [birthDate]);
+  const daysToBday = useMemo(() => daysUntilBirthday(birthDate), [birthDate]);
   const [homeVillage, setHomeVillage] = useState(profile?.home_village || '');
   // Home area — where you actually live, so the feed can lead with what's on
   // near home instead of near wherever you happen to be at 3pm. Always set by
@@ -666,26 +735,60 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
         <Text style={{ color: muted, fontSize: 11, marginBottom: 10, lineHeight: 15 }}>
           Lets you invite people who share your name, surname or clan.
         </Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6, width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
           <TextInput
-            style={[fm.input, { flex: 1, color: textColor, borderColor: `${primary}30` }]}
+            style={[fm.input, { flex: 1, minWidth: 0, maxWidth: '30%', textAlign: 'center', color: textColor, borderColor: `${primary}30`, marginBottom: 0 }]}
             placeholder="DD" placeholderTextColor={muted}
             value={birthD} onChangeText={v => setBirthPart('d', v)}
             keyboardType="numeric" maxLength={2}
           />
           <TextInput
-            style={[fm.input, { flex: 1, color: textColor, borderColor: `${primary}30` }]}
+            ref={monthInputRef}
+            style={[fm.input, { flex: 1, minWidth: 0, maxWidth: '30%', textAlign: 'center', color: textColor, borderColor: `${primary}30`, marginBottom: 0 }]}
             placeholder="MM" placeholderTextColor={muted}
             value={birthM} onChangeText={v => setBirthPart('m', v)}
             keyboardType="numeric" maxLength={2}
           />
           <TextInput
-            style={[fm.input, { flex: 1.4, color: textColor, borderColor: `${primary}30` }]}
+            ref={yearInputRef}
+            style={[fm.input, { flex: 1.3, minWidth: 0, maxWidth: '40%', textAlign: 'center', color: textColor, borderColor: `${primary}30`, marginBottom: 0 }]}
             placeholder="YYYY" placeholderTextColor={muted}
             value={birthY} onChangeText={v => setBirthPart('y', v)}
             keyboardType="numeric" maxLength={4}
           />
         </View>
+
+        {zodiac && (
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 12,
+            paddingVertical: 9,
+            borderRadius: 14,
+            backgroundColor: `${primary}12`,
+            borderWidth: 1,
+            borderColor: `${primary}30`,
+            marginBottom: 8,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 20 }}>{zodiac.symbol}</Text>
+              <View>
+                <Text style={{ color: primary, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 }}>
+                  {zodiac.sign.toUpperCase()} · {zodiac.element.toUpperCase()} ELEMENT
+                </Text>
+                <Text style={{ color: muted, fontSize: 10.5 }}>
+                  {daysToBday === 0 ? "🎉 Today is your special day!" : `⏳ ${daysToBday} days until next orbit`}
+                </Text>
+              </View>
+            </View>
+            <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: `${primary}22` }}>
+              <Text style={{ color: primary, fontSize: 10, fontWeight: '900' }}>
+                {daysToBday === 0 ? 'SPOTLIGHT ✦' : `${daysToBday}d`}
+              </Text>
+            </View>
+          </View>
+        )}
         <Text style={{ color: muted, fontSize: 11, marginBottom: 10, lineHeight: 15 }}>
           We’ll celebrate your birthday with you — your year stays private.
         </Text>
@@ -877,7 +980,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
           <View style={{ gap: 6, marginBottom: 8 }}>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               <TextInput style={[fm.input, { flex: 1, marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="Name" placeholderTextColor={muted} value={newContact.name} onChangeText={v => setNewContact(p => ({ ...p, name: v }))} />
-              <TextInput style={[fm.input, { flex: 1, marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="+27821234567" placeholderTextColor={muted} value={newContact.phone} onChangeText={v => setNewContact(p => ({ ...p, phone: v }))} keyboardType="phone-pad" />
+              <TextInput style={[fm.input, { flex: 1, marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="+27821234567" placeholderTextColor={muted} value={newContact.phone} onChangeText={v => setNewContact(p => ({ ...p, phone: v }))} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" />
             </View>
             <TextInput style={[fm.input, { marginBottom: 0, color: textColor, borderColor: `${primary}30` }]} placeholder="Relationship (e.g. mother)" placeholderTextColor={muted} value={newContact.relationship} onChangeText={v => setNewContact(p => ({ ...p, relationship: v }))} />
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -916,33 +1019,157 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
           </Text>
         </TouchableOpacity>
 
-        {/* Intent — what going live MEANS, not just that you are. Chosen before
-            going live; not editable mid-beacon (simpler mental model — change
-            it by stopping and going live again). */}
+        {/* ── Advanced Find Me Radar Beacon Controls ── */}
         {!beaconActive && (
-          <View style={{ flexDirection: 'row', gap: 6, marginTop: 12, marginBottom: 4 }}>
-            {BEACON_INTENTS.map((i) => {
-              const active = beaconIntent === i.key;
-              return (
-                <TouchableOpacity
-                  key={i.key}
-                  onPress={() => {
-                    setIntentGlitter(prev => ({ ...prev, [i.key]: Date.now() }));
-                    setBeaconIntentState(i.key);
-                  }}
-                  style={[fm.intentChip, { borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}18` : 'transparent', position: 'relative' }]}
-                  activeOpacity={0.8}
-                >
-                  <Text style={{ fontSize: 15 }}>{i.emoji}</Text>
-                  <Text style={{ color: active ? primary : muted, fontSize: 10, fontWeight: '800', marginTop: 2, textAlign: 'center' }}>{i.label}</Text>
-                  <ControlledGlitterBurst trigger={intentGlitter[i.key]} count={10} radius={26} colors={[primary, '#fff', '#ffd700']} />
-                </TouchableOpacity>
-              );
-            })}
+          <View style={{ marginTop: 14 }}>
+            {/* 1. What's the Vibe / Intent? */}
+            <Text style={{ color: `${primary}`, fontSize: 11, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
+              1. What's Your Vibe Right Now?
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+              {BEACON_INTENTS.map((i) => {
+                const active = beaconIntent === i.key;
+                return (
+                  <TouchableOpacity
+                    key={i.key}
+                    onPress={() => {
+                      setIntentGlitter(prev => ({ ...prev, [i.key]: Date.now() }));
+                      setBeaconIntentState(i.key);
+                    }}
+                    style={[fm.intentChip, { minWidth: '30%', flex: 1, borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}18` : 'rgba(255,255,255,0.02)', position: 'relative' }]}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={{ fontSize: 16 }}>{i.emoji}</Text>
+                    <Text style={{ color: active ? primary : muted, fontSize: 10, fontWeight: '800', marginTop: 3, textAlign: 'center' }}>{i.label}</Text>
+                    <ControlledGlitterBurst trigger={intentGlitter[i.key]} count={10} radius={26} colors={[primary, '#fff', '#ffd700']} />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* 2. Beacon Duration (I Set The Time) */}
+            <Text style={{ color: `${primary}`, fontSize: 11, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
+              2. Active Duration (I Set The Time)
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
+              {BEACON_DURATIONS.map((dur) => {
+                const active = beaconDuration === dur.mins;
+                return (
+                  <TouchableOpacity
+                    key={dur.mins}
+                    onPress={() => {
+                      haptics?.selection?.();
+                      setBeaconDuration(dur.mins);
+                    }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 9,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: active ? primary : `${primary}25`,
+                      backgroundColor: active ? `${primary}22` : 'rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    <Text style={{ color: active ? primary : textColor, fontWeight: '900', fontSize: 12 }}>{dur.label}</Text>
+                    <Text style={{ color: active ? primary : muted, fontSize: 9.5, marginTop: 1 }}>{dur.desc}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* 3. Who Can Find Me? (Audience Filter) */}
+            <Text style={{ color: `${primary}`, fontSize: 11, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
+              3. Who Can Find Me? (Audience Filter)
+            </Text>
+            <View style={{ gap: 6, marginBottom: 14 }}>
+              {BEACON_AUDIENCES.map((aud) => {
+                const active = beaconAudience === aud.key;
+                return (
+                  <TouchableOpacity
+                    key={aud.key}
+                    onPress={() => {
+                      haptics?.selection?.();
+                      setBeaconAudience(aud.key);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: 10,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: active ? primary : 'rgba(255,255,255,0.1)',
+                      backgroundColor: active ? `${primary}15` : 'rgba(255,255,255,0.02)',
+                    }}
+                  >
+                    <Text style={{ fontSize: 16 }}>{aud.emoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: active ? primary : textColor, fontSize: 12, fontWeight: '800' }}>{aud.label}</Text>
+                      <Text style={{ color: muted, fontSize: 10 }}>{aud.desc}</Text>
+                    </View>
+                    <Feather name={active ? "check-circle" : "circle"} size={16} color={active ? primary : muted} />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* 4. Privacy Cloak & Handshake Gate */}
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: `${primary}20`, marginBottom: 14, gap: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={{ color: textColor, fontSize: 12, fontWeight: '800' }}>Fuzzy Radius Cloak (~800m)</Text>
+                  <Text style={{ color: muted, fontSize: 10, marginTop: 1 }}>Shows neighborhood radius without revealing your exact house or pin</Text>
+                </View>
+                <Switch
+                  value={cloakLocation}
+                  onValueChange={setCloakLocation}
+                  trackColor={{ false: 'rgba(255,255,255,0.15)', true: `${primary}80` }}
+                  thumbColor={cloakLocation ? primary : '#aaa'}
+                />
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}>
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={{ color: textColor, fontSize: 12, fontWeight: '800' }}>Handshake Required to Reveal</Text>
+                  <Text style={{ color: muted, fontSize: 10, marginTop: 1 }}>Require requests before sharing exact directions or location</Text>
+                </View>
+                <Switch
+                  value={requireHandshake}
+                  onValueChange={setRequireHandshake}
+                  trackColor={{ false: 'rgba(255,255,255,0.15)', true: `${primary}80` }}
+                  thumbColor={requireHandshake ? primary : '#aaa'}
+                />
+              </View>
+            </View>
           </View>
         )}
 
-        {/* "I'm here" — live presence beacon, broadcasts you're active now for 1 hour */}
+        {/* Live Active Beacon Status Card */}
+        {beaconActive && (() => {
+          const mins = minutesUntil(beaconExpiresAt);
+          const chosen = BEACON_INTENTS.find((i) => i.key === beaconIntent);
+          const aud = BEACON_AUDIENCES.find((a) => a.key === beaconAudience);
+          return (
+            <View style={{ backgroundColor: '#10b98115', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#10b98140', marginVertical: 10, alignItems: 'center', gap: 6 }}>
+              <Row style={{ gap: 6, alignItems: 'center' }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' }} />
+                <Text style={{ color: '#10b981', fontSize: 11, fontWeight: '900', letterSpacing: 1 }}>RADAR BEACON BROADCASTING</Text>
+              </Row>
+              <Text style={{ color: textColor, fontSize: 15, fontWeight: '900' }}>
+                {chosen ? `${chosen.emoji} ${chosen.label}` : 'Active Beacon'}
+              </Text>
+              <Text style={{ color: muted, fontSize: 11 }}>
+                Audience: <Text style={{ color: primary, fontWeight: '800' }}>{aud?.label || 'Nearby Radius'}</Text> · {cloakLocation ? 'Fuzzy Cloak Active 🛡️' : 'Exact Pin 📍'}
+              </Text>
+              <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '800', marginTop: 2 }}>
+                {mins == null ? 'Live on Radar' : mins <= 0 ? 'Wrapping up…' : `⏳ Live for ${mins} more min`}
+              </Text>
+            </View>
+          );
+        })()}
+
+        {/* "I'm here" — live presence beacon, broadcasts you're active now */}
         <TouchableOpacity
           style={[fm.outThereBtn, { marginTop: 10 }, beaconActive
             ? { backgroundColor: '#10b981', borderColor: '#10b981' }
@@ -957,19 +1184,10 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
             : <Feather name="map-pin" size={18} color={beaconActive ? '#000' : primary} />
           }
           <Text style={[fm.outThereText, { color: beaconActive ? '#000' : primary }]}>
-            {beaconActive ? "I'm here — live now (tap to stop)" : "I'm here — go live"}
+            {beaconActive ? "I'm here — live now (tap to stop)" : `I'm here — go live (${beaconDuration}m)`}
           </Text>
         </TouchableOpacity>
-        {beaconActive && (() => {
-          const mins = minutesUntil(beaconExpiresAt);
-          const chosen = BEACON_INTENTS.find((i) => i.key === beaconIntent);
-          return (
-            <Text style={{ color: muted, fontSize: 11, marginTop: 8, textAlign: 'center' }}>
-              {chosen ? `${chosen.emoji} ${chosen.label} · ` : ''}
-              {mins == null ? 'Nearby vibers can see you live.' : mins <= 0 ? 'Wrapping up…' : `Live for ${mins} more min`}
-            </Text>
-          );
-        })()}
+
         <TouchableOpacity
           style={[fm.outThereBtn, { marginTop: 10, borderColor: primary, borderStyle: 'dashed' }]}
           onPress={onShowMap}
@@ -1021,7 +1239,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
 };
 
 const fm = StyleSheet.create({
-  section: { margin: 16, padding: 18, borderRadius: 20 },
+  section: { margin: 16, padding: 18, borderRadius: 20, maxWidth: '100%', overflow: 'hidden' },
   sectionTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1 },
   toggleLabel: { fontSize: 14, fontWeight: '700' },
@@ -1142,12 +1360,22 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
 
 
 // ── Find Them Sub-View ────────────────────────────────────────────────────────
+const VIBE_SEARCH_FILTERS = [
+  { key: 'all',        label: 'All Vibers' },
+  { key: 'bored',      label: '🥱 Bored / Keep Me Busy' },
+  { key: 'crew',       label: '👥 Squad / Crew' },
+  { key: 'mutuals',    label: '✨ People I Know' },
+  { key: 'late_bites', label: '🍔 Late Bites' },
+];
+
 const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, applyLocationPrivacy, initialDistance = 5, onShowMap }) => {
   const [distance, setDistance] = useState(initialDistance);
+  const [vibeFilter, setVibeFilter] = useState('all');
   const [activeFilter, setActiveFilter] = useState(null);
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dmTarget, setDmTarget] = useState(null);
+  const [dmInitialMessage, setDmInitialMessage] = useState('');
 
   const search = async () => {
     if (!user) { onAuthRequired(); return; }
@@ -1163,6 +1391,9 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
       const data = await DiscoveryManager.findNearbyVibers(user.id, distance);
       setPeople(data || []);
       if (!data || data.length === 0) toast.show('No vibers found nearby — try a wider range', 'info');
+      else {
+        haptics?.selection?.();
+      }
     } catch {
       toast.show('Search failed — check your connection', 'error');
     } finally {
@@ -1170,15 +1401,118 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
     }
   };
 
-  const displayed = useMemo(() => activeFilter
-    ? people.filter(p => (p.interests || []).some(i => i === activeFilter || (typeof i === 'string' && i.toLowerCase().includes(activeFilter.toLowerCase()))))
-    : people,
-  [people, activeFilter]);
+  const displayed = useMemo(() => {
+    let list = people;
+    if (vibeFilter === 'bored') {
+      list = list.filter(p => p.beacon_intent === 'bored' || p.intent === 'bored');
+    } else if (vibeFilter === 'crew') {
+      list = list.filter(p => p.is_crew || p.relationship === 'crew');
+    } else if (vibeFilter === 'mutuals') {
+      list = list.filter(p => p.is_mutual || p.relationship === 'mutual');
+    } else if (vibeFilter === 'late_bites') {
+      list = list.filter(p => p.beacon_intent === 'late_bites');
+    }
+    if (activeFilter) {
+      list = list.filter(p => (p.interests || []).some(i => i === activeFilter || (typeof i === 'string' && i.toLowerCase().includes(activeFilter.toLowerCase()))));
+    }
+    return list;
+  }, [people, activeFilter, vibeFilter]);
+
+  const handleKeepBusy = (person) => {
+    setDmInitialMessage(`Hey @${person.username}! Saw your late-night beacon on Find Me — down to keep you busy? 👋`);
+    setDmTarget(person);
+  };
 
   return (
     <>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <GlassView style={fm.section}>
+          {/* Cyber Sonar Radar HUD */}
+          <View style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 18,
+            borderBottomWidth: 1,
+            borderBottomColor: `${primary}20`,
+            marginBottom: 16,
+          }}>
+            <View style={{
+              width: 140,
+              height: 140,
+              borderRadius: 70,
+              borderWidth: 1.5,
+              borderColor: `${primary}40`,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: `${primary}08`,
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              {/* Concentric rings */}
+              <View style={{ position: 'absolute', width: 95, height: 95, borderRadius: 48, borderWidth: 1, borderColor: `${primary}25`, borderStyle: 'dashed' }} />
+              <View style={{ position: 'absolute', width: 50, height: 50, borderRadius: 25, borderWidth: 1, borderColor: `${primary}35` }} />
+              {/* Radar Crosshairs */}
+              <View style={{ position: 'absolute', width: '100%', height: 1, backgroundColor: `${primary}20` }} />
+              <View style={{ position: 'absolute', height: '100%', width: 1, backgroundColor: `${primary}20` }} />
+              {/* Center emitter */}
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: primary }} />
+              {/* Detected blips */}
+              {people.slice(0, 5).map((p, i) => {
+                const angle = (i * 72) * (Math.PI / 180);
+                const r = 32 + (i % 3) * 18;
+                const isBoredBlip = p.beacon_intent === 'bored';
+                return (
+                  <View
+                    key={p.id || i}
+                    style={{
+                      position: 'absolute',
+                      left: 70 + r * Math.cos(angle) - 4,
+                      top: 70 + r * Math.sin(angle) - 4,
+                      width: 9,
+                      height: 9,
+                      borderRadius: 4.5,
+                      backgroundColor: isBoredBlip ? '#ffd700' : '#10b981',
+                      borderWidth: 1.5,
+                      borderColor: '#fff',
+                    }}
+                  />
+                );
+              })}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: loading ? '#f59e0b' : '#10b981' }} />
+              <Text style={{ color: primary, fontSize: 10.5, fontWeight: '900', letterSpacing: 1.2 }}>
+                {loading ? 'RADAR SWEEP ACTIVE...' : `${displayed.length} VIBERS IN RANGE (${distance}KM)`}
+              </Text>
+            </View>
+          </View>
+
+          {/* Vibe / Audience Scope Filter */}
+          <Text style={[fm.sectionTitle, { color: primary }]}>Filter by Vibe & Relationship</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+            {VIBE_SEARCH_FILTERS.map(f => {
+              const active = vibeFilter === f.key;
+              return (
+                <TouchableOpacity
+                  key={f.key}
+                  onPress={() => {
+                    haptics?.selection?.();
+                    setVibeFilter(f.key);
+                  }}
+                  style={[
+                    ft.filterPill,
+                    {
+                      backgroundColor: active ? `${primary}25` : 'rgba(255,255,255,0.04)',
+                      borderColor: active ? primary : 'rgba(255,255,255,0.12)',
+                    }
+                  ]}
+                >
+                  <Text style={[ft.filterText, { color: active ? primary : muted }]}>{f.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
           <Text style={[fm.sectionTitle, { color: primary }]}>Search Radius</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
             {DIST_OPTIONS.map(d => (
@@ -1218,7 +1552,7 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
               : (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Feather name="search" size={16} color="#000" />
-                  <Text style={ft.searchText}>Find People Nearby</Text>
+                  <Text style={ft.searchText}>Sweep Radius for Vibers</Text>
                 </View>
               )
             }
@@ -1245,7 +1579,7 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
                 No one found nearby
               </Text>
               <Text style={{ color: muted, fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 20 }}>
-                Try increasing your search radius or adjusting your interests filter. Make sure your location is enabled.
+                Try increasing your search radius or switching your vibe filter. Make sure your location is enabled.
               </Text>
             </View>
           ) : (
@@ -1261,7 +1595,11 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
                     await UserManager.follow(user.id, person.id);
                     toast?.show(`Following ${person.username}`, 'success');
                   }}
-                  onMessage={() => setDmTarget(person)}
+                  onMessage={() => {
+                    setDmInitialMessage('');
+                    setDmTarget(person);
+                  }}
+                  onKeepBusy={handleKeepBusy}
                 />
               </FadeInView>
             ))
@@ -1274,7 +1612,8 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
           <DirectMessageModal
             visible={!!dmTarget}
             recipient={dmTarget}
-            onClose={() => setDmTarget(null)}
+            initialMessage={dmInitialMessage}
+            onClose={() => { setDmTarget(null); setDmInitialMessage(''); }}
           />
         </SafeSection>
       )}
@@ -1295,6 +1634,7 @@ const ft = StyleSheet.create({
 const ProfileTabSkeleton = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
+    if (IS_WEB_FX) return;   // web: CSS pulse (cssLoop) — no per-frame re-render
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.7, duration: 700, useNativeDriver: true }),
@@ -1305,7 +1645,7 @@ const ProfileTabSkeleton = ({ primary }) => {
     return () => anim.stop();
   }, [pulse]);
   return (
-    <Animated.View style={{ opacity: pulse, gap: 10, paddingVertical: 4 }}>
+    <Animated.View style={[{ gap: 10, paddingVertical: 4 }, IS_WEB_FX ? { opacity: 0.3, ...cssLoop({ '0%': { opacity: 0.3 }, '100%': { opacity: 0.7 } }, 700) } : { opacity: pulse }]}>
       {[1, 2, 3].map(i => (
         <View key={i} style={{ flexDirection: 'row', gap: 12, padding: 12, borderRadius: 14, backgroundColor: `${primary}08` }}>
           <View style={{ width: 64, height: 64, borderRadius: 10, backgroundColor: `${primary}20` }} />
@@ -1323,7 +1663,7 @@ const ProfileTabSkeleton = ({ primary }) => {
 // ── Mini event card for profile tabs ─────────────────────────────────────────
 const MiniEventCard = ({ ev, primary, textColor, muted, badge, badgeIcon, onPress }) => {
   // media_urls is a string[] saved by PostEventModal; media is the legacy object[] format
-  // TODO(v6): remove media_urls/cover_image/image_url fallbacks after migration
+  // NOTE(v6): retain media_urls/cover_image/image_url fallbacks for backward compatibility
   const imgUrl = ev.cover_url ||
     ev.media_urls?.[0] ||
     (Array.isArray(ev.media) ? ev.media.find(m => m?.type === 'image')?.url : null) ||
@@ -2293,7 +2633,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           async () => {
             const { data: d, error } = await supabase
               .from('events')
-              .select('*, profiles(username, avatar_url)')
+              // events links to profiles twice (author_id, user_id), so an unnamed
+              // embed fails for every viewer and this tab fell back to its degraded path.
+              .select('*, profiles:author_id(username, avatar_url)')
               .or(`author_id.eq.${user.id},user_id.eq.${user.id}`)
               .is('deleted_at', null)
               .neq('status', 'cancelled')
@@ -2415,7 +2757,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
         const { data: d, error } = await supabase
           .from('event_stamps')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', user?.id)
           .order('created_at', { ascending: false });
         if (error) throw error;
         setPassportStamps(d || []);
@@ -2508,9 +2850,12 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
 
   const handleShareProfile = async () => {
     try {
+      // Same card as the DM "Vibe Card" share, one builder, and a link that
+      // resolves (the old /profile/<username> path did not on web).
+      const link = vibeCardLink(profile?.username);
       await Share.share({
-        message: `Check out my vibe on The Gruvs! ${username} 👑`,
-        url: 'https://thegruvs.com/profile/' + username,
+        message: buildVibeCardShareText(profile || {}),
+        url: link,
       });
     } catch (err) {
       console.warn('ProfilePage.handleShareProfile err:', err);
@@ -2851,7 +3196,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
         </View>
 
         {/* Stats Row — Crew/Following are tappable → see exactly who */}
-        <View style={[styles.statsBar, { borderColor: `${primary}18` }]}>
+        <View {...fx('glass rise')} style={[styles.statsBar, { borderColor: `${primary}18` }]}>
           {[
             { label: 'Gruvs', value: eventCount },
             { label: 'Crew', value: followerCount, onPress: () => setFollowList('followers') },
@@ -2929,6 +3274,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, biz: Date.now() }));
                 setBizPortalVisible(true);
               }}
+              {...fx('glass lift rise', 0)}
               style={[
                 styles.hubTile,
                 {
@@ -2940,7 +3286,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: `${primary}50`, backgroundColor: `${primary}20` }]}>
+              <View {...fx('float', 0)} style={[styles.hubIconWrap, { borderColor: `${primary}50`, backgroundColor: `${primary}20` }]}>
                 <Feather name="briefcase" size={16} color={primary} />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Business Studio</Text>
@@ -2954,6 +3300,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, sport: Date.now() }));
                 setSportHubVisible(true);
               }}
+              {...fx('glass lift rise', 1)}
               style={[
                 styles.hubTile,
                 {
@@ -2965,7 +3312,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#10b98150', backgroundColor: 'rgba(16,185,129,0.20)' }]}>
+              <View {...fx('float', 1)} style={[styles.hubIconWrap, { borderColor: '#10b98150', backgroundColor: 'rgba(16,185,129,0.20)' }]}>
                 <Text style={{ fontSize: 16 }}>🏆</Text>
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Sports & Cups</Text>
@@ -2981,6 +3328,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, food: Date.now() }));
                 setFoodKotaVisible(true);
               }}
+              {...fx('glass lift rise', 2)}
               style={[
                 styles.hubTile,
                 {
@@ -2992,7 +3340,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#f59e0b50', backgroundColor: 'rgba(245,158,11,0.20)' }]}>
+              <View {...fx('float', 2)} style={[styles.hubIconWrap, { borderColor: '#f59e0b50', backgroundColor: 'rgba(245,158,11,0.20)' }]}>
                 <Text style={{ fontSize: 16 }}>🍔</Text>
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Kotas & Food</Text>
@@ -3006,6 +3354,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, bday: Date.now() }));
                 setBdayHubVisible(true);
               }}
+              {...fx('glass lift rise', 3)}
               style={[
                 styles.hubTile,
                 {
@@ -3017,7 +3366,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
+              <View {...fx('float', 3)} style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
                 <Text style={{ fontSize: 16 }}>🎂</Text>
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Birthday Radar</Text>
@@ -3027,12 +3376,14 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           </View>
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+            {feature('ticketVault') && (<>
             {/* Offline Ticket Vault & Resale */}
             <TouchableOpacity
               onPress={() => {
                 setHubGlitter((prev) => ({ ...prev, vault: Date.now() }));
                 setProfileVaultVisible(true);
               }}
+              {...fx('glass lift rise', 0)}
               style={[
                 styles.hubTile,
                 {
@@ -3044,13 +3395,14 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#00f2ff50', backgroundColor: 'rgba(0,242,255,0.20)' }]}>
+              <View {...fx('float', 0)} style={[styles.hubIconWrap, { borderColor: '#00f2ff50', backgroundColor: 'rgba(0,242,255,0.20)' }]}>
                 <Feather name="shield" size={16} color={primary} />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Ticket Vault</Text>
               <Text style={[styles.hubTileSub, { color: muted }]}>Offline Passes & Resale</Text>
               <ControlledGlitterBurst trigger={hubGlitter.vault} count={12} radius={34} colors={[primary, '#fde047', '#fff']} />
             </TouchableOpacity>
+            </>)}
 
             {/* Night Safety & Safe Ride Home */}
             <TouchableOpacity
@@ -3058,6 +3410,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, safety: Date.now() }));
                 setProfileSafetyVisible(true);
               }}
+              {...fx('glass lift rise', 1)}
               style={[
                 styles.hubTile,
                 {
@@ -3069,7 +3422,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#ef444450', backgroundColor: 'rgba(239,68,68,0.20)' }]}>
+              <View {...fx('float', 1)} style={[styles.hubIconWrap, { borderColor: '#ef444450', backgroundColor: 'rgba(239,68,68,0.20)' }]}>
                 <Feather name="life-buoy" size={16} color="#ef4444" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Safe Ride Home</Text>
@@ -3079,12 +3432,14 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           </View>
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-            {/* Sensory Suite (Beacon & Survival) */}
+            {/* Sensory Suite (Beacon & Survival) — parked, see launchConfig */}
+            {feature('sensorySuite') && (
             <TouchableOpacity
               onPress={() => {
                 setHubGlitter((prev) => ({ ...prev, sensory: Date.now() }));
                 setProfileSensoryVisible(true);
               }}
+              {...fx('glass lift rise', 2)}
               style={[
                 styles.hubTile,
                 {
@@ -3096,13 +3451,14 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
+              <View {...fx('float', 2)} style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
                 <Feather name="zap" size={16} color="#ec4899" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Sensory Suite</Text>
               <Text style={[styles.hubTileSub, { color: muted }]}>Beacon · 3AM Survival</Text>
               <ControlledGlitterBurst trigger={hubGlitter.sensory} count={12} radius={34} colors={['#ec4899', '#fde047', '#fff']} />
             </TouchableOpacity>
+            )}
 
             {/* Cultural Artifacts (Wristbands & Stubs) */}
             <TouchableOpacity
@@ -3110,6 +3466,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 setHubGlitter((prev) => ({ ...prev, culture: Date.now() }));
                 setProfileCultureVisible(true);
               }}
+              {...fx('glass lift rise', 3)}
               style={[
                 styles.hubTile,
                 {
@@ -3121,7 +3478,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               ]}
               activeOpacity={0.8}
             >
-              <View style={[styles.hubIconWrap, { borderColor: '#fbbf2450', backgroundColor: 'rgba(251,191,36,0.20)' }]}>
+              <View {...fx('float', 3)} style={[styles.hubIconWrap, { borderColor: '#fbbf2450', backgroundColor: 'rgba(251,191,36,0.20)' }]}>
                 <Feather name="award" size={16} color="#fbbf24" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Cultural Stubs</Text>
@@ -4214,7 +4571,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
 
               {/* Gender */}
               <Text style={{ color: primary, fontSize: 12, fontWeight: '700', marginBottom: 8 }}>Gender</Text>
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                 {['Male', 'Female', 'Non-binary', 'Other'].map(g => (
                   <TouchableOpacity
                     key={g}
@@ -4286,7 +4643,22 @@ const COVER_H = 140;
 const AVATAR_SIZE = 86;
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, width: '100%', maxWidth: '100%', overflow: 'hidden' },
+
+  modalSheetTall: {
+    width: '100%',
+    maxWidth: 580,
+    alignSelf: 'center',
+    maxHeight: '88%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
 
   // Tutorials card (these were referenced but never defined → unstyled "CSS missing")
   vibeCoachBanner: {

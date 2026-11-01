@@ -18,6 +18,8 @@ google-service-account.json
 *.jks
 *.log
 *.sst
+credentials.json
+credentials/
 
 UsersACER.git-credentials
 

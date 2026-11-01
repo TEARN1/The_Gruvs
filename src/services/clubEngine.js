@@ -230,7 +230,7 @@ export const AwardManager = {
   async listForEvent(eventId, publishedOnly = true) {
     let q = supabase
       .from('event_awards')
-      .select('*, profiles(username, avatar_url), clubs(name, logo_url)')
+      .select('*, profiles:recipient_user_id(username, avatar_url), clubs(name, logo_url)')
       .eq('event_id', eventId)
       .order('created_at');
     if (publishedOnly) q = q.eq('is_published', true);

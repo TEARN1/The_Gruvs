@@ -58,6 +58,11 @@ export async function safeOpenURL(url) {
   const ALLOWED_HOSTS = [
     'thegruvs.com',
     'www.thegruvs.com',
+    'thegruvs.app',
+    'theresidentcrew.com',
+    'www.theresidentcrew.com',
+    'excellencyacs.com',
+    'www.excellencyacs.com',
     'spotify.com',
     'open.spotify.com',
     'youtube.com',
@@ -189,9 +194,11 @@ export async function safeOpenExternal(url) {
     }
   }
 
-  try { await Linking.openURL(raw); return true; }
+  try { await Linking.openURL(raw).catch((err) => { throw err; }); return true; }
   catch (e) { console.warn('safeOpenExternal: failed to open', e); return false; }
 }
+
+export { ThreatPreventionEngine } from '../services/threatPreventionEngine';
 
 export default { sanitizeSearch, isUuid, likeContains, safeOpenURL, safeOpenExternal };
 

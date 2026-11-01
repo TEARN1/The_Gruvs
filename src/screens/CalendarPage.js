@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  useWindowDimensions, Image, Animated, RefreshControl, TextInput, ActivityIndicator,
+  useWindowDimensions, Image, Animated, RefreshControl, TextInput, ActivityIndicator, Share,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
@@ -20,6 +20,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SmartImage } from '../components/SmartImage';
 import { LineupRail } from '../components/LineupRail';
 import { thumb as cdnThumb } from '../utils/storageThumb';
+import { fx } from '../styles/webFx';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const FULL_MONTH = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -238,8 +239,9 @@ const CalEventCard = ({ ev, primary, textColor, muted, onPress, index, showDate 
   const isPast = ev.event_date && ev.event_date.split('T')[0] < todayStr;
 
   return (
-    <FadeInView delay={index * 60} direction="up">
+    <FadeInView delay={Math.min(index, 8) * 60} direction="up">
       <TouchableOpacity
+        {...fx('rim lift')}
         style={[ec.wrap, { borderColor: `${catColor}30`, backgroundColor: `${catColor}08`, opacity: isPast ? 0.55 : 1 }]}
         onPress={onPress}
         activeOpacity={0.85}
@@ -369,6 +371,7 @@ const UpcomingStrip = ({ events, primary, textColor, muted, onPress }) => {
           return (
             <TouchableOpacity
               key={ev.id}
+              {...fx('rim lift rise', i)}
               style={[us.card, { backgroundColor: `${catColor}12`, borderColor: `${catColor}25` }]}
               onPress={() => onPress(ev)}
             >
@@ -572,6 +575,16 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const isThisMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
 
+  const handleExportSchedule = async () => {
+    const list = upcomingEvents.length ? upcomingEvents : monthEvents;
+    if (!list.length) return;
+    const scheduleSummary = list.slice(0, 5).map(e => `• ${e.title} (${e.event_date}) @ ${e.venue_name || 'TBA'}`).join('\n');
+    const shareText = `👑 My Gruvs Lineup:\n\n${scheduleSummary}\n\nDiscover more on https://thegruvs.com`;
+    try {
+      await Share.share({ message: shareText, title: 'My Gruvs Lineup' });
+    } catch {}
+  };
+
   return (
     <ErrorBoundary label="Calendar">
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -599,6 +612,13 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
                 <Text style={[styles.todayBtnText, { color: primary }]}>Today</Text>
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              style={[styles.exportBtn, { borderColor: `${primary}40`, backgroundColor: `${primary}15` }]}
+              onPress={handleExportSchedule}
+              accessibilityLabel="Export Schedule"
+            >
+              <Feather name="share-2" size={15} color={primary} />
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.addBtn, { backgroundColor: primary }]}
               onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
@@ -878,7 +898,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, maxWidth: 1080, width: '100%', alignSelf: 'center' },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 14, borderBottomWidth: 1 },
   brandRow: { flexDirection: 'row', alignItems: 'center' },
@@ -887,6 +907,7 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   todayBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1 },
   todayBtnText: { fontSize: 12, fontWeight: '800' },
+  exportBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   addBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
 
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },

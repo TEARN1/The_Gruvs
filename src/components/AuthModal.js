@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import {
-  Modal, View, Text, StyleSheet, TextInput,
+  Modal, View, Text, StyleSheet, TextInput, Image,
   TouchableOpacity, Animated, KeyboardAvoidingView,
   Platform, ScrollView, ActivityIndicator, Dimensions, useWindowDimensions,
 } from 'react-native';
@@ -20,6 +20,7 @@ import { GlitterBurst } from './GlitterBurst';
 import { escapeLike, findImpersonation } from '../utils/handleGuard';
 import { isLikelyBot } from '../utils/botCheck';
 import { CalendarPicker } from './DateTimePickers';
+import { ECOSYSTEM_APPS } from '../constants/ecosystemApps';
 
 const SCREEN_W = Dimensions.get('window').width;
 const HM = SCREEN_W < 375 ? 12 : 25;
@@ -74,6 +75,11 @@ export const AuthModal = ({ visible, onClose }) => {
   // #1 "signing up is difficult" complaint.
   const [signupStep, setSignupStep] = useState(1);
   const [checkingName, setCheckingName] = useState(false);
+  // Set when sign-in failed *only* because the address is unconfirmed. Holds the
+  // email so the resend button knows where to send, and switches the error box
+  // into an actionable state instead of a dead end.
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState('');
+  const [resending, setResending] = useState(false);
   // Bot defense (#380): a honeypot a human never sees + a form-open timestamp.
   const [hp, setHp] = useState('');
   const formOpenedAt = useRef(Date.now());
@@ -81,6 +87,7 @@ export const AuthModal = ({ visible, onClose }) => {
   const monthRef = useRef(null);
   const yearRef = useRef(null);
   const [dobPickerOpen, setDobPickerOpen] = useState(false);
+  const [showSsoVaultInfo, setShowSsoVaultInfo] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const primary = currentTheme?.primary || "#00f2ff";
@@ -123,21 +130,45 @@ export const AuthModal = ({ visible, onClose }) => {
     setError('');
     setCheckingName(true);
     try {
-      // escapeLike: a handle with `_` or `%` must not act as an ilike wildcard,
-      // or `a_b` would match `axb` and give false "taken" (and let real conflicts slip).
-      const { data } = await supabase.from('profiles')
-        .select('id').ilike('username', escapeLike(handle)).limit(1).maybeSingle();
-      if (data) { setError(`${handle} is taken — try another username.`); return; }
+      // One indexed round trip for both "is it taken" and "does it read the same
+      // as an existing handle" (k0nka/kon.ka/konkaa for konka). This used to be
+      // two queries, the second of which pulled up to 1000 usernames down to the
+      // phone and diffed them in JavaScript — slow on mobile data, and it gets
+      // slower AND weaker as the table grows, since it only ever compared against
+      // an arbitrary 1000 rows. See supabase/migrations/20260927000800_username_skeleton.sql.
+      const rpc = await supabase.rpc('check_handle_available', { p_handle: handle });
+      const verdict = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
 
-      // Impersonation: a handle that READS the same as an existing one (k0nka for
-      // konka, kon.ka, konkaa) is how someone trades on a real venue's name.
-      // Best-effort client check; the scalable enforcement is a unique index on a
-      // stored skeleton column (needs the DB migration).
-      try {
-        const { data: existing } = await supabase.from('profiles').select('username').limit(1000);
-        const clash = findImpersonation(handle, (existing || []).map((r) => r.username));
-        if (clash) { setError(`${handle} looks too much like ${clash} — pick a more distinct name.`); return; }
-      } catch { /* best-effort — never block a real signup on this */ }
+      if (!rpc.error && verdict) {
+        if (verdict.available === false) {
+          if (verdict.reason === 'taken') {
+            setError(`@${handle} is taken — try another username.`);
+          } else if (verdict.reason === 'lookalike') {
+            setError(`@${handle} looks too much like @${verdict.clash} — pick a more distinct name.`);
+          } else {
+            setError('Username must be 3–24 characters — letters, numbers, dots or underscores.');
+          }
+          return;
+        }
+      } else {
+        // RPC not deployed yet (or offline) — fall back to the direct check so
+        // this ships safely before the migration lands, same pattern as
+        // AuthContext's get_my_profile. The DB trigger is the real enforcement
+        // either way, so a miss here only costs a later, clearer error.
+        // escapeLike: a handle with `_` or `%` must not act as an ilike wildcard,
+        // or `a_b` would match `axb` and give false "taken" (and let real conflicts slip).
+        const { data } = await supabase.from('profiles')
+          .select('id').ilike('username', escapeLike(handle)).limit(1).maybeSingle();
+        if (data) { setError(`@${handle} is taken — try another username.`); return; }
+
+        // Bounded: enough to catch the common case without a big payload on a
+        // phone. Unbounded scanning is the RPC's job now.
+        try {
+          const { data: existing } = await supabase.from('profiles').select('username').limit(200);
+          const clash = findImpersonation(handle, (existing || []).map((r) => r.username));
+          if (clash) { setError(`@${handle} looks too much like @${clash} — pick a more distinct name.`); return; }
+        } catch { /* best-effort — never block a real signup on this */ }
+      }
     } catch { /* offline / RLS — let signup itself decide */ } finally {
       setCheckingName(false);
     }
@@ -165,6 +196,37 @@ export const AuthModal = ({ visible, onClose }) => {
       await supabase.auth.resetPasswordForEmail(trimmedEmail, { redirectTo });
     } catch { /* always show the same message — no account enumeration */ }
     setSuccess(`If an account exists for ${trimmedEmail}, a reset link is on its way.`);
+  };
+
+  // Resend the confirmation email. This is the escape hatch that did not exist:
+  // without it, anyone whose confirmation mail was never delivered (spam folder,
+  // or Supabase's built-in mailer hitting its hourly cap — which the signup path
+  // below already documents) was locked out of their own account permanently.
+  const handleResendConfirmation = async () => {
+    const target = unconfirmedEmail || email.trim();
+    if (!target) return;
+    setResending(true);
+    setError('');
+    try {
+      const { error: resendErr } = await supabase.auth.resend({ type: 'signup', email: target });
+      if (resendErr) {
+        const m = (resendErr.message || '').toLowerCase();
+        // Never claim we sent mail that didn't leave — the same rule the signup
+        // path follows. A throttled resend is the most likely failure here.
+        if (resendErr.status === 429 || m.includes('rate limit')) {
+          setError('We\u2019ve sent a few already \u2014 give it a minute, then check your inbox and spam folder.');
+        } else {
+          setError('Could not resend right now. Check your spam folder, or try again shortly.');
+        }
+      } else {
+        setUnconfirmedEmail('');
+        setSuccess(`Confirmation email sent to ${target}. Check your inbox \u2014 and your spam folder.`);
+      }
+    } catch {
+      setError('Could not resend right now. Check your spam folder, or try again shortly.');
+    } finally {
+      setResending(false);
+    }
   };
 
   const toggleInterest = (label) => {
@@ -197,23 +259,75 @@ export const AuthModal = ({ visible, onClose }) => {
   };
 
   const handleSignIn = async () => {
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password.trim()) {
-      setError('Please enter your email and password.');
-      return;
-    }
-    // Basic email format check before hitting the server
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setError('Please enter a valid email address.');
+    const rawInput = email.trim();
+    if (!rawInput || !password.trim()) {
+      setError('Please enter your email or username and password.');
       return;
     }
     setLoading(true);
     setError('');
+    let targetEmail = rawInput;
+    // Signed-out visitors can't read profiles.email, so this lookup comes back
+    // empty for almost everyone and the guess below (<name>@thegruvs.com) is
+    // only right for accounts that were made with one. Remember whether the
+    // email was really found, so a failure can say "use your email" instead of
+    // a misleading "wrong password".
+    const byUsername = !rawInput.includes('@');
+    let usernameResolved = false;
+    if (byUsername) {
+      const cleanUsername = rawInput.replace(/^@/, '');
+      try {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('email')
+          .ilike('username', cleanUsername)
+          .maybeSingle();
+        if (prof?.email) {
+          targetEmail = prof.email;
+          usernameResolved = true;
+        } else {
+          targetEmail = `${cleanUsername.toLowerCase()}@thegruvs.com`;
+        }
+      } catch {
+        targetEmail = `${cleanUsername.toLowerCase()}@thegruvs.com`;
+      }
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawInput)) {
+      setError('Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: targetEmail, password });
       if (error) {
-        // Return a generic message to prevent account enumeration
-        setError('Incorrect email or password. Please try again.');
+        const code = error.code || '';
+        const msg  = (error.message || '').toLowerCase();
+
+        if (code === 'email_not_confirmed' || msg.includes('not confirmed')) {
+          // The single biggest support complaint: the password IS correct, but
+          // the address was never confirmed, and this used to read "Incorrect
+          // email or password" — so people retyped a correct password forever
+          // with no way out. There was no resend anywhere in the app.
+          //
+          // Saying so is not account enumeration. GoTrue verifies the password
+          // BEFORE it checks confirmation — an unknown email or a wrong password
+          // both return `invalid_credentials` instead. So anyone who sees this
+          // has already proven they know the password for this address, and is
+          // learning nothing new about whether it exists.
+          setUnconfirmedEmail(targetEmail);
+          setError('Your email address hasn\u2019t been confirmed yet.');
+        } else if (error.status === 429 || code === 'over_request_rate_limit' || msg.includes('rate limit')) {
+          // Telling someone their password is wrong when they are simply being
+          // throttled makes them retry harder and dig the hole deeper.
+          setError('Too many attempts \u2014 wait about a minute, then try again.');
+        } else if (byUsername && !usernameResolved) {
+          // Same message for every username, real or not, so it reveals nothing.
+          setError('Username sign-in isn\u2019t available from here yet. Please sign in with the email address you joined with.');
+        } else {
+          // Genuinely wrong credentials: stay generic, this is the case where
+          // enumeration actually matters.
+          setError('Incorrect credentials. Please verify your email/username and password.');
+        }
         SecurityService.logSecurityEvent(null, 'AUTH_SIGNIN_FAILED', { error: error.message });
       } else {
         SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNIN_SUCCESS');
@@ -293,7 +407,21 @@ export const AuthModal = ({ visible, onClose }) => {
         options: { data: { username: username.trim() } },
       });
       if (result.error) {
-        setError(result.error.message);
+        // Supabase's raw auth errors are not written for humans. Translate the
+        // ones people actually hit; anything else falls through verbatim.
+        const m = (result.error.message || '').toLowerCase();
+        if (m.includes('already registered') || m.includes('already been registered')) {
+          setError('That email already has an account — switch to Sign in, or use "Forgot password".');
+        } else if (m.includes('too similar')) {
+          setError(`@${username.trim()} is too close to an existing username — pick a more distinct one.`);
+          setSignupStep(1);
+        } else if (result.error.status === 429 || m.includes('rate limit')) {
+          setError('Too many attempts — wait about a minute, then try again.');
+        } else if (m.includes('password')) {
+          setError('Password must be at least 6 characters.');
+        } else {
+          setError(result.error.message);
+        }
         SecurityService.logSecurityEvent(null, 'AUTH_SIGNUP_FAILED', { email: email.trim(), username: username.trim(), error: result.error.message });
         return;
       }
@@ -418,6 +546,7 @@ export const AuthModal = ({ visible, onClose }) => {
     // this call did not — so reset() threw a ReferenceError, and reset() runs
     // from handleClose(), i.e. every time this modal closes.
     setSignupStep(1);
+    setUnconfirmedEmail(''); setResending(false);
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -480,17 +609,51 @@ export const AuthModal = ({ visible, onClose }) => {
                   <View style={[styles.glowBar, { backgroundColor: primary }]} />
 
             <View style={styles.headerRow}>
-              <Text style={[styles.title, { color: primary }]}>
-                {mode === 'signin' ? '👑 Welcome back' : '⚡ Create your account'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Image
+                  source={require('../../assets/icon-512.png')}
+                  style={{ width: 32, height: 32, borderRadius: 8 }}
+                  resizeMode="contain"
+                />
+                <Text style={[styles.title, { color: primary }]}>
+                  {mode === 'signin' ? '👑 Welcome back' : '⚡ Create your account'}
+                </Text>
+              </View>
               <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Feather name="x" size={22} color={textColor} />
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.sublabel, { color: muted, marginBottom: 10 }]}>
-              One account — the same login works on The Resident.
-            </Text>
+            {/* Unified Ecosystem SSO Vault */}
+            <View style={[styles.ecosystemCard, { borderColor: `${primary}30`, backgroundColor: 'rgba(255,255,255,0.03)' }]}>
+              <TouchableOpacity
+                onPress={() => setShowSsoVaultInfo(!showSsoVaultInfo)}
+                style={styles.ecosystemHeaderRow}
+                activeOpacity={0.8}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={[styles.ecosystemLiveDot, { backgroundColor: '#10b981' }]} />
+                  <Text style={[styles.ecosystemTitle, { color: primary }]}>ECOSYSTEM SSO VAULT</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={[styles.ecosystemStatus, { color: '#10b981' }]}>● Sync Active</Text>
+                  <Feather name={showSsoVaultInfo ? "chevron-up" : "chevron-down"} size={12} color={muted} />
+                </View>
+              </TouchableOpacity>
+              <Text style={[styles.ecosystemDesc, { color: muted }]}>
+                One credential unlocks The Gruvs, Excellency Academy & The Resident Crew.
+              </Text>
+              {showSsoVaultInfo && (
+                <View style={styles.ecosystemPills}>
+                  {ECOSYSTEM_APPS.map((app) => (
+                    <View key={app.id} style={[styles.ecosystemPill, { borderColor: `${app.color}40`, backgroundColor: `${app.color}10` }]}>
+                      <Text style={{ fontSize: 11 }}>{app.badge}</Text>
+                      <Text style={[styles.ecosystemPillText, { color: textColor }]}>{app.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
 
             <View style={[styles.tabRow, { borderColor: `${primary}40` }]}>
               {['signin', 'signup'].map((m) => (
@@ -510,8 +673,15 @@ export const AuthModal = ({ visible, onClose }) => {
                 so this is just an alternate front door, not a separate flow. */}
             {(mode === 'signin' || signupStep === 1) && (
               <>
-                <View style={{ flexDirection: 'row', marginHorizontal: HM, marginBottom: 16 }}>
-                  {/* Google temporarily pulled — Supabase provider isn't configured yet. */}
+                <View style={{ flexDirection: 'row', marginHorizontal: HM, marginBottom: 16, gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => handleOAuth('google')}
+                    disabled={loading || checkingName}
+                    style={[styles.oauthBtn, { borderColor: `${primary}30` }]}
+                  >
+                    <MaterialCommunityIcons name="google" size={16} color={textColor} />
+                    <Text style={[styles.oauthText, { color: textColor }]}>Google</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleOAuth('facebook')}
                     disabled={loading || checkingName}
@@ -661,21 +831,23 @@ export const AuthModal = ({ visible, onClose }) => {
             {(mode === 'signin' || signupStep === 1) && (
             <>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: HM, marginBottom: 8 }}>
-              <Text style={[styles.label, { color: textColor, marginHorizontal: 0, marginBottom: 0 }]}>Email</Text>
+              <Text style={[styles.label, { color: textColor, marginHorizontal: 0, marginBottom: 0 }]}>
+                {mode === 'signin' ? 'Email or @Username' : 'Email'}
+              </Text>
               {email.length > 0 && (
                 <Feather
-                  name={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "check-circle" : "alert-triangle"}
+                  name={(mode === 'signin' && !email.includes('@')) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "check-circle" : "alert-triangle"}
                   size={14}
-                  color={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "#10b981" : "#ef4444"}
+                  color={(mode === 'signin' && !email.includes('@')) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "#10b981" : "#ef4444"}
                 />
               )}
             </View>
             <TextInput
               style={[styles.input, { borderColor: `${primary}40`, color: textColor }]}
-              placeholder="your@email.com"
+              placeholder="your@email.com" /* username sign-in works for 1 of 41 accounts (see handleSignIn), so it is not advertised */
               placeholderTextColor={muted}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(t) => { setEmail(t); if (unconfirmedEmail) setUnconfirmedEmail(''); }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -737,6 +909,24 @@ export const AuthModal = ({ visible, onClose }) => {
             {!!error && (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>⚠️ {error}</Text>
+                {!!unconfirmedEmail && (
+                  <>
+                    <Text style={[styles.errorText, { fontWeight: '400', marginTop: 6 }]}>
+                      Your password was right — we just need you to confirm {unconfirmedEmail} first.
+                    </Text>
+                    <TouchableOpacity
+                      onPress={handleResendConfirmation}
+                      disabled={resending}
+                      style={[styles.resendBtn, { borderColor: primary }]}
+                    >
+                      {resending
+                        ? <ActivityIndicator size="small" color={primary} />
+                        : <Text style={[styles.resendText, { color: primary }]}>
+                            RESEND CONFIRMATION EMAIL
+                          </Text>}
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             )}
             {!!success && (
@@ -881,6 +1071,11 @@ const styles = StyleSheet.create({
   confirmBox: { flexDirection: 'row', gap: 10, marginHorizontal: HM, marginBottom: 16, borderWidth: 1, borderRadius: 14, padding: 14 },
   confirmTitle: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
   confirmSub: { fontSize: 11, lineHeight: 15 },
+  resendBtn: {
+    marginTop: 10, alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 9,
+    borderRadius: 12, borderWidth: 1.5, minHeight: 38, justifyContent: 'center',
+  },
+  resendText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: HM, marginBottom: 16 },
   stepDot: { width: 18, height: 5, borderRadius: 3 },
   stepDotActive: { width: 28 },
@@ -888,4 +1083,56 @@ const styles = StyleSheet.create({
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: HM, marginBottom: 14 },
   oauthBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
   oauthText: { fontSize: 13, fontWeight: '700' },
+  ecosystemCard: {
+    marginHorizontal: HM,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' } : {}),
+  },
+  ecosystemHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ecosystemLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  ecosystemTitle: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  ecosystemStatus: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  ecosystemDesc: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  ecosystemPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2,
+  },
+  ecosystemPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  ecosystemPillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
 });

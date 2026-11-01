@@ -16,7 +16,7 @@ import { useCall } from '../context/CallContext';
 import { SignedImage } from './SignedImage';
 import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { supabase } from '../services/supabase';
 import { SoundFX } from '../services/soundFX';
 import { resilientRead } from '../utils/resilience';
@@ -35,6 +35,9 @@ import { useBackClose } from '../hooks/useBackClose';
 import { SecurityService } from '../services/securityService';
 import { money, priceLabel } from '../constants/currencies';
 import { buildVibeCardShareText } from '../utils/vibeCardShare';
+import { ViberSearchPickerModal } from './ViberSearchPickerModal';
+import { VideoStickerMakerModal } from './VideoStickerMakerModal';
+import { AnimatedChatBubble } from './AnimatedChatBubble';
 
 // Dynamic wrapper to break static circular import cycle
 const ViberProfileModal = (props) => {
@@ -187,10 +190,10 @@ const SharedEventCard = ({ evId, onPress, primary, textColor, muted }) => {
 
   let thumb = null;
   if (ev) {
-    // TODO(v6): remove cover_image fallback after migration
+    // NOTE(v6): retain cover_image fallback for backward compatibility
     thumb = ev.cover_url || ev.cover_image || null;
     if (!thumb) { let m = ev.media; if (typeof m === 'string') { try { m = JSON.parse(m); } catch { m = null; } } if (Array.isArray(m) && m[0]) thumb = typeof m[0] === 'string' ? m[0] : m[0]?.url; }
-    // TODO(v6): remove media_urls fallback after migration
+    // NOTE(v6): retain media_urls fallback for backward compatibility
     if (!thumb && Array.isArray(ev.media_urls) && ev.media_urls[0]) thumb = ev.media_urls[0];
   }
   const priceStr = priceLabel(ev?.price);
@@ -242,7 +245,7 @@ const sec = StyleSheet.create({
   price: { fontSize: 11, fontWeight: '900' },
 });
 
-export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEvent, initialMessage = '', embedded = false }) => {
+export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipient, onNavigateToEvent, initialMessage = '', embedded = false }) => {
   // In embedded (split-pane) mode there is no Modal to intercept back — the
   // parent screen owns the hardware-back behaviour, so skip the hook.
   useBackClose(visible && !embedded, onClose);
@@ -254,7 +257,23 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const primary = currentTheme?.primary || "#00f2ff";
   const bg = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text || '#fff';
-  const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.5)';
+  const muted = currentTheme?.textMuted || 'rgba(255,255,255,0.72)';
+
+  // Multi-conversation switcher: hold current recipient and up to 3 active conversation tabs
+  const [recipient, setRecipient] = useState(initialRecipient);
+  const [activeConversations, setActiveConversations] = useState([initialRecipient].filter(Boolean));
+  const [showViberPicker, setShowViberPicker] = useState(false);
+  const [showStickerMaker, setShowStickerMaker] = useState(false);
+
+  useEffect(() => {
+    if (initialRecipient && (!recipient || recipient.id !== initialRecipient.id)) {
+      setRecipient(initialRecipient);
+      setActiveConversations(prev => {
+        const filtered = prev.filter(c => c?.id !== initialRecipient.id);
+        return [initialRecipient, ...filtered].slice(0, 3);
+      });
+    }
+  }, [initialRecipient]);
 
   const [messages, setMessages] = useState([]);
   const [msgStyles, setMsgStyles] = useState({}); // sender_id -> writing_style (display only; body stays plain)
@@ -307,6 +326,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
   const [profileTarget, setProfileTarget] = useState(null); // user id to open (defaults to recipient)
+  const lastTapRef = useRef({});
 
   // Media preview before send: hold the picked asset here until the user
   // confirms (with an optional caption), instead of firing it off blind.
@@ -333,9 +353,67 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
     if (!user) return;
     try {
       const data = await MessageManager.getConversations(user.id);
+      const partners = data.map(c => c.partner).filter(p => p && p.id !== recipient?.id);
       setConversations(data.filter(c => c.partner?.id !== recipient?.id));
+      setActiveConversations(prev => {
+        const combined = [...prev, ...partners];
+        const unique = [];
+        const seen = new Set();
+        for (const item of combined) {
+          if (item?.id && !seen.has(item.id)) {
+            seen.add(item.id);
+            unique.push(item);
+          }
+        }
+        return unique.slice(0, 3);
+      });
     } catch (e) {
       console.warn("Failed to fetch conversations for sharing:", e);
+    }
+  };
+
+  const handleSwitchConversation = (convoPartner) => {
+    if (!convoPartner || convoPartner.id === recipient?.id) return;
+    setRecipient(convoPartner);
+    setMessages([]);
+    setBody('');
+    SoundFX.play('messageReceived');
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+  };
+
+  const handleShareOtherVibeCard = async (targetViber) => {
+    setShowViberPicker(false);
+    setShowAttachmentMenu(false);
+    if (!targetViber || !user || !recipient) return;
+    try {
+      const cardText = buildVibeCardShareText(targetViber);
+      const newMsg = await MessageManager.send(user.id, recipient.id, cardText, {
+        messageType: 'vibe_card',
+        profile_id: targetViber.id,
+      });
+      if (newMsg) {
+        setMessages(prev => [...prev, newMsg]);
+        SoundFX.play('messageSent');
+      }
+    } catch {
+      showToast('Could not share Vibe Card.', 'error');
+    }
+  };
+
+  const handleSendSticker = async ({ stickerUrl, caption, emoji }) => {
+    if (!stickerUrl || !user || !recipient) return;
+    try {
+      const newMsg = await MessageManager.send(user.id, recipient.id, caption || `Sticker ${emoji || '🔥'}`, {
+        messageType: 'sticker',
+        media_url: stickerUrl,
+        emoji,
+      });
+      if (newMsg) {
+        setMessages(prev => [...prev, newMsg]);
+        SoundFX.play('messageSent');
+      }
+    } catch {
+      showToast('Could not send sticker.', 'error');
     }
   };
 
@@ -657,7 +735,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
         .select('username, display_name, vibe_score, is_verified, followers_count')
         .eq('id', user.id)
         .single();
-      const cardText = buildVibeCardShareText(profile || { username: user.email });
+      // Never fall back to the email: it would be sent to the recipient as
+      // the card's handle.
+      const cardText = buildVibeCardShareText(profile || {});
       const newMsg = await MessageManager.send(user.id, recipient.id, cardText, { messageType: 'vibe_card', profile_id: user?.id });
       if (newMsg) {
         setMessages(prev => [...prev, newMsg]);
@@ -703,7 +783,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           .eq('author_id', user.id).gte('event_date', today)
           .order('event_date', { ascending: true }).limit(25),
         supabase.from('event_rsvps').select(`events:event_id(${cols})`)
-          .eq('user_id', user.id).eq('status', 'going').limit(25),
+          .eq('user_id', user?.id).eq('status', 'going').limit(25),
       ]);
       const going = (rsvps.data || []).map(r => r.events).filter(Boolean);
       const seen = new Set();
@@ -915,7 +995,12 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             </TouchableOpacity>
           )}
           <View style={{ flex: 1 }}>
-            <TouchableOpacity
+            <AnimatedChatBubble
+              isMine={isMine}
+              isSelected={isSelected}
+              isRecent={item.created_at ? (Date.now() - new Date(item.created_at).getTime() < 120000) : false}
+              primary={primary}
+              style={[isMine ? dm.bubbleMine : dm.bubbleTheirs]}
               onLongPress={() => {
                 if (isMultiSelectMode) return;
                 setSelectedMsgId(isSelected ? null : item.id);
@@ -925,7 +1010,18 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 }
                 try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
               }}
-              onPress={() => {
+              onPress={(triggerEnergyWave) => {
+                const now = Date.now();
+                const last = lastTapRef.current[item.id] || 0;
+                if (now - last < 320) {
+                  // Double tap instant reaction + holographic energy wave!
+                  triggerEnergyWave?.();
+                  handleReact(item.id, '❤️');
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { }
+                  lastTapRef.current[item.id] = 0;
+                  return;
+                }
+                lastTapRef.current[item.id] = now;
                 if (isMultiSelectMode) {
                   setSelectedMsgIds(prev => {
                     const next = new Set(prev);
@@ -937,8 +1033,6 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                   setSelectedMsgId(null);
                 }
               }}
-              activeOpacity={0.85}
-              style={[isMine ? dm.bubbleMine : dm.bubbleTheirs]}
             >
               <View style={[
                 dm.bubbleInner,
@@ -996,6 +1090,23 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                     resizeMode="contain"
                   />
                 )}
+                {item.message_type === 'sticker' && item.media_url && (
+                  <View style={dm.stickerMsgContainer}>
+                    <Video
+                      source={{ uri: item.media_url }}
+                      style={dm.stickerMsgVideo}
+                      shouldPlay
+                      isLooping
+                      isMuted
+                      resizeMode="cover"
+                    />
+                    {item.emoji && (
+                      <View style={dm.stickerEmojiPill}>
+                        <Text style={{ fontSize: 16 }}>{item.emoji}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
                 {item.message_type === 'document' && item.media_url && (
                   <TouchableOpacity
                     onPress={() => { SecurityService.safeOpenURL(item.media_url); }}
@@ -1013,11 +1124,11 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                 )}
                 {item.message_type === 'vibe_card' && (
                   <VibeCardBubble
-                    userId={item.sender_id}
+                    userId={item.profile_id || item.sender_id}
                     primary={primary}
                     textColor={textColor}
                     muted={muted}
-                    onPress={() => { setProfileTarget(item.sender_id); setProfileModalVisible(true); }}
+                    onPress={() => { setProfileTarget(item.profile_id || item.sender_id); setProfileModalVisible(true); }}
                   />
                 )}
                 {item.event_id && item.message_type !== 'vibe_card' && renderEventShare(item.event_id)}
@@ -1131,7 +1242,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                   )}
                 </View>
               )}
-            </TouchableOpacity>
+            </AnimatedChatBubble>
           </View>
         </View>
 
@@ -1168,7 +1279,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
       >
         {/* Header */}
         <View style={[dm.header, { borderBottomColor: `${primary}18`, paddingTop: embedded ? 14 : insets.top + 10 }]}>
-          <TouchableOpacity onPress={onClose} style={dm.backBtn}>
+          <TouchableOpacity onPress={onClose} style={dm.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Back">
             <Feather name={embedded ? 'x' : 'arrow-left'} size={22} color={textColor} />
           </TouchableOpacity>
           <TouchableOpacity style={dm.headerInfo} onPress={() => setProfileModalVisible(true)} activeOpacity={0.8}>
@@ -1205,6 +1316,38 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
             </View>
           )}
         </View>
+
+        {/* Multi-Conversation Quick Switcher Dock — reply to up to 3 active conversations */}
+        {activeConversations.length > 1 && (
+          <View style={[dm.multiConvoDock, { backgroundColor: `${bg}fa`, borderBottomColor: `${primary}18` }]}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}>
+              {activeConversations.slice(0, 3).map((chat) => {
+                const isSelected = chat?.id === recipient?.id;
+                return (
+                  <TouchableOpacity
+                    key={chat?.id || Math.random()}
+                    onPress={() => handleSwitchConversation(chat)}
+                    style={[
+                      dm.multiConvoTab,
+                      {
+                        backgroundColor: isSelected ? `${primary}20` : 'rgba(255,255,255,0.06)',
+                        borderColor: isSelected ? primary : 'rgba(255,255,255,0.12)',
+                      },
+                    ]}
+                  >
+                    <SmartImage source={chat?.avatar_url} style={dm.multiConvoAvatar} />
+                    <Text style={[dm.multiConvoName, { color: isSelected ? primary : textColor }]} numberOfLines={1}>
+                      @{chat?.username || 'Viber'}
+                    </Text>
+                    {isSelected && (
+                      <View style={[dm.multiConvoActiveDot, { backgroundColor: primary }]} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Request banner — shown to recipient of a pending request */}
         {isIAmRecipientOfPendingRequest && (
@@ -1347,7 +1490,9 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
                   { label: 'Document', icon: 'file-text', onPress: handlePickDocument },
                   { label: 'Location', icon: 'map-pin', onPress: handleShareLocation },
                   { label: 'Share Gruv', icon: 'zap', onPress: openEventPicker },
-                  { label: 'Vibe Card', icon: 'user', onPress: handleShareVibeCard },
+                  { label: 'My Vibe Card', icon: 'user', onPress: handleShareVibeCard },
+                  { label: 'Search Viber', icon: 'search', onPress: () => { setShowAttachmentMenu(false); setShowViberPicker(true); } },
+                  { label: 'Video Sticker', icon: 'smile', onPress: () => { setShowAttachmentMenu(false); setShowStickerMaker(true); } },
                 ].map(item => (
                   <TouchableOpacity key={item.label} onPress={item.onPress} style={dm.attachMenuItem}>
                     <View style={[dm.attachMenuIcon, { backgroundColor: `${primary}15` }]}><Feather name={item.icon} size={18} color={primary} /></View>
@@ -1411,6 +1556,18 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
           onNavigateToEvent={onNavigateToEvent}
         />
       </React.Suspense>
+
+      <ViberSearchPickerModal
+        visible={showViberPicker}
+        onClose={() => setShowViberPicker(false)}
+        onSelectViber={handleShareOtherVibeCard}
+      />
+
+      <VideoStickerMakerModal
+        visible={showStickerMaker}
+        onClose={() => setShowStickerMaker(false)}
+        onStickerCreated={handleSendSticker}
+      />
 
       {/* Media preview — confirm before sending an image / video */}
       <Modal visible={!!pendingMedia} transparent animationType="fade" onRequestClose={() => setPendingMedia(null)}>
@@ -1571,7 +1728,11 @@ export const DirectMessageModal = ({ visible, onClose, recipient, onNavigateToEv
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      {inner}
+      <View style={{ flex: 1, backgroundColor: bg, alignItems: 'center' }}>
+        <View style={{ flex: 1, width: '100%', maxWidth: 680 }}>
+          {inner}
+        </View>
+      </View>
     </Modal>
   );
 };
@@ -1623,4 +1784,12 @@ const dm = StyleSheet.create({
   pendingSenderText: { flex: 1, fontSize: 13, fontWeight: '700' },
   pendingLimitBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
   pendingLimitText: { flex: 1, fontSize: 12, fontWeight: '600', lineHeight: 17 },
+  multiConvoDock: { paddingVertical: 8, borderBottomWidth: 1 },
+  multiConvoTab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, gap: 6 },
+  multiConvoAvatar: { width: 22, height: 22, borderRadius: 11 },
+  multiConvoName: { fontSize: 12, fontWeight: '700', maxWidth: 90 },
+  multiConvoActiveDot: { width: 6, height: 6, borderRadius: 3 },
+  stickerMsgContainer: { width: 140, height: 140, borderRadius: 16, overflow: 'hidden', backgroundColor: '#000', marginBottom: 4, position: 'relative' },
+  stickerMsgVideo: { width: '100%', height: '100%' },
+  stickerEmojiPill: { position: 'absolute', bottom: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
 });

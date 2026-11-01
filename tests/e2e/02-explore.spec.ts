@@ -27,15 +27,18 @@ test.describe('Explore Page', () => {
   });
 
   test('sport mood chip shows sport sub-filter', async ({ page }) => {
-    const sportChip = page.getByText(/^sport$/i).first();
+    // Hidden tabs stay mounted, so look only inside the active Explore screen.
+    const screen = page.locator('[data-screen="explore"][data-active="true"]');
+    const sportChip = screen.getByText(/^sport$/i).first();
     const visible = await sportChip.isVisible().catch(() => false);
     if (!visible) test.skip();
 
-    await sportChip.click();
-    await page.waitForTimeout(500);
-    // After clicking Sport mood, soccer/rugby chips should appear
-    const subFilter = page.getByText(/soccer|rugby|basketball/i).first();
-    await expect(subFilter).toBeVisible({ timeout: 5_000 });
+    // Retry the click until the sub-filter shows; on a slow runner the first
+    // tap can land before the chip's handler is wired up.
+    await expect(async () => {
+      await sportChip.click();
+      await expect(screen.getByText(/soccer|rugby|basketball/i).first()).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
   });
 
   test('search input accepts text', async ({ page }) => {

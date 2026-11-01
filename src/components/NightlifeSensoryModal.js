@@ -11,6 +11,7 @@
  * - 8.1 3 AM Ultra-Blackout Battery Survival Mode
  * - 8.4 The "Proof of Physical Sweat" Protocol
  */
+import { feature } from '../constants/launchConfig';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -34,13 +35,14 @@ const TABS = [
   { key: 'survival', label: '3AM Survival', icon: 'battery-charging' },
   { key: 'bouncer', label: 'Bouncer HUD', icon: 'shield' },
   { key: 'stealth', label: 'Pocket Stealth', icon: 'eye-off' },
-  { key: 'sweat', label: 'Proof of Sweat', icon: 'award' },
-];
+  { key: 'sweat', label: 'Proof of Sweat', icon: 'award', flag: 'proofOfSweat' },
+].filter((t) => !t.flag || feature(t.flag));
 
 export function NightlifeSensoryModal({
   visible,
   event,
   onClose,
+  onNavigateToMap,
   primary = '#00f2ff',
   textColor = '#fff',
   muted = 'rgba(255,255,255,0.55)',
@@ -228,17 +230,19 @@ export function NightlifeSensoryModal({
                 </View>
               </TouchableOpacity>
 
-              {/* 3. Driver Pickup / Directions */}
+              {/* 3. Driver Pickup / Local Map */}
               <TouchableOpacity
                 style={styles.survivalBtn}
                 onPress={() => {
-                  Linking.openURL('https://maps.google.com');
+                  toast.show('Opening local in-app map radar...', 'info');
+                  onClose?.();
+                  onNavigateToMap?.();
                 }}
               >
                 <Feather name="navigation" size={22} color="#10b981" />
                 <View>
-                  <Text style={styles.survivalBtnTitle}>GET PICKUP / DIRECTIONS</Text>
-                  <Text style={styles.survivalBtnSub}>Directions to home address</Text>
+                  <Text style={styles.survivalBtnTitle}>IN-APP LOCAL MAP RADAR</Text>
+                  <Text style={styles.survivalBtnSub}>Navigate safely with local map</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -252,13 +256,14 @@ export function NightlifeSensoryModal({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={[styles.modalSheet, { backgroundColor: bg }]}>
+          <View style={[styles.notchHandle, { backgroundColor: `${textColor}25` }]} />
           {/* Header */}
           <View style={[styles.sheetHeader, { borderBottomColor: `${primary}20` }]}>
             <View>
               <Text style={[styles.sheetTitle, { color: textColor }]}>Nightlife & Sensory Suite</Text>
               <Text style={[styles.sheetSub, { color: muted }]}>Hardware Controls · Bouncer HUD · Survival Mode</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: surface }]}>
+            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: surface }]} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Close">
               <Feather name="x" size={18} color={textColor} />
             </TouchableOpacity>
           </View>
@@ -549,6 +554,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
+  },
+  notchHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 2.5,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 4,
   },
   sheetHeader: {
     flexDirection: 'row',

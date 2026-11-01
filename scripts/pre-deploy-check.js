@@ -74,7 +74,8 @@ console.log('✅ Codebase credential scan clean (no leaks detected).');
       // 42501 (RLS blocked) or PGRST301 (JWT invalid) or other errors
       if (error.code === 'PGRST301' || error.message.includes('JWT')) {
         console.error('❌ FAILED: Supabase authentication error. The EXPO_PUBLIC_SUPABASE_ANON_KEY is invalid.');
-        setTimeout(() => process.exit(1), 100);
+        process.exitCode = 1;
+        return;
       }
       
       // If it is just RLS block (42501) or table empty, the connection is still alive and keys are authenticated!
@@ -85,9 +86,9 @@ console.log('✅ Codebase credential scan clean (no leaks detected).');
     
     console.log('===========================================');
     console.log('🎉 SUCCESS: All pre-flight gates passed! Proceeding with deploy.');
-    setTimeout(() => process.exit(0), 100);
+    process.exitCode = 0;
   } catch (err) {
     console.error('❌ FAILED: Abrupt error connecting to Supabase:', err.message);
-    setTimeout(() => process.exit(1), 100);
+    process.exitCode = 1;
   }
 })();

@@ -17,7 +17,31 @@ const reducedMotion = () =>
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // ── Shimmer ──────────────────────────────────────────────────────────────────
-export const Shimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = 'rgba(255,255,255,0.22)' }) => {
+export const Shimmer = (props) => (IS_WEB ? <WebShimmer {...props} /> : <NativeShimmer {...props} />);
+
+// Web: the sweep is a CSS animation (an endless Animated.loop re-rendered the
+// skeleton every frame in JavaScript on web).
+const WebShimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = 'rgba(255,255,255,0.22)' }) => (
+  <View style={[{ overflow: 'hidden', backgroundColor: color, borderRadius: 12 }, style]}>
+    {!reducedMotion() && (
+      <View
+        style={{
+          position: 'absolute', top: 0, bottom: 0, left: 0, width: '50%',
+          backgroundImage: `linear-gradient(90deg, transparent, ${highlight}, transparent)`,
+          animationKeyframes: [{
+            from: { transform: 'translateX(-120%) skewX(-18deg)' },
+            to: { transform: 'translateX(320%) skewX(-18deg)' },
+          }],
+          animationDuration: `${MOTION.shimmer}ms`,
+          animationTimingFunction: 'ease-in-out',
+          animationIterationCount: 'infinite',
+        }}
+      />
+    )}
+  </View>
+);
+
+const NativeShimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = 'rgba(255,255,255,0.22)' }) => {
   const x = useRef(new Animated.Value(-1)).current;
   useEffect(() => {
     if (reducedMotion()) return;
@@ -44,7 +68,23 @@ export const Shimmer = ({ style, color = 'rgba(255,255,255,0.10)', highlight = '
 };
 
 // ── AnimatedCounter ──────────────────────────────────────────────────────────
-export const AnimatedCounter = ({ value = 0, style, format = (n) => `${n}` }) => {
+export const AnimatedCounter = (props) => (IS_WEB ? <WebCounter {...props} /> : <NativeCounter {...props} />);
+
+// Web: show the new number at once and slide it in from the direction it moved
+// (CSS). The count-up below re-rendered every card's counter on every frame for
+// almost a second whenever counts arrived, which made the feed sluggish.
+const WebCounter = ({ value = 0, style, format = (n) => `${n}` }) => {
+  const prev = useRef(value);
+  const dir = value > prev.current ? 'tick-up' : value < prev.current ? 'tick-down' : null;
+  useEffect(() => { prev.current = value; }, [value]);
+  return (
+    <Text key={value} style={style} {...(dir && !reducedMotion() ? { dataSet: { fx: dir } } : {})}>
+      {format(value)}
+    </Text>
+  );
+};
+
+const NativeCounter = ({ value = 0, style, format = (n) => `${n}` }) => {
   const [display, setDisplay] = useState(value);
   const anim = useRef(new Animated.Value(value)).current;
   const prev = useRef(value);
@@ -104,4 +144,127 @@ export const LiquidRefresh = ({ color = "#00f2ff", size = 26 }) => {
   );
 };
 
+// ── CyberScanline ────────────────────────────────────────────────────────────
+// A subtle futuristic horizontal laser beam / scanline that sweeps down a container.
+export const CyberScanline = ({ color = '#00f2ff', opacity = 0.15, duration = 3500 }) => {
+  const y = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reducedMotion()) return;
+    const loop = Animated.loop(
+      Animated.timing(y, {
+        toValue: 1,
+        duration,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [y, duration]);
+  const translateY = y.interpolate({ inputRange: [0, 1], outputRange: [-20, 400] });
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Animated.View
+        style={{
+          width: '100%',
+          height: 2,
+          backgroundColor: color,
+          opacity,
+          shadowColor: color,
+          shadowOpacity: 0.8,
+          shadowRadius: 4,
+          transform: [{ translateY }],
+        }}
+      />
+    </View>
+  );
+};
+
+// ── NeonGlowPulse ────────────────────────────────────────────────────────────
+// An ambient cyber border glow that breathes with energy.
+export const NeonGlowPulse = ({ color = '#00f2ff', children, style, radius = 18 }) => {
+  const g = useRef(new Animated.Value(0.25)).current;
+  useEffect(() => {
+    if (reducedMotion()) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(g, { toValue: 0.75, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        Animated.timing(g, { toValue: 0.25, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [g]);
+  return (
+    <Animated.View
+      style={[
+        {
+          borderRadius: radius,
+          borderWidth: 1.5,
+          borderColor: color,
+          shadowColor: color,
+          shadowOpacity: g,
+          shadowRadius: 10,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
+// ── SkeletonCard ─────────────────────────────────────────────────────────────
+// Cyan-infused skeleton shimmer for feed cards (eliminates layout shift)
+export const SkeletonCard = ({ height = 240, style, radius = 22 }) => (
+  <View style={[{ height, borderRadius: radius, overflow: 'hidden', backgroundColor: '#0d1318', marginVertical: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }, style]}>
+    <Shimmer color="#0d1318" highlight="rgba(0,242,255,0.12)" style={{ flex: 1 }} />
+    <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16, gap: 10 }}>
+      <Shimmer color="rgba(255,255,255,0.08)" highlight="rgba(0,242,255,0.18)" style={{ width: '60%', height: 18, borderRadius: 9 }} />
+      <Shimmer color="rgba(255,255,255,0.05)" highlight="rgba(0,242,255,0.12)" style={{ width: '40%', height: 12, borderRadius: 6 }} />
+    </View>
+  </View>
+);
+
+// ── ParticleBurst ────────────────────────────────────────────────────────────
+// Lightweight micro-confetti burst (GPU animated)
+export const ParticleBurst = ({ active = false, count = 8, color = '#00f2ff' }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!active) return;
+    anim.setValue(0);
+    Animated.timing(anim, { toValue: 1, duration: 650, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }).start();
+  }, [active, anim]);
+
+  if (!active) return null;
+  const particles = Array.from({ length: count });
+  return (
+    <View pointerEvents="none" style={[StyleSheet.absoluteFillObject, mt.center]}>
+      {particles.map((_, i) => {
+        const angle = (i * (360 / count)) * (Math.PI / 180);
+        const dist = 48;
+        const tx = anim.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(angle) * dist] });
+        const ty = anim.interpolate({ inputRange: [0, 1], outputRange: [0, Math.sin(angle) * dist] });
+        const scale = anim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.2, 1.2, 0] });
+        const opacity = anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 0.9, 0] });
+        return (
+          <Animated.View
+            key={i}
+            style={{
+              position: 'absolute',
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: i % 2 === 0 ? color : '#ff007f',
+              transform: [{ translateX: tx }, { translateY: ty }, { scale }],
+              opacity,
+            }}
+          />
+        );
+      })}
+    </View>
+  );
+};
+
 const mt = StyleSheet.create({ center: { alignItems: 'center', justifyContent: 'center' } });
+

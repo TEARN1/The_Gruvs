@@ -13,6 +13,7 @@ DROP POLICY IF EXISTS "live_checkins are viewable by everyone" ON public.live_ch
 DROP POLICY IF EXISTS "Enable read access for all users"        ON public.live_checkins;
 DROP POLICY IF EXISTS "live_checkins: owner reads own"          ON public.live_checkins;
 DROP POLICY IF EXISTS "live_checkins: authenticated read"       ON public.live_checkins;
+DROP POLICY IF EXISTS "live_checkins: owner management"         ON public.live_checkins;
 
 -- 1. Owners can read and manage their own check-in records.
 CREATE POLICY "live_checkins: owner management"
@@ -28,27 +29,30 @@ CREATE POLICY "live_checkins: authenticated read"
   TO authenticated
   USING (true);
 
--- 3. Hard security boundaries on exact GPS coordinates (lat, lon columns)
--- Completely block anonymous users from selecting any data from live_checkins
-REVOKE SELECT ON public.live_checkins FROM anon;
-
--- Revoke SELECT privilege on exact lat and lon columns from both anon and authenticated roles
-REVOKE SELECT (lat, lon) ON public.live_checkins FROM anon, authenticated;
-
--- Explicitly grant SELECT privilege on all other non-sensitive columns of live_checkins to authenticated users
-GRANT SELECT (id, user_id, event_id, checked_in_at, expires_at, identity_layer, ghost_alias)
-  ON public.live_checkins TO authenticated;
+-- 3. Anonymous callers get NOTHING from live_checkins (no GPS harvesting with
+--    the public anon key). Signed-in users keep full read, lat/lon included:
+--    the check-in map needs them (FIX_LIVE_ISSUES.sql restored this after an
+--    earlier lockdown broke the map).
+--
+--    The previous version of this section did
+--        REVOKE SELECT (lat, lon) ... FROM authenticated
+--    which Postgres silently ignores while a TABLE-level SELECT grant exists —
+--    column revokes cannot carve a hole in a table grant. It looked like a
+--    lock and was not one. Stated honestly instead: coordinates are visible to
+--    signed-in users by product decision. Coarsening them server-side is the
+--    real fix if that decision changes.
+REVOKE ALL ON public.live_checkins FROM anon;
+GRANT SELECT ON public.live_checkins TO authenticated;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- §2  MEDIUM — Hide PII (Personally Identifiable Information) on profiles
+-- §2  profiles PII — handled by supabase/queries/lock_pii_regrant_combined.sql
 -- ─────────────────────────────────────────────────────────────────────────────
--- Revoke SELECT on sensitive columns from the anonymous role completely.
-REVOKE SELECT (email, push_token, phone, emergency_contacts, siblings, first_name, surname)
-  ON public.profiles FROM anon;
-
--- Note: The client uses the public_profiles view for general public queries, 
--- ensuring that only the logged-in owner can read their own PII.
+-- Removed from here. The old statements revoked individual columns
+-- (email, phone, ...) which is a no-op against a table-level grant, and
+-- `phone` does not exist on every database, so the file aborted there.
+-- lock_pii_regrant_combined.sql does it correctly (revoke table, re-grant an
+-- explicit column list built from information_schema).
 
 
 -- ─────────────────────────────────────────────────────────────────────────────

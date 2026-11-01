@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, Animated } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { cssLoop, IS_WEB } from '../utils/cssLoop';
 
 let LOCAL_LOGO = null;
 try {
@@ -15,7 +16,7 @@ export const BrandLogo = ({ size = 42, showGlow = false, style }) => {
   const glowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!showGlow) return;
+    if (!showGlow || IS_WEB) return;   // web: CSS animation below
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 1, duration: 2400, useNativeDriver: false }),
@@ -30,13 +31,18 @@ export const BrandLogo = ({ size = 42, showGlow = false, style }) => {
     ? glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.95] })
     : 0.55;
 
-  const glowStyle = {
-    shadowColor: primary,
-    shadowOpacity,
-    shadowRadius: showGlow ? 22 : 10,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 10,
-  };
+  const glowStyle = IS_WEB && showGlow
+    ? {
+        boxShadow: `0 0 22px ${primary}59`,
+        ...cssLoop({ '0%': { boxShadow: `0 0 22px ${primary}59` }, '100%': { boxShadow: `0 0 22px ${primary}F2` } }, 2400),
+      }
+    : {
+        shadowColor: primary,
+        shadowOpacity,
+        shadowRadius: showGlow ? 22 : 10,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: 10,
+      };
 
   if (LOCAL_LOGO) {
     return (

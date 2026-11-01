@@ -2337,9 +2337,23 @@ SELECT
   p.updated_at
 FROM public.profiles p;
 
--- Run the view with the querying user's privileges (respects profiles RLS),
--- not the view owner's. Requires Postgres 15+ (Supabase supports it).
-ALTER VIEW public.public_profiles SET (security_invoker = true);
+-- ⚠️ DO NOT set security_invoker on this view. It looks like hardening and it is
+-- the opposite: `anon` has no SELECT policy on public.profiles, so an invoker
+-- view runs the underlying query as the guest and fails outright —
+-- "ERROR: permission denied for table profiles" — on every signed-out page load.
+-- Verified on a local Postgres modelling the live grants.
+--
+-- This view IS the anonymous-safe projection: its curated column list is the
+-- control, not RLS (see supabase/queries/definer_views_audit.sql, which reached
+-- the same conclusion). A DEFINER view here is deliberate.
+--
+-- This file used to carry `ALTER VIEW ... SET (security_invoker = true)`. It was
+-- harmless only by accident: schema_part_4.sql and schema_part_1.sql both
+-- CREATE OR REPLACE this view afterwards (fresh-build order is 2→3→4→1) and a
+-- CREATE OR REPLACE drops the option. Reorder the build, or drop one of those
+-- redefinitions, and guest browsing breaks. Intent is now asserted explicitly in
+-- schema_part_1.sql, the last file to touch the view.
+ALTER VIEW public.public_profiles SET (security_invoker = false);
 
 GRANT SELECT ON public.public_profiles TO anon, authenticated;
 
