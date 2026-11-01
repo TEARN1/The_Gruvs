@@ -3,13 +3,17 @@
  *
  * Implements advanced search engine optimization (SEO) best practices:
  * 1. Google Image Sitemap Extension (xmlns:image) for rich image/poster indexing in Google Search & Images.
- * 2. Strict XML sanitization preventing indexing parse errors.
- * 3. Event lifecycle priority scoring:
+ * 2. Programmatic City & Genre Hub Indexing:
+ *    - Gauteng Metros (Midrand, Johannesburg, Pretoria, Soweto, Tembisa, etc.)
+ *    - Music & Vibe categories (Amapiano, Afro-Tech, Nightlife, Festivals)
+ *    - Seasonal flagship hub: Ke Dezemba 2026
+ * 3. Semantic keyword-rich event URLs (/events/[slug]) alongside canonical share routes.
+ * 4. Event proximity priority scoring:
  *    - Events in next 14 days: 0.9 priority, daily changefreq (high urgency)
- *    - Events in 15-45 days: 0.8 priority, daily changefreq
- *    - Events 45+ days out: 0.7 priority, weekly changefreq
- * 4. Dual destination write: public/sitemap.xml (source) + dist/sitemap.xml (build artifact).
- * 5. Automatic inclusion of core SPA hubs, PWA/legal endpoints, and upcoming published events.
+ *    - Events in 15-45 days: 0.85 priority, daily changefreq
+ *    - Events 45+ days out: 0.75 priority, weekly changefreq
+ * 5. Strict XML entity escaping preventing indexing parse errors.
+ * 6. Dual destination write: public/sitemap.xml (source) + dist/sitemap.xml (build artifact).
  */
 const fs = require('fs');
 const path = require('path');
@@ -22,6 +26,29 @@ const STATIC = [
   { loc: '/privacy.html', changefreq: 'yearly', priority: '0.2' },
   { loc: '/terms.html', changefreq: 'yearly', priority: '0.2' },
   { loc: '/account-deletion.html', changefreq: 'yearly', priority: '0.2' },
+];
+
+const HUBS = [
+  // Flagship Seasonal
+  { loc: '/events/ke-dezemba', changefreq: 'daily', priority: '0.95' },
+
+  // City & Metro Hubs
+  { loc: '/events/johannesburg', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/pretoria', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/midrand', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/tembisa', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/soweto', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/centurion', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/sandton', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/rosebank', changefreq: 'daily', priority: '0.90' },
+
+  // Genre & Vibe Hubs
+  { loc: '/events/amapiano', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/afro-tech', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/nightlife', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/festivals', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/food-and-drink', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/lifestyle', changefreq: 'daily', priority: '0.90' },
 ];
 
 function readEnv() {
@@ -37,6 +64,17 @@ function readEnv() {
     url: process.env.EXPO_PUBLIC_SUPABASE_URL || out.EXPO_PUBLIC_SUPABASE_URL,
     key: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || out.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   };
+}
+
+function slugify(text) {
+  if (!text) return '';
+  return String(text)
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 function escapeXml(str) {
@@ -91,16 +129,15 @@ function buildXml(entries) {
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
 
-  const urls = STATIC.map(s => ({
-    ...s,
-    loc: `${SITE}${s.loc}`,
-    lastmod: today,
-  }));
+  const urls = [
+    ...STATIC.map(s => ({ ...s, loc: `${SITE}${s.loc}`, lastmod: today })),
+    ...HUBS.map(h => ({ ...h, loc: `${SITE}${h.loc}`, lastmod: today })),
+  ];
 
   const { url, key } = readEnv();
 
   if (!url || !key) {
-    console.warn('[gen-sitemap] No Supabase credentials found — writing static-only sitemap.');
+    console.warn('[gen-sitemap] No Supabase credentials found — writing static + hub sitemap.');
   } else {
     try {
       const res = await fetch(
@@ -113,16 +150,16 @@ function buildXml(entries) {
       const events = await res.json();
 
       for (const e of events) {
-        let priority = '0.7';
+        let priority = '0.75';
         let changefreq = 'weekly';
         if (e.event_date) {
           const evtDate = new Date(`${e.event_date}T00:00:00`);
           const diffDays = Math.ceil((evtDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           if (diffDays <= 14) {
-            priority = '0.9';
+            priority = '0.90';
             changefreq = 'daily';
           } else if (diffDays <= 45) {
-            priority = '0.8';
+            priority = '0.85';
             changefreq = 'daily';
           }
         }
@@ -138,15 +175,28 @@ function buildXml(entries) {
           };
         }
 
+        const lastmod = (e.updated_at || e.event_date || today).slice(0, 10);
+        const slug = `${slugify(e.title)}-${slugify(e.city || 'gauteng')}`;
+
+        // 1. Semantic slug URL
+        urls.push({
+          loc: `${SITE}/events/${slug}`,
+          lastmod,
+          changefreq,
+          priority,
+          image,
+        });
+
+        // 2. Canonical share URL
         urls.push({
           loc: `${SITE}/share/event/${e.id}`,
-          lastmod: (e.updated_at || e.event_date || today).slice(0, 10),
+          lastmod,
           changefreq,
           priority,
           image,
         });
       }
-      console.log(`[gen-sitemap] Successfully indexed ${events.length} upcoming events with Google Image schema.`);
+      console.log(`[gen-sitemap] Successfully indexed ${events.length} upcoming events with Google Image schema & semantic URLs.`);
     } catch (err) {
       console.warn(`[gen-sitemap] Event fetch failed (${err.message}) — writing static sitemap.`);
     }
