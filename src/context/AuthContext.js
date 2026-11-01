@@ -1,5 +1,4 @@
 import { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Platform } from 'react-native';
 import { supabase } from '../services/supabase';
 import { UserManager, clearAllCache, PresenceManager, hydrateCacheFromDisk } from '../services/dataFlow';
 import { SecurityService } from '../services/securityService';
@@ -123,57 +122,10 @@ export const AuthProvider = ({ children }) => {
     };
   }, [fetchProfile]);
 
-  // OAuth & Auth return handler (web):
-  // When returning from Facebook/Google OAuth or a password-reset link, the tokens
-  // arrive in the URL hash (#access_token=...&refresh_token=...) or PKCE code (?code=...).
-  // We establish the Supabase session, trigger recovery mode if applicable, and scrub
-  // the tokens from the browser address bar for security.
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    // 1. PKCE Auth Code exchange: ?code=...
-    try {
-      const searchParams = new URLSearchParams(window.location.search || '');
-      const code = searchParams.get('code');
-      if (code) {
-        supabase.auth.exchangeCodeForSession?.(code).then(({ data, error }) => {
-          if (!error && data?.session) {
-            searchParams.delete('code');
-            const remaining = searchParams.toString();
-            const cleanUrl = window.location.pathname + (remaining ? ('?' + remaining) : '') + window.location.hash;
-            try { window.history.replaceState(null, '', cleanUrl); } catch { /* noop */ }
-          }
-        }).catch(() => {});
-      }
-    } catch { /* noop */ }
-
-    // 2. Implicit OAuth tokens / Password recovery in hash: #access_token=...&refresh_token=...
-    try {
-      const hash = window.location.hash || '';
-      if (hash.includes('access_token=') && hash.includes('refresh_token=')) {
-        const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
-        const access_token = hashParams.get('access_token');
-        const refresh_token = hashParams.get('refresh_token');
-        const isRecovery = hash.includes('type=recovery');
-
-        if (access_token && refresh_token) {
-          supabase.auth.setSession?.({ access_token, refresh_token })
-            .then(({ data, error }) => {
-              if (!error && data?.session && isRecovery) {
-                setRecoveryMode(true);
-              }
-            })
-            .catch(() => {});
-          try {
-            window.history.replaceState(null, '', window.location.pathname + window.location.search);
-          } catch { /* noop */ }
-        }
-      } else if (hash.includes('error=') && hash.includes('error_description=')) {
-        try {
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        } catch { /* noop */ }
-      }
-    } catch { /* noop */ }
-  }, []);
+  // Returning from Google/Facebook or a password-reset link (web): the client
+  // (detectSessionInUrl, PKCE in services/supabase.js) exchanges ?code= itself
+  // and reports PASSWORD_RECOVERY above. Never take a session from tokens in
+  // the address: anyone could send a link that signs a user into their account.
 
   // Session monitor — verify token every 10 min and refresh if stale
   useEffect(() => {
