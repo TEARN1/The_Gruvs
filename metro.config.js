@@ -3,7 +3,10 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// Drop console.* calls in production builds to reduce noise and bundle size
+// The public console stays empty: production bundles drop every console.*
+// call. The minifier only runs for production bundles, so this is always on
+// (it used to depend on NODE_ENV being set when this file loads, which
+// `expo export` does not guarantee).
 config.transformer = {
   ...config.transformer,
   // Inline requires: a module's top-level code runs the first time something
@@ -14,7 +17,7 @@ config.transformer = {
   }),
   minifierConfig: {
     compress: {
-      drop_console: process.env.NODE_ENV === 'production',
+      drop_console: true,
     },
   },
 };

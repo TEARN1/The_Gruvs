@@ -244,8 +244,18 @@ function applyGlassMode() {
   document.documentElement.setAttribute('data-glass', glassWanted(env) ? 'on' : 'off');
 }
 
+// The one message in the public console (production drops every other
+// console call, metro.config.js), for anyone told to paste something there.
+function consoleNotice() {
+  if (typeof __DEV__ !== 'undefined' && __DEV__) return;
+  const out = window.console;
+  out.log('%cStop', 'font-size:28px;font-weight:700;color:#e11d48');
+  out.log('This is a tool for developers. If someone told you to copy or paste something here, it is a scam that can give them your account. Close this window.');
+}
+
 export function installWebFx() {
   if (!IS_WEB || typeof document === 'undefined' || document.getElementById('gruvs-fx')) return;
+  try { consoleNotice(); } catch { /* nothing to show */ }
   try { applyGlassMode(); } catch { document.documentElement.setAttribute('data-glass', 'on'); }
   const style = document.createElement('style');
   style.id = 'gruvs-fx';
