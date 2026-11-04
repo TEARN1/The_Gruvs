@@ -97,7 +97,6 @@ import { BirthDateNudge } from '../components/BirthDateNudge';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { BorderTracer } from '../components/KasiIndustrialUI';
 import { deferred } from '../utils/deferred';
-import { loadEventsCatalog } from '../services/eventsCatalog';
 import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 import { fx } from '../styles/webFx';
 
@@ -1134,7 +1133,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // Warm the fallback events list in the background: the feed reaches for it
   // the moment the database answers with too few events (or not at all), and
   // fetching it only then added a round-trip to the first paint of the feed.
-  useEffect(() => { loadEventsCatalog().catch(() => {}); }, []);
   const iconSize = tightHeader ? 32 : 36;
   const iconBox = { width: iconSize, height: iconSize, borderRadius: iconSize / 2 };
   const insets = useSafeAreaInsets();

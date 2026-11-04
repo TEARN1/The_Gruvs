@@ -407,24 +407,9 @@ function emptyHubNote(what) {
     }
   }
 
-  // Merge Supabase live events with comprehensive catalog events (3,000+ items)
-  const catalogPath = path.join(publicDir, 'data', 'events-catalog.json');
-  let catalogEvents = [];
-  if (fs.existsSync(catalogPath)) {
-    try {
-      catalogEvents = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
-      console.log(`[build-seo-hubs] Loaded ${catalogEvents.length} events from events-catalog.json.`);
-    } catch {}
-  }
-
-  const seenIds = new Set(events.map(e => e.id));
-  for (const ce of catalogEvents) {
-    if (!seenIds.has(ce.id)) {
-      events.push(ce);
-      seenIds.add(ce.id);
-    }
-  }
-  console.log(`[build-seo-hubs] Total unified event dataset: ${events.length} events.`);
+  // Only events people posted, from the database. A generated catalogue of
+  // 3,000 events that were not real used to be merged in here.
+  console.log(`[build-seo-hubs] ${events.length} upcoming events from the database.`);
 
   // 1. City Definitions (Expanded across all South African Metro & Cultural Centers)
   const CITIES = [
