@@ -71,6 +71,18 @@ const HUBS = [
   { loc: '/events/nye-2027', changefreq: 'daily', priority: '0.95' },
 ];
 
+// A hub with no events of its own is built with noindex
+// (scripts/build-seo-hubs.js); sending it in the sitemap too would tell Google
+// two opposite things. A hub that has not been built yet is kept.
+function hubIsIndexable(h) {
+  const file = path.join(__dirname, '..', 'public', h.loc.replace(/^\//, ''), 'index.html');
+  try {
+    return !/<meta name="robots" content="noindex/.test(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return true;
+  }
+}
+
 function readEnv() {
   const envPath = path.join(__dirname, '..', '.env');
   const out = {};
@@ -159,7 +171,7 @@ function buildXml(entries) {
 
   const urls = [
     ...STATIC.map(s => ({ ...s, loc: `${SITE}${s.loc}`, lastmod: today })),
-    ...HUBS.map(h => ({ ...h, loc: `${SITE}${h.loc}`, lastmod: today })),
+    ...HUBS.filter(hubIsIndexable).map(h => ({ ...h, loc: `${SITE}${h.loc}`, lastmod: today })),
   ];
 
   const { url, key } = readEnv();
