@@ -155,6 +155,7 @@ get() { req "$@"; }
 head_of() { req "$1" "$2" -o /dev/null -D - "${@:3}"; }
 code_of() { req "$1" "$2" -o /dev/null -w '%{http_code}' "${@:3}"; }
 contains() { grep -q -- "$2" <<<"$1"; }
+contains_i() { grep -qi -- "$2" <<<"$1"; }
 last_log() { grep -F "\"u\":\"$2\"" "$T/logs/vgruvs/$1.log" | tail -1; }
 conf_set() { echo "$2" >>"$T/etc/apps/$1.conf"; }
 
@@ -282,9 +283,11 @@ else
     d="$(mktemp -d "$T/build.XXXX")"
     mkdir -p "$d/dist/assets" "$d/api"
     echo '<!doctype html><html><head><title>Excellency Academy</title></head><body></body></html>' >"$d/dist/index.html"
+    mkdir -p "$d/dist/basics"
+    echo '<!doctype html><html><head><title>Basics page</title></head><body></body></html>' >"$d/dist/basics/index.html"
     echo 'x' >"$d/dist/assets/app-abc.js"
     echo 'export async function GET(r){const u=new URL(r.url);return Response.json({valid:false,id:u.searchParams.get("id")},{headers:{"cache-control":"public, max-age=300"}})}' >"$d/api/verify-dossier.js"
-    echo '{"rewrites":[{"source":"/verify/:id","destination":"/api/verify-dossier?id=:id"}]}' >"$d/vercel.json"
+    echo '{"rewrites":[{"source":"/verify/:id","destination":"/api/verify-dossier?id=:id"}],"headers":[{"source":"/(.*)","headers":[{"key":"Content-Security-Policy","value":"default-src https:"}]}]}' >"$d/vercel.json"
     tar -czf - -C "$d" .
   }
 fi
@@ -292,6 +295,8 @@ mk_excellency | "$VG" receive excellency e1 >/dev/null
 check "the app shell is served (by the app, for rollouts)" contains "$(get excellencyacs.com /)" "<title>"
 check "with the Web Vitals script added to it" contains "$(get excellencyacs.com /)" "/_vgruvs/v.js"
 check "a single-page route falls back to the app" contains "$(get excellencyacs.com /eval/inv_123)" "<title>"
+check "index.html asked for by name still carries the CSP" contains_i "$(head_of excellencyacs.com /index.html)" "content-security-policy"
+check "a folder's own page is served, with the CSP" contains_i "$(head_of excellencyacs.com /basics/)" "content-security-policy"
 check "a function answers through its vercel.json rewrite" test "$(code_of excellencyacs.com /verify/EA-2026-00001)" = 200
 code_of excellencyacs.com /verify/EA-2026-00001 >/dev/null
 check "a public function response is served from the edge cache" contains "$(last_log excellency /verify/EA-2026-00001)" '"c":"HIT"'

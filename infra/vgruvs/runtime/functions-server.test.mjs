@@ -15,6 +15,8 @@ before(async () => {
   mkdirSync(join(dir, 'dist'));
   writeFileSync(join(dir, 'dist', 'index.html'), '<!doctype html><title>app</title>');
   writeFileSync(join(dir, 'dist', 'robots.txt'), 'ok');
+  mkdirSync(join(dir, 'dist', 'learn', 'demo'), { recursive: true });
+  writeFileSync(join(dir, 'dist', 'learn', 'demo', 'index.html'), '<!doctype html><title>lesson</title>');
   writeFileSync(join(dir, 'secret.txt'), 'outside the static root');
   writeFileSync(join(dir, '.vgruvs-release'), 'abc123\n');
   writeFileSync(
@@ -28,7 +30,10 @@ before(async () => {
         { source: '/old/:slug', destination: '/new/:slug' },
         { source: '/go', destination: 'https://example.com/landing', permanent: false }
       ],
-      headers: [{ source: '/api/(.*)', headers: [{ key: 'X-Robots-Tag', value: 'noindex' }] }]
+      headers: [
+        { source: '/api/(.*)', headers: [{ key: 'X-Robots-Tag', value: 'noindex' }] },
+        { source: '/(.*)', headers: [{ key: 'Content-Security-Policy', value: "default-src 'self'" }] }
+      ]
     })
   );
   writeFileSync(
@@ -174,4 +179,17 @@ test('streams a response as the function produces it', async () => {
   }
   assert.equal(text, 'data: 0\n\ndata: 1\n\ndata: 2\n\n');
   assert.ok(firstAt < 400, `the first chunk arrived after ${firstAt} ms, so the body was buffered`);
+});
+
+test("serves a folder's page, and every page carries vercel.json's headers such as the CSP", async () => {
+  const folder = await fetch(`${base}/learn/demo/`);
+  assert.equal(folder.status, 200);
+  assert.match(await folder.text(), /lesson/);
+  assert.equal(folder.headers.get('content-security-policy'), "default-src 'self'");
+  const shell = await fetch(`${base}/index.html`);
+  assert.match(await shell.text(), /<title>app<\/title>/);
+  assert.equal(shell.headers.get('content-security-policy'), "default-src 'self'");
+  // The static root itself still falls back to the app shell, and nothing outside it is served.
+  assert.match(await (await fetch(`${base}/`)).text(), /<title>app<\/title>/);
+  assert.doesNotMatch(await (await fetch(`${base}/..%2Fsecret.txt`)).text(), /outside the static root/);
 });
