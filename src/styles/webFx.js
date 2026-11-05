@@ -72,7 +72,7 @@ export const FX_CSS = `
 @keyframes gx-tick-down{from{opacity:0;transform:translate3d(0,-70%,0)}to{opacity:1;transform:none}}
 ${stagger}
 
-[data-fx~="glass"]{-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);background-image:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0) 55%)}
+[data-fx~="glass"]{-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);background-image:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0) 55%)}
 [data-fx~="glass"],[data-fx~="rim"],[data-fx~="aurora"]{isolation:isolate}
 [data-fx~="glass"]::before,[data-fx~="rim"]::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
   background:linear-gradient(140deg,rgba(255,255,255,.55),rgba(255,255,255,.08) 30%,rgba(255,255,255,0) 58%,rgba(255,255,255,.2));
@@ -161,6 +161,12 @@ ${stagger}
     [data-fx~="lift"]:hover{transform:translate3d(0,-3px,0);box-shadow:0 14px 34px rgba(0,0,0,.28)}
   }
 }
+
+/* Solid surfaces (data-glass="off", set by installWebFx): where glass would
+   cost readability or speed, nothing blurs and the gloss is dropped. Inline
+   blur from GlassView and friends is overridden too. */
+[data-glass="off"] *,[data-glass="off"] *::before,[data-glass="off"] *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+[data-glass="off"] [data-fx~="glass"]{background-image:none!important}
 `;
 
 const PRESSABLE = 'button,a[href],[role="button"],[role="tab"],[role="link"],[role="checkbox"],[role="switch"],[tabindex="0"]';
@@ -208,8 +214,49 @@ export function replay(el, name) {
   el.setAttribute('data-gx-play', name);
 }
 
+/**
+ * Glass is the default look (the same rule as Excellency and The Resident).
+ * Surfaces turn solid where it would cost readability or speed: the device
+ * asks for less transparency or forced colours, Data Saver is on, the
+ * browser cannot blur, or the device is slow (2 GB of memory or 2 cores or
+ * fewer).
+ */
+export function glassWanted(env) {
+  if (!env.supportsBackdrop || env.reducedTransparency || env.forcedColors || env.saveData) return false;
+  if (env.deviceMemory !== undefined && env.deviceMemory <= 2) return false;
+  if (env.cores !== undefined && env.cores <= 2) return false;
+  return true;
+}
+
+function applyGlassMode() {
+  const media = (q) => typeof window.matchMedia === 'function' && window.matchMedia(q).matches;
+  const nav = navigator || {};
+  const env = {
+    supportsBackdrop:
+      typeof CSS !== 'undefined' && typeof CSS.supports === 'function' &&
+      (CSS.supports('backdrop-filter', 'blur(1px)') || CSS.supports('-webkit-backdrop-filter', 'blur(1px)')),
+    reducedTransparency: media('(prefers-reduced-transparency: reduce)'),
+    forcedColors: media('(forced-colors: active)'),
+    saveData: Boolean(nav.connection && nav.connection.saveData),
+    deviceMemory: typeof nav.deviceMemory === 'number' ? nav.deviceMemory : undefined,
+    cores: typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency > 0 ? nav.hardwareConcurrency : undefined,
+  };
+  document.documentElement.setAttribute('data-glass', glassWanted(env) ? 'on' : 'off');
+}
+
+// The one message in the public console (production drops every other
+// console call, metro.config.js), for anyone told to paste something there.
+function consoleNotice() {
+  if (typeof __DEV__ !== 'undefined' && __DEV__) return;
+  const out = window.console;
+  out.log('%cStop', 'font-size:28px;font-weight:700;color:#e11d48');
+  out.log('This is a tool for developers. If someone told you to copy or paste something here, it is a scam that can give them your account. Close this window.');
+}
+
 export function installWebFx() {
   if (!IS_WEB || typeof document === 'undefined' || document.getElementById('gruvs-fx')) return;
+  try { consoleNotice(); } catch { /* nothing to show */ }
+  try { applyGlassMode(); } catch { document.documentElement.setAttribute('data-glass', 'on'); }
   const style = document.createElement('style');
   style.id = 'gruvs-fx';
   style.textContent = FX_CSS;

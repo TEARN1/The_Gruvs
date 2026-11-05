@@ -58,8 +58,8 @@ export const GlassView = ({ children, style, intensity = 1, glow = false, sheen 
           ...depthStyle,
           ...(IS_WEB
             ? {
-                backdropFilter: 'blur(18px) saturate(140%)',
-                WebkitBackdropFilter: 'blur(18px) saturate(140%)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
                 transition: `box-shadow ${DURATION.fast}ms ease, transform ${DURATION.fast}ms ease`,
                 willChange: 'transform',
               }

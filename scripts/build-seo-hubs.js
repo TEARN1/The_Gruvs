@@ -77,7 +77,7 @@ function formatDate(dateStr, timeStr) {
   }
 }
 
-function renderHtmlShell({ title, description, canonicalUrl, ogImage, jsonLd = [], bodyContent, breadcrumbs = [] }) {
+function renderHtmlShell({ title, description, canonicalUrl, ogImage, jsonLd = [], bodyContent, breadcrumbs = [], noindex = false }) {
   const escTitle = escapeHtml(title);
   const escDesc = escapeHtml(description);
   const escImage = escapeHtml(ogImage || `${SITE}/og-default.jpg`);
@@ -106,7 +106,7 @@ function renderHtmlShell({ title, description, canonicalUrl, ogImage, jsonLd = [
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>${escTitle}</title>
   <meta name="description" content="${escDesc}" />
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="robots" content="${noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}" />
   <link rel="canonical" href="${escUrl}" />
 
   <!-- Open Graph -->
@@ -371,6 +371,14 @@ function renderEventCard(e) {
   `;
 }
 
+// A hub with nothing of its own says so. It used to fill up with unrelated
+// events ("This weekend" listing events on other dates), which misleads
+// visitors and is the kind of page Google treats as spam. Empty hubs are also
+// marked noindex and left out of the sitemap until they have events.
+function emptyHubNote(what) {
+  return `<p class="hero-lead">No ${escapeHtml(what)} are listed on The Gruvs yet. <a href="${SITE}/">See everything that's on</a>, or post one yourself.</p>`;
+}
+
 // ─── Main Generator ────────────────────────────────────────────────────────────
 
 (async () => {
@@ -399,24 +407,9 @@ function renderEventCard(e) {
     }
   }
 
-  // Merge Supabase live events with comprehensive catalog events (3,000+ items)
-  const catalogPath = path.join(publicDir, 'data', 'events-catalog.json');
-  let catalogEvents = [];
-  if (fs.existsSync(catalogPath)) {
-    try {
-      catalogEvents = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
-      console.log(`[build-seo-hubs] Loaded ${catalogEvents.length} events from events-catalog.json.`);
-    } catch {}
-  }
-
-  const seenIds = new Set(events.map(e => e.id));
-  for (const ce of catalogEvents) {
-    if (!seenIds.has(ce.id)) {
-      events.push(ce);
-      seenIds.add(ce.id);
-    }
-  }
-  console.log(`[build-seo-hubs] Total unified event dataset: ${events.length} events.`);
+  // Only events people posted, from the database. A generated catalogue of
+  // 3,000 events that were not real used to be merged in here.
+  console.log(`[build-seo-hubs] ${events.length} upcoming events from the database.`);
 
   // 1. City Definitions (Expanded across all South African Metro & Cultural Centers)
   const CITIES = [
@@ -490,7 +483,7 @@ function renderEventCard(e) {
       return cityText.includes(c.slug.replace('-', ' ')) || cityText.includes(c.name.toLowerCase().split(' ')[0]);
     });
 
-    const activeList = cityEvents.length > 0 ? cityEvents : events.slice(0, 12);
+    const activeList = cityEvents;
     const itemListJsonLd = {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
@@ -528,32 +521,33 @@ function renderEventCard(e) {
       </div>
 
       <h1 class="hero-title">Events in <span class="brand-accent">${escapeHtml(c.name)}</span></h1>
-      <p class="hero-lead">${escapeHtml(c.desc)} Browse verified upcoming tickets, soundstages, and vibe listings.</p>
+      <p class="hero-lead">${escapeHtml(c.desc)} Browse what's listed, with dates, venues and directions.</p>
 
       <div class="resident-banner">
         <div class="resident-banner-text">
           <h3>Need Accommodation in ${escapeHtml(c.name)}?</h3>
-          <p>Heading to an event? Browse verified student rooms, guest houses, and shared apartments near venues on The Resident Crew.</p>
+          <p>Heading to an event? Look for student rooms, guest houses and shared flats near venues on The Resident Crew.</p>
         </div>
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
-      <div class="event-grid">
+      ${activeList.length ? `<div class="event-grid">
         ${activeList.map(renderEventCard).join('')}
-      </div>
+      </div>` : emptyHubNote(`events in ${c.name}`)}
     `;
 
     const html = renderHtmlShell({
-      title: `Upcoming Events in ${c.name} (2026) — The Gruvs`,
-      description: `Discover upcoming events, nightlife, and festivals in ${c.name}. Verified tickets, directions, and vibe updates on The Gruvs.`,
+      title: `Upcoming Events in ${c.name} (${now.getFullYear()}) — The Gruvs`,
+      description: `Discover upcoming events, nightlife, and festivals in ${c.name}. Dates, venues and directions on The Gruvs.`,
       canonicalUrl: `${SITE}/events/${c.slug}`,
-      jsonLd: [itemListJsonLd],
+      jsonLd: activeList.length ? [itemListJsonLd] : [],
       bodyContent: body,
       breadcrumbs,
+      noindex: activeList.length === 0,
     });
 
     writePage(`events/${c.slug}/index.html`, html);
-    generatedPages.push({ loc: `${SITE}/events/${c.slug}`, priority: '0.9', changefreq: 'daily' });
+    if (activeList.length) generatedPages.push({ loc: `${SITE}/events/${c.slug}`, priority: '0.9', changefreq: 'daily' });
   }
 
   // ── Generate Genre Hubs ───────────────────────────────────────────────────
@@ -563,7 +557,7 @@ function renderEventCard(e) {
       return catText.includes(g.slug.replace('-', ' ')) || catText.includes(g.name.toLowerCase());
     });
 
-    const activeList = genreEvents.length > 0 ? genreEvents : events.slice(0, 10);
+    const activeList = genreEvents;
     const itemListJsonLd = {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
@@ -601,29 +595,30 @@ function renderEventCard(e) {
       </div>
 
       <h1 class="hero-title"><span class="brand-accent">${escapeHtml(g.name)}</span> Events & Vibes</h1>
-      <p class="hero-lead">${escapeHtml(g.desc)} Verified lineup schedules, stage times, and instant tickets.</p>
+      <p class="hero-lead">${escapeHtml(g.desc)} Dates, venues and how to RSVP.</p>
 
-      <div class="event-grid">
+      ${activeList.length ? `<div class="event-grid">
         ${activeList.map(renderEventCard).join('')}
-      </div>
+      </div>` : emptyHubNote(`${g.name} events`)}
     `;
 
     const html = renderHtmlShell({
-      title: `${g.name} Events & Parties in South Africa (2026) — The Gruvs`,
-      description: `Experience the top ${g.name} events, DJ sets, and festivals in Gauteng and South Africa. Get tickets on The Gruvs.`,
+      title: `${g.name} Events & Parties in South Africa (${now.getFullYear()}) — The Gruvs`,
+      description: `Experience the top ${g.name} events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.`,
       canonicalUrl: `${SITE}/events/${g.slug}`,
-      jsonLd: [itemListJsonLd],
+      jsonLd: activeList.length ? [itemListJsonLd] : [],
       bodyContent: body,
       breadcrumbs,
+      noindex: activeList.length === 0,
     });
 
     writePage(`events/${g.slug}/index.html`, html);
-    generatedPages.push({ loc: `${SITE}/events/${g.slug}`, priority: '0.9', changefreq: 'daily' });
+    if (activeList.length) generatedPages.push({ loc: `${SITE}/events/${g.slug}`, priority: '0.9', changefreq: 'daily' });
   }
 
   // ── Generate Flagship Seasonal: Ke Dezemba 2026 ───────────────────────────
   const decEvents = events.filter(e => (e.event_date || '').startsWith('2026-12'));
-  const keDezembaList = decEvents.length > 0 ? decEvents : events.slice(0, 25);
+  const keDezembaList = decEvents;
 
   const keDezembaJsonLd = {
     '@context': 'https://schema.org',
@@ -661,22 +656,23 @@ function renderEventCard(e) {
     <div class="resident-banner">
       <div class="resident-banner-text">
         <h3>December Festive Stay Near Venues</h3>
-        <p>Planning a weekend party trip to Midrand, Tembisa, or Soweto? Match secure rooms with local hosts on The Resident Crew.</p>
+        <p>Planning a weekend party trip to Midrand, Tembisa, or Soweto? Find rooms with local hosts on The Resident Crew.</p>
       </div>
       <a href="https://theresidentcrew.com/dashboard/housing" target="_blank" rel="noopener" class="resident-btn">View Ke Dezemba Stays →</a>
     </div>
 
-    <div class="event-grid">
+    ${keDezembaList.length ? `<div class="event-grid">
       ${keDezembaList.map(renderEventCard).join('')}
-    </div>
+    </div>` : emptyHubNote('December events')}
   `;
 
   const keDezembaHtml = renderHtmlShell({
     title: 'Ke Dezemba 2026 Events & Parties in Gauteng — The Gruvs',
     description: 'Find all December 2026 Ke Dezemba festivals, street bashes, and crossover parties across Midrand, Soweto, Pretoria, and Johannesburg.',
     canonicalUrl: `${SITE}/events/ke-dezemba`,
-    jsonLd: [keDezembaJsonLd],
+    jsonLd: keDezembaList.length ? [keDezembaJsonLd] : [],
     bodyContent: keDezembaBody,
+    noindex: keDezembaList.length === 0,
     breadcrumbs: [
       { name: 'Home', url: `${SITE}/` },
       { name: 'Ke Dezemba 2026', url: `${SITE}/events/ke-dezemba` },
@@ -684,7 +680,7 @@ function renderEventCard(e) {
   });
 
   writePage('events/ke-dezemba/index.html', keDezembaHtml);
-  generatedPages.push({ loc: `${SITE}/events/ke-dezemba`, priority: '0.95', changefreq: 'daily' });
+  if (keDezembaList.length) generatedPages.push({ loc: `${SITE}/events/ke-dezemba`, priority: '0.95', changefreq: 'daily' });
 
   // ── Generate Date Horizon Hubs (This Weekend & NYE) ──────────────────────
   const dNow = new Date();
@@ -698,7 +694,7 @@ function renderEventCard(e) {
   const sunStr = dSun.toISOString().slice(0, 10);
 
   const weekendEvents = events.filter(e => e.event_date && e.event_date >= friStr && e.event_date <= sunStr);
-  const activeWeekend = weekendEvents.length > 0 ? weekendEvents : events.slice(0, 24);
+  const activeWeekend = weekendEvents;
 
   const weekendBody = `
     <div class="breadcrumbs">
@@ -707,10 +703,10 @@ function renderEventCard(e) {
       <span style="color:#fff;">This Weekend</span>
     </div>
     <h1 class="hero-title">Events <span class="brand-accent">This Weekend</span> in South Africa</h1>
-    <p class="hero-lead">The definitive weekend line-up from Friday night to Sunday sunset. Real-time tickets and soundstage schedules.</p>
-    <div class="event-grid">
+    <p class="hero-lead">What's listed from Friday night to Sunday, updated every day.</p>
+    ${activeWeekend.length ? `<div class="event-grid">
       ${activeWeekend.map(renderEventCard).join('')}
-    </div>
+    </div>` : emptyHubNote('events this weekend')}
   `;
   const weekendHtml = renderHtmlShell({
     title: 'Events This Weekend in South Africa (Friday - Sunday) — The Gruvs',
@@ -732,14 +728,15 @@ function renderEventCard(e) {
       })),
     }],
     bodyContent: weekendBody,
+    noindex: activeWeekend.length === 0,
     breadcrumbs: [{ name: 'Home', url: `${SITE}/` }, { name: 'This Weekend', url: `${SITE}/events/this-weekend` }],
   });
   writePage('events/this-weekend/index.html', weekendHtml);
-  generatedPages.push({ loc: `${SITE}/events/this-weekend`, priority: '0.95', changefreq: 'daily' });
+  if (activeWeekend.length) generatedPages.push({ loc: `${SITE}/events/this-weekend`, priority: '0.95', changefreq: 'daily' });
 
   // NYE 2027 Crossover Hub
   const nyeEvents = events.filter(e => e.event_date === '2026-12-31' || e.event_date === '2027-01-01');
-  const activeNye = nyeEvents.length > 0 ? nyeEvents : events.filter(e => (e.event_date || '').startsWith('2026-12')).slice(0, 24);
+  const activeNye = nyeEvents;
   const nyeBody = `
     <div class="breadcrumbs">
       <a href="${SITE}/">Home</a> <span>›</span>
@@ -748,13 +745,13 @@ function renderEventCard(e) {
     </div>
     <h1 class="hero-title">New Year's Eve <span class="brand-accent">2027</span> Crossover Parties</h1>
     <p class="hero-lead">Countdown to 2027 across South Africa's biggest countdown arenas, rooftop celebrations, and street festivals.</p>
-    <div class="event-grid">
+    ${activeNye.length ? `<div class="event-grid">
       ${activeNye.map(renderEventCard).join('')}
-    </div>
+    </div>` : emptyHubNote("New Year's Eve events")}
   `;
   const nyeHtml = renderHtmlShell({
     title: "New Year's Eve 2027 Parties & Crossover Bashes in South Africa — The Gruvs",
-    description: "Browse verified New Year's Eve countdown parties, midnight fireworks, and crossover events across South Africa.",
+    description: "Browse New Year's Eve countdown parties, midnight fireworks, and crossover events across South Africa.",
     canonicalUrl: `${SITE}/events/nye-2027`,
     jsonLd: [{
       '@context': 'https://schema.org',
@@ -772,10 +769,11 @@ function renderEventCard(e) {
       })),
     }],
     bodyContent: nyeBody,
+    noindex: activeNye.length === 0,
     breadcrumbs: [{ name: 'Home', url: `${SITE}/` }, { name: "New Year's Eve 2027", url: `${SITE}/events/nye-2027` }],
   });
   writePage('events/nye-2027/index.html', nyeHtml);
-  generatedPages.push({ loc: `${SITE}/events/nye-2027`, priority: '0.95', changefreq: 'daily' });
+  if (activeNye.length) generatedPages.push({ loc: `${SITE}/events/nye-2027`, priority: '0.95', changefreq: 'daily' });
 
   // ── Extract & Generate Dedicated Venue Hubs ──────────────────────────────
   const venueMap = new Map();
@@ -854,7 +852,7 @@ function renderEventCard(e) {
       </div>
 
       <h1 class="hero-title">Events at <span class="brand-accent">${escapeHtml(v.name)}</span></h1>
-      <p class="hero-lead">📍 ${escapeHtml(v.address)}. Verified line-ups, soundstage schedules, and tickets on The Gruvs.</p>
+      <p class="hero-lead">📍 ${escapeHtml(v.address)}. What's listed there on The Gruvs, with dates and directions.</p>
 
       <div style="background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.18); border-radius:12px; padding:16px 20px; margin-bottom:32px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <div>
@@ -880,7 +878,7 @@ function renderEventCard(e) {
 
     const html = renderHtmlShell({
       title: `Upcoming Events at ${v.name}, ${v.city} — Schedule & Tickets | The Gruvs`,
-      description: `View upcoming events, concerts, and parties at ${v.name} in ${v.city}. Verified tickets, directions, and set times on The Gruvs.`,
+      description: `View upcoming events, concerts, and parties at ${v.name} in ${v.city}. Dates, directions and how to RSVP on The Gruvs.`,
       canonicalUrl: `${SITE}/venues/${vSlug}`,
       ogImage: v.cover,
       jsonLd: [venueJsonLd, itemListJsonLd],
@@ -919,13 +917,6 @@ function renderEventCard(e) {
         },
       },
       'image': [cover],
-      'aggregateRating': {
-        '@type': 'AggregateRating',
-        'ratingValue': '4.8',
-        'reviewCount': String(Math.max(45, (e.vibe_count || 120) % 500)),
-        'bestRating': '5',
-        'worstRating': '1',
-      },
       'offers': {
         '@type': 'Offer',
         'url': `${SITE}/events/${slug}`,
@@ -957,7 +948,7 @@ function renderEventCard(e) {
     const cleanDesc = (e.description || e.title || '').replace(/[\r\n]+/g, ' ');
     const cleanVenue = venue.replace(/[\r\n]+/g, ' ');
     const icsContent = encodeURIComponent(`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//The Gruvs//ZA\nBEGIN:VEVENT\nSUMMARY:${cleanTitle}\nDESCRIPTION:${cleanDesc}\nLOCATION:${cleanVenue}\nDTSTART:${calStart}\nDTEND:${calEnd}\nEND:VEVENT\nEND:VCALENDAR`);
-    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`Pull up with me to ${cleanTitle} at ${cleanVenue} on ${dateStr}! View verified tickets on The Gruvs: ${SITE}/events/${slug}`)}`;
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`Pull up with me to ${cleanTitle} at ${cleanVenue} on ${dateStr}! See it on The Gruvs: ${SITE}/events/${slug}`)}`;
 
     const body = `
       <div class="breadcrumbs">
@@ -1005,7 +996,7 @@ function renderEventCard(e) {
           <div class="resident-banner" style="margin: 20px 0;">
             <div class="resident-banner-text">
               <h3>Need accommodation near ${escapeHtml(e.venue_name || e.city || 'this venue')}?</h3>
-              <p>Find secure stays and verified local rooms on The Resident Crew.</p>
+              <p>Find places to stay near the venue on The Resident Crew.</p>
             </div>
             <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays →</a>
           </div>
