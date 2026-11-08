@@ -58,7 +58,11 @@ if (!URL_ || !KEY) {
 const started = Date.now();
 let res, netErr;
 try {
-  res = await fetch(`${URL_}/rest/v1/`, {
+  // One row id from a table the public key may read. Not the bare /rest/v1/
+  // root: that lists the whole schema, and Supabase now answers it 401 for a
+  // public key even when the key is right (seen from 7 November 2026), which
+  // made this check report a rotated key that wasn't.
+  res = await fetch(`${URL_}/rest/v1/events?select=id&limit=1`, {
     method: 'GET',
     headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
     signal: AbortSignal.timeout(20000),
