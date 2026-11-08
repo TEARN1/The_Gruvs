@@ -25,6 +25,13 @@ const MIME_MAP = {
   avi:  'video/avi',
   mpg:  'video/mpeg',
   mpeg: 'video/mpeg',
+  pdf:  'application/pdf',
+  doc:  'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  txt:  'text/plain',
+  xls:  'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  bin:  'application/octet-stream',
 };
 
 const ALLOWED_TYPES = [
@@ -33,20 +40,19 @@ const ALLOWED_TYPES = [
   'video/mp4', 'video/quicktime', 'video/x-m4v', 'video/webm',
   'video/3gp', 'video/3gpp', 'video/ogg', 'video/x-matroska',
   'video/avi', 'video/mpeg',
+  'application/pdf', 'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain', 'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/octet-stream',
 ];
 
 // ── Per-bucket size limits — these MIRROR the real limits on storage.buckets ──
-// The client used to validate every upload against ONE 150 MB cap while each
-// bucket enforces its own, much smaller limit server-side. So a normal phone
-// photo (6–12 MB) sailed past the client check and was then REJECTED by the
-// bucket — surfacing to the user as the useless "Fix the storage issue".
-// Avatar uploads over 5 MB failed outright and always had.
-//
 // Keep this in sync with:  select id, file_size_limit from storage.buckets;
 const BUCKET_LIMITS = {
   avatars:        15 * 1024 * 1024,   // 15 MB
   covers:         20 * 1024 * 1024,   // 20 MB
-  chat_media:     20 * 1024 * 1024,   // 20 MB
+  chat_media:     25 * 1024 * 1024,   // 25 MB
   moments:        50 * 1024 * 1024,   // 50 MB
   'event-media':  100 * 1024 * 1024,  // 100 MB
   reels:          100 * 1024 * 1024,  // 100 MB
@@ -77,7 +83,7 @@ const extFromPath = (storagePath) => {
 const resolveMime = (mimeType, storagePath) => {
   if (mimeType && mimeType !== 'application/octet-stream') return mimeType;
   const ext = extFromPath(storagePath);
-  return MIME_MAP[ext] || 'image/jpeg';
+  return MIME_MAP[ext] || 'application/octet-stream';
 };
 
 // On React Native, XMLHttpRequest handles file:// URIs more reliably than fetch()
@@ -110,32 +116,18 @@ const uriToBlob = (uri) => new Promise((resolve, reject) => {
 });
 
 // Sanitise (strip metadata) + downscale images before upload.
-//
-// PRIVACY (#352): a phone photo's EXIF carries the GPS coordinates it was taken
-// at — often someone's home. On a location-safety-first app, uploading that raw
-// is a real leak (anyone who downloads the image reads the coordinates).
-// Re-encoding through a canvas produces a clean image with NO metadata, so we
-// now do it for EVERY image on web — not just large ones — even when it doesn't
-// shrink the file. Downscaling still only kicks in for big images.
-//
-// Web downscales + re-encodes via canvas (which drops all metadata). NATIVE has
-// no canvas, so it strips the JPEG EXIF segment directly from the bytes
-// (utils/stripExif) — GPS-in-photo is removed on EVERY platform, no native
-// dependency. Returns the ORIGINAL on anything unexpected so it can never break
-// an upload. Videos pass through.
 const COMPRESSIBLE = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COMPRESS_MAX_DIM = 1600;
 const COMPRESS_MIN_BYTES = 350 * 1024;
 const compressImageBlob = async (blob, type) => {
   try {
+    if (!COMPRESSIBLE.has(type)) return blob; // videos/documents/gifs — not a JPEG EXIF vector
     // NATIVE (no canvas): strip EXIF/GPS from the JPEG bytes and upload that.
     if (typeof document === 'undefined' || typeof createImageBitmap === 'undefined') {
       return await stripExifFromBlob(blob);
     }
-    if (!COMPRESSIBLE.has(type)) return blob;      // videos/gifs — not a GPS-EXIF vector here
     const bmp = await createImageBitmap(blob);
-    // Downscale only big images; small ones re-encode at full size purely to
-    // drop metadata.
+    // Downscale only big images; small ones re-encode at full size purely to drop metadata.
     const scale = blob.size >= COMPRESS_MIN_BYTES
       ? Math.min(1, COMPRESS_MAX_DIM / Math.max(bmp.width, bmp.height))
       : 1;
@@ -146,8 +138,6 @@ const compressImageBlob = async (blob, type) => {
     canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
     bmp.close?.();
     const out = await new Promise((res) => canvas.toBlob(res, 'image/webp', 0.82));
-    // Prefer the re-encoded (metadata-free) copy — privacy beats a few KB. Only
-    // fall back to the original if the canvas produced nothing usable.
     return (out && out.size > 0) ? out : blob;
   } catch { return blob; }
 };
@@ -155,20 +145,20 @@ const compressImageBlob = async (blob, type) => {
 /**
  * Upload a local file URI to Supabase Storage.
  * @param {string} uri          - Local URI from expo-image-picker or expo-document-picker.
- * @param {string} bucket       - Supabase storage bucket name (e.g. 'avatars', 'covers').
+ * @param {string} bucket       - Supabase storage bucket name (e.g. 'avatars', 'covers', 'chat_media').
  * @param {string} storagePath  - Path inside the bucket — first segment MUST be user ID.
  * @param {object} opts
  * @param {string} [opts.mimeType] - Explicit MIME type from asset.mimeType (picker).
  * @returns {Promise<string>} Public URL of the uploaded file.
  */
 export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {}) => {
-  if (!uri) throw new Error('No file selected. Please pick an image first.');
+  if (!uri) throw new Error('No file selected. Please pick a file first.');
   assertSafeStoragePath(storagePath);
 
   const type = resolveMime(mimeType, storagePath);
 
   if (!ALLOWED_TYPES.includes(type)) {
-    throw new Error(`File type "${type}" is not supported. Please use a JPG, PNG, WEBP, GIF or MP4.`);
+    throw new Error(`File type "${type}" is not supported. Please use an image, video, PDF or document.`);
   }
 
   let blob;
@@ -179,33 +169,24 @@ export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {
   }
 
   if (!blob || blob.size === 0) {
-    throw new Error('The selected file is empty or could not be read. Please try a different photo.');
+    throw new Error('The selected file is empty or could not be read. Please try a different file.');
   }
 
-  // Compress FIRST, then judge the size — a 12 MB phone photo usually shrinks
-  // under the limit, so we should never reject a user we could simply fit.
+  // Compress only if compressible image
   blob = await compressImageBlob(blob, (blob.type && blob.type !== 'application/octet-stream') ? blob.type : type);
 
   const finalType = (blob.type && blob.type !== 'application/octet-stream') ? blob.type : type;
 
-  // SECURITY: the allow-list above checked the DECLARED type, but the upload
-  // sends the blob's ACTUAL type. A crafted `data:text/html,…` URI or a
-  // mislabelled file would otherwise be stored as text/html or image/svg+xml in
-  // a PUBLIC bucket and served from our storage origin — stored XSS. Re-check
-  // the type that will really go over the wire.
   if (!ALLOWED_TYPES.includes(String(finalType).toLowerCase().split(';')[0].trim())) {
-    throw new Error('This file type is not allowed. Please use a JPG, PNG, WEBP, GIF or MP4.');
+    throw new Error('This file type is not allowed. Please use an image, video, PDF or document.');
   }
 
-  // Enforce THIS bucket's real limit, not one global number. The bucket rejects
-  // anything over its own ceiling server-side, so checking a 150 MB cap here just
-  // pushed the failure downstream into an unhelpful error.
   const limit = limitFor(bucket);
   if (blob.size > limit) {
     const isImage = finalType.startsWith('image/');
     throw new Error(
       `This ${isImage ? 'photo' : 'file'} is ${mb(blob.size)} MB — the limit here is ${mb(limit)} MB. ` +
-      (isImage ? 'Try a smaller photo.' : 'Try a shorter or lower-quality video.')
+      (isImage ? 'Try a smaller photo.' : 'Try a smaller file.')
     );
   }
 
@@ -218,17 +199,16 @@ export const uploadToStorage = async (uri, bucket, storagePath, { mimeType } = {
     if (msg.includes('Bucket not found') || msg.includes('bucket')) {
       throw new Error(
         `Storage bucket "${bucket}" does not exist. ` +
-        `Run supabase/patch_storage_media.sql in the Supabase SQL Editor (Dashboard → SQL Editor) to create it.`
+        `Run supabase/patch_storage_media.sql in the Supabase SQL Editor to create it.`
       );
     }
     if (msg.includes('not authorized') || msg.includes('policy') || msg.includes('violates')) {
       throw new Error(
-        'Upload was blocked by storage policy. Make sure you are signed in and that ' +
-        'supabase/patch_storage_media.sql has been run in your Supabase project.'
+        'Upload was blocked by storage policy. Make sure you are signed in and have media permissions.'
       );
     }
     if (msg.includes('exceeded') || msg.includes('too large')) {
-      throw new Error('File exceeds the bucket size limit. Try a smaller image.');
+      throw new Error('File exceeds the bucket size limit. Try a smaller file.');
     }
     throw new Error(`Upload failed: ${msg}`);
   }

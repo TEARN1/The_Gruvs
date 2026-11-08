@@ -4,14 +4,16 @@
  *   [{ id, name, description, price, capacity, icon, color }]
  * When no tiers are configured the component renders nothing.
  * Booking is stored in event_rsvps with a tier_id column.
+ * Paid tiers initiate a secure PayFast checkout session.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
+import { PayFastService } from '../services/payfastService';
 
 import { money } from '../constants/currencies';
 
@@ -62,6 +64,28 @@ export const VIPTierSelector = ({ event, primary, textColor, muted, surface, onB
     if (booking) return;
     if (myTierId === tier.id) { toast.show(`Already booked: ${tier.name}`, 'info'); return; }
     setBooking(true);
+
+    // Paid tier -> PayFast Checkout flow
+    if (tier.price > 0) {
+      try {
+        toast.show(`Redirecting to PayFast for ${tier.name}...`, 'info');
+        const session = await PayFastService.checkoutEventTicket({ event, tier, user });
+        if (session?.paymentUrl) {
+          if (typeof window !== 'undefined' && window.location) {
+            window.location.href = session.paymentUrl;
+          } else {
+            Linking.openURL(session.paymentUrl);
+          }
+          return;
+        }
+      } catch (err) {
+        toast.show(err.message || 'Payment initiation failed', 'error');
+        setBooking(false);
+        return;
+      }
+    }
+
+    // Free tier -> Direct RSVP registration
     const prevTier = myTierId;
     setMyTierId(tier.id);
     setSelected(tier.id);
@@ -74,7 +98,7 @@ export const VIPTierSelector = ({ event, primary, textColor, muted, surface, onB
       const ok = await resilient(
         [
           () => supabase.from('event_rsvps').upsert(
-            { event_id: event.id, user_id: user?.id, status: 'going', tier_id: tier.id },
+            { event_id: event.id, user_id: user?.id, status: 'going', tier_id: tier.id, payment_status: 'free' },
             { onConflict: 'event_id,user_id' }
           ),
           () => supabase.rpc('upsert_rsvp_tier', { p_event_id: event.id, p_user_id: user?.id, p_tier_id: tier.id }),
@@ -82,7 +106,7 @@ export const VIPTierSelector = ({ event, primary, textColor, muted, surface, onB
         { attemptsPerTier: 2, baseMs: 400, label: `VIPTier.book:${tier.id}`, fallbackValue: null }
       );
       if (ok === null) throw new Error('booking failed');
-      toast.show(`${tier.name} booked! ${tier.price > 0 ? money(tier.price) : 'Free'}`, 'success');
+      toast.show(`${tier.name} booked! Free pass generated.`, 'success');
       onBooked?.(tier);
     } catch {
       setMyTierId(prevTier);
@@ -173,3 +197,4 @@ const vt = StyleSheet.create({
   price: { fontSize: 16, fontWeight: '900', marginTop: 4 },
   spots: { fontSize: 10, fontWeight: '700' },
 });
+export default VIPTierSelector;

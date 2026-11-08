@@ -1,23 +1,27 @@
 /**
  * WaitlistButton — joins / leaves the waitlist for a sold-out event.
  * When a spot opens (RSVP cancelled), the first person on the waitlist
- * gets a push notification via the existing _notify infrastructure.
+ * gets an automated 10-minute reservation window with PayFast checkout.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
+import { PayFastService } from '../services/payfastService';
 
-export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
+export const WaitlistButton = ({ eventId, event, primary, muted, surface }) => {
   const { user } = useAuth();
   const toast = useToast();
   const [onWaitlist, setOnWaitlist] = useState(false);
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [reservedUntil, setReservedUntil] = useState(null);
+  const [isOffered, setIsOffered] = useState(false);
+  const [secondsRemaining, setSecondsRemaining] = useState(0);
 
   const fetchStatus = useCallback(async () => {
     if (!eventId) return;
@@ -30,19 +34,76 @@ export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
         user
           ? supabase
               .from('event_waitlist')
-              .select('id')
+              .select('id, status, reserved_until')
               .eq('event_id', eventId)
               .eq('user_id', user?.id)
               .maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
       if (countRes.status === 'fulfilled') setWaitlistCount(countRes.value.count || 0);
-      if (userRes.status === 'fulfilled') setOnWaitlist(!!userRes.value?.data);
+      if (userRes.status === 'fulfilled' && userRes.value?.data) {
+        setOnWaitlist(true);
+        const row = userRes.value.data;
+        if (row.status === 'offered' && row.reserved_until) {
+          const diffSec = Math.floor((new Date(row.reserved_until).getTime() - Date.now()) / 1000);
+          if (diffSec > 0) {
+            setIsOffered(true);
+            setReservedUntil(row.reserved_until);
+            setSecondsRemaining(diffSec);
+          }
+        }
+      } else {
+        setOnWaitlist(false);
+        setIsOffered(false);
+      }
     } catch {}
     finally { setChecking(false); }
   }, [eventId, user]);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  // Countdown timer when offered
+  useEffect(() => {
+    if (!isOffered || secondsRemaining <= 0) return;
+    const timer = setInterval(() => {
+      setSecondsRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setIsOffered(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isOffered, secondsRemaining]);
+
+  const claimOfferedSpot = async () => {
+    if (!user) return;
+    try {
+      toast.show('Preparing PayFast Checkout for your spot...', 'info');
+      const session = await PayFastService.createCheckoutSession({
+        app: 'thegruvs',
+        itemType: 'ticket',
+        itemId: `${eventId}_waitlist`,
+        itemName: `${event?.title || 'Event'} — Waitlist Pass`,
+        itemDescription: `Claimed waitlist ticket for ${event?.title || 'Event'}`,
+        amountZar: event?.price || 150,
+        user,
+        metadata: { eventId, waitlist: true },
+      });
+
+      if (session?.paymentUrl) {
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.href = session.paymentUrl;
+        } else {
+          Linking.openURL(session.paymentUrl);
+        }
+      }
+    } catch (err) {
+      toast.show(err.message || 'Could not initiate checkout', 'error');
+    }
+  };
 
   const toggle = async () => {
     if (!user) { toast.show('Sign in to join the waitlist', 'info'); return; }
@@ -55,8 +116,6 @@ export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
       if (wasOn) {
         const ok = await resilient(
           [
-            // Leaving the waitlist removes the row — there is no left_at column
-            // (the old fallback tier here wrote one and could only ever fail).
             () => supabase.from('event_waitlist').delete().eq('event_id', eventId).eq('user_id', user?.id),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: 'Waitlist.leave', fallbackValue: null }
@@ -66,9 +125,8 @@ export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
       } else {
         const ok = await resilient(
           [
-            // No joined_at column either — created_at already records this.
-            () => supabase.from('event_waitlist').upsert({ event_id: eventId, user_id: user?.id }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
-            () => supabase.from('event_waitlist').insert({ event_id: eventId, user_id: user?.id }),
+            () => supabase.from('event_waitlist').upsert({ event_id: eventId, user_id: user?.id, status: 'queued' }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
+            () => supabase.from('event_waitlist').insert({ event_id: eventId, user_id: user?.id, status: 'queued' }),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: 'Waitlist.join', fallbackValue: null }
         );
@@ -85,6 +143,28 @@ export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
   };
 
   if (checking) return null;
+
+  const minutes = Math.floor(secondsRemaining / 60);
+  const seconds = secondsRemaining % 60;
+  const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+  if (isOffered && secondsRemaining > 0) {
+    return (
+      <View style={[w.offeredWrap, { borderColor: '#10b981' }]}>
+        <View style={w.offeredTop}>
+          <Feather name="zap" size={16} color="#10b981" />
+          <Text style={w.offeredTitle}>Spot Reserved! Claim in {timeStr}</Text>
+        </View>
+        <Text style={[w.offeredDesc, { color: muted }]}>
+          A spot opened up for you. Complete PayFast checkout before the 10-minute timer expires.
+        </Text>
+        <TouchableOpacity style={w.claimBtn} onPress={claimOfferedSpot} activeOpacity={0.85}>
+          <Feather name="credit-card" size={14} color="#000" />
+          <Text style={w.claimBtnText}>Claim Ticket via PayFast</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={[w.wrap, { backgroundColor: `${primary}08`, borderColor: `${primary}20` }]}>
@@ -115,9 +195,30 @@ export const WaitlistButton = ({ eventId, primary, muted, surface }) => {
 };
 
 const w = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12 },
+  wrap: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, borderWidth: 1,
+    marginBottom: 12,
+  },
   info: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  countText: { fontSize: 13, fontWeight: '700' },
-  btn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  btnText: { fontSize: 12, fontWeight: '900' },
+  countText: { fontSize: 12, fontWeight: '700' },
+  btn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1,
+  },
+  btnText: { fontSize: 12, fontWeight: '800' },
+  offeredWrap: {
+    padding: 14, borderRadius: 14, borderWidth: 2, backgroundColor: 'rgba(16,185,129,0.1)',
+    marginBottom: 12, gap: 8,
+  },
+  offeredTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  offeredTitle: { fontSize: 14, fontWeight: '900', color: '#10b981' },
+  offeredDesc: { fontSize: 11, lineHeight: 15 },
+  claimBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#10b981', paddingVertical: 10, borderRadius: 10, marginTop: 4,
+  },
+  claimBtnText: { color: '#000', fontSize: 13, fontWeight: '900' },
 });
+
+export default WaitlistButton;

@@ -14,6 +14,7 @@ import { VibeCardBubble } from './VibeCardBubble';
 import { Video } from 'expo-av';
 import { useCall } from '../context/CallContext';
 import { SignedImage } from './SignedImage';
+import { signedChatMediaUrl } from '../utils/signedMedia';
 import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeHaptics as Haptics } from '../utils/haptics';
@@ -332,6 +333,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
   // confirms (with an optional caption), instead of firing it off blind.
   const [pendingMedia, setPendingMedia] = useState(null); // { uri, type: 'image'|'video' }
   const [pendingCaption, setPendingCaption] = useState('');
+  const [lightboxUrl, setLightboxUrl] = useState(null);
 
   // ── Voice / video calling ─────────────────────────────────────────────────
   // Calls are owned by the global CallProvider so an incoming call rings from
@@ -1080,7 +1082,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
                 })()}
 
                 {item.message_type === 'image' && item.media_url && (
-                  <SignedImage source={item.media_url} style={dm.bubbleImage} resizeMode="cover" />
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={async () => {
+                      const url = await signedChatMediaUrl(item.media_url);
+                      setLightboxUrl(url || item.media_url);
+                    }}
+                  >
+                    <SignedImage source={item.media_url} style={dm.bubbleImage} resizeMode="cover" />
+                  </TouchableOpacity>
                 )}
                 {item.message_type === 'video' && item.media_url && (
                   <Video
@@ -1109,7 +1119,14 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
                 )}
                 {item.message_type === 'document' && item.media_url && (
                   <TouchableOpacity
-                    onPress={() => { SecurityService.safeOpenURL(item.media_url); }}
+                    onPress={async () => {
+                      try {
+                        const resolvedUrl = await signedChatMediaUrl(item.media_url);
+                        await SecurityService.safeOpenURL(resolvedUrl || item.media_url);
+                      } catch {
+                        showToast('Could not open document.', 'error');
+                      }
+                    }}
                     style={[dm.docCard, { borderColor: isMine ? 'rgba(0,0,0,0.15)' : `${primary}30`, backgroundColor: isMine ? 'rgba(0,0,0,0.05)' : `${primary}0f` }]}
                   >
                     <View style={[dm.docIcon, { backgroundColor: isMine ? 'rgba(0,0,0,0.08)' : `${primary}20` }]}>
@@ -1707,6 +1724,25 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
               />
             )}
           </View>
+        </View>
+      </Modal>
+
+      {/* Fullscreen Attachment Lightbox Modal */}
+      <Modal visible={!!lightboxUrl} transparent animationType="fade" onRequestClose={() => setLightboxUrl(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 44, right: 20, zIndex: 10, padding: 12, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 24 }}
+            onPress={() => setLightboxUrl(null)}
+          >
+            <Feather name="x" size={24} color="#fff" />
+          </TouchableOpacity>
+          {lightboxUrl && (
+            <SmartImage
+              source={lightboxUrl}
+              style={{ width: '94%', height: '82%' }}
+              resizeMode="contain"
+            />
+          )}
         </View>
       </Modal>
 
