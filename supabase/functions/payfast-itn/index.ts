@@ -28,6 +28,66 @@ function verifySignature(data: Record<string, string>, passphrase?: string): boo
   return md5(getString) === signatureReceived;
 }
 
+const PAYFAST_AWS_IPS = [
+  "3.163.232.237",
+  "3.163.233.237",
+  "3.163.234.237",
+  "3.163.235.237",
+  "3.163.236.237",
+  "3.163.237.237",
+  "3.163.238.237",
+  "3.163.239.237",
+  "3.163.240.237",
+  "3.163.241.237",
+  "3.163.242.237",
+  "3.163.243.237",
+  "3.163.244.237",
+  "3.163.245.237",
+  "3.163.246.237",
+  "3.163.247.237",
+  "3.163.248.237",
+  "3.163.249.237",
+  "3.163.250.237",
+  "3.163.251.237",
+  "3.163.252.237"
+];
+
+const PAYFAST_LEGACY_IPS = [
+  "197.97.145.144", "197.97.145.145", "197.97.145.146", "197.97.145.147", "197.97.145.148",
+  "197.97.145.149", "197.97.145.150", "197.97.145.151", "197.97.145.152", "197.97.145.153",
+  "197.97.145.154", "197.97.145.155", "197.97.145.156", "197.97.145.157", "197.97.145.158",
+  "41.74.179.194", "41.74.179.195", "41.74.179.196", "41.74.179.197", "41.74.179.198",
+  "41.74.179.199", "41.74.179.200", "41.74.179.201", "41.74.179.202", "41.74.179.203",
+  "41.74.179.204", "41.74.179.205", "41.74.179.206"
+];
+
+const PAYFAST_WHITELIST = new Set([...PAYFAST_AWS_IPS, ...PAYFAST_LEGACY_IPS]);
+
+function normalizeIp(ip: string): string {
+  if (!ip) return "";
+  let cleaned = ip.trim();
+  if (cleaned.startsWith("::ffff:")) cleaned = cleaned.slice(7);
+  if (cleaned.startsWith("[") && cleaned.includes("]:")) {
+    cleaned = cleaned.slice(1, cleaned.indexOf("]:"));
+  } else if (cleaned.includes(":") && cleaned.includes(".")) {
+    cleaned = cleaned.split(":")[0];
+  }
+  return cleaned;
+}
+
+function getClientIp(req: Request): string {
+  const cfIp = req.headers.get("cf-connecting-ip");
+  if (cfIp) return normalizeIp(cfIp);
+  const xRealIp = req.headers.get("x-real-ip");
+  if (xRealIp) return normalizeIp(xRealIp);
+  const xForwarded = req.headers.get("x-forwarded-for");
+  if (xForwarded) {
+    const first = xForwarded.split(",")[0].trim();
+    if (first) return normalizeIp(first);
+  }
+  return "unknown";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
@@ -35,6 +95,16 @@ serve(async (req) => {
 
   try {
     const isSandbox = Deno.env.get("PAYFAST_SANDBOX") !== "false";
+    const skipIpCheck = Deno.env.get("PAYFAST_SKIP_IP_CHECK") === "true";
+    const enforceIp = Deno.env.get("PAYFAST_ENFORCE_IP_WHITELIST") === "true" || !isSandbox;
+
+    if (enforceIp && !skipIpCheck) {
+      const clientIp = getClientIp(req);
+      if (!PAYFAST_WHITELIST.has(clientIp)) {
+        console.warn(`[PayFast ITN] Request rejected - Source IP ${clientIp} not in PayFast whitelist`);
+        return new Response(`Forbidden: IP ${clientIp} not whitelisted`, { status: 403 });
+      }
+    }
     const passphrase = Deno.env.get("PAYFAST_PASSPHRASE") || "";
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
