@@ -4,6 +4,7 @@
     "slug": "the-gruvs",
     "scheme": "thegruvs",
     "version": "1.1.0",
+    "newArchEnabled": false,
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
@@ -55,7 +56,7 @@
         "backgroundColor": "#0d1112"
       },
       "package": "com.thegruvs_tearn",
-      "versionCode": 10,
+      "versionCode": 11,
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -66,6 +67,11 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "blockedPermissions": [
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_MEDIA_AUDIO"
       ],
       "intentFilters": [
         {
@@ -132,6 +138,17 @@
       ],
       "expo-font",
       "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "useLegacyPackaging": false,
+            "extraProguardRules": "-keep class org.webrtc.** { *; }\n-dontwarn org.webrtc.**\n-keep class com.oney.WebRTCModule.** { *; }\n-keep class org.maplibre.android.** { *; }\n-dontwarn org.maplibre.android.**\n-keep class com.maplibre.rctmln.** { *; }\n-keep class com.horcrux.svg.** { *; }"
+          }
+        }
+      ],
       "@config-plugins/react-native-webrtc",
       "@maplibre/maplibre-react-native"
     ],
