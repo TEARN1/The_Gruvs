@@ -72,6 +72,22 @@ export function validateUrl(sandbox) {
 }
 
 const pfEncode = (v) => encodeURIComponent(String(v).trim()).replace(/%20/g, '+');
+// PHP's urlencode, which PayFast's PHP samples use, also encodes ! ' ( ) * ~.
+const phpEncode = (v) => pfEncode(v).replace(/[!'()*~]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+
+/**
+ * Free text made safe to sign: JavaScript and PHP encode ' ( ) ! * ~
+ * differently, so an event title holding one could fail PayFast's own check.
+ * The apostrophe becomes a typographic one; the rest are dropped.
+ */
+export function safeText(text, max) {
+  return String(text ?? '')
+    .replace(/'/g, '\u2019')
+    .replace(/[!*()~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
 
 /**
  * The string PayFast signs (MD5) for a payment request or a notification: the
@@ -87,6 +103,28 @@ export function signatureString(fields, passphrase) {
   }
   if (passphrase) parts.push(`passphrase=${pfEncode(passphrase)}`);
   return parts.join('&');
+}
+
+/**
+ * Whether a notice carries our signature. `fields` are [name, value] pairs in
+ * the order PayFast sent them; md5 is passed in by the runtime. PayFast's own
+ * samples keep empty fields in the signed string and some libraries leave them
+ * out, and its JavaScript and PHP samples encode a few characters differently,
+ * so each form is accepted. Every form needs the passphrase.
+ */
+export function notificationSignatureOk(fields, passphrase, md5) {
+  const sig = fields.find(([k]) => k === 'signature');
+  const given = String(sig ? sig[1] : '').trim().toLowerCase();
+  if (!/^[0-9a-f]{32}$/.test(given) || !passphrase) return false;
+  const rest = fields.filter(([k]) => k !== 'signature');
+  for (const encode of [pfEncode, phpEncode]) {
+    for (const keepEmpty of [true, false]) {
+      const parts = rest.filter(([, v]) => keepEmpty || String(v) !== '').map(([k, v]) => `${k}=${encode(v)}`);
+      parts.push(`passphrase=${encode(passphrase)}`);
+      if (md5(parts.join('&')) === given) return true;
+    }
+  }
+  return false;
 }
 
 /** Rand to cents, or NaN when it is not a plain amount. */

@@ -10,7 +10,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkNotification, payfastConfig, signatureString, toCents, validateUrl } from "../_shared/payfastCore.js";
+import { checkNotification, notificationSignatureOk, payfastConfig, toCents, validateUrl } from "../_shared/payfastCore.js";
 
 function md5(text: string): string {
   const hash = crypto.subtle.digestSync("MD5", new TextEncoder().encode(text));
@@ -100,11 +100,9 @@ serve(async (req) => {
 
   const rawBody = await req.text();
   // Kept in the order received: the signature covers the fields in that order.
-  const params: Record<string, string> = {};
-  new URLSearchParams(rawBody).forEach((value, key) => {
-    params[key] = value;
-  });
-  const signatureOk = Boolean(params.signature) && md5(signatureString(params, config.passphrase)) === params.signature;
+  const fields = [...new URLSearchParams(rawBody).entries()];
+  const params: Record<string, string> = Object.fromEntries(fields);
+  const signatureOk = notificationSignatureOk(fields, config.passphrase, md5);
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
     auth: { persistSession: false },

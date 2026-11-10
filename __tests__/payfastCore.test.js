@@ -9,8 +9,10 @@ import {
   bookingPriceCents,
   checkNotification,
   chosenAmountCents,
+  notificationSignatureOk,
   payfastConfig,
   safeReturnUrl,
+  safeText,
   signatureString,
   ticketPriceCents,
   toCents,
@@ -44,6 +46,42 @@ describe('signatureString', () => {
   test('a changed amount changes the signature', () => {
     const fields = { merchant_id: '1', m_payment_id: 'GRV-TIC-1', amount: '150.00' };
     expect(md5(signatureString(fields, 'p'))).not.toBe(md5(signatureString({ ...fields, amount: '1.00' }, 'p')));
+  });
+});
+
+describe('notificationSignatureOk', () => {
+  const fields = [
+    ['m_payment_id', 'GRV-TIC-1'],
+    ['payment_status', 'COMPLETE'],
+    ['item_name', "Jazz night (Lerato's) VIP"],
+    ['custom_str4', ''],
+    ['amount_gross', '150.00'],
+    ['merchant_id', '23456789'],
+  ];
+  const enc = (v) => encodeURIComponent(v).replace(/%20/g, '+');
+  const php = (v) => enc(v).replace(/[!'()*~]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+  const sign = (keepEmpty, e, pass, list = fields) =>
+    md5([...list.filter(([, v]) => keepEmpty || v).map(([k, v]) => `${k}=${e(v)}`), `passphrase=${e(pass)}`].join('&'));
+
+  test('accepts a real notice with empty fields kept or left out, in either encoding', () => {
+    for (const keep of [true, false]) {
+      for (const e of [enc, php]) {
+        expect(notificationSignatureOk([...fields, ['signature', sign(keep, e, 'secret')]], 'secret', md5)).toBe(true);
+      }
+    }
+  });
+
+  test('refuses a notice without our passphrase, or with a changed amount', () => {
+    expect(notificationSignatureOk([...fields, ['signature', sign(true, enc, 'guessed')]], 'secret', md5)).toBe(false);
+    expect(notificationSignatureOk(fields, 'secret', md5)).toBe(false);
+    const tampered = fields.map(([k, v]) => [k, k === 'amount_gross' ? '1.00' : v]);
+    expect(notificationSignatureOk([...tampered, ['signature', sign(true, enc, 'secret')]], 'secret', md5)).toBe(false);
+    expect(notificationSignatureOk([...fields, ['signature', sign(true, enc, '')]], '', md5)).toBe(false);
+  });
+
+  test('signed text drops characters JavaScript and PHP encode differently', () => {
+    expect(safeText("Jazz night (Lerato's) VIP!", 100)).toBe('Jazz night Lerato\u2019s VIP');
+    expect(safeText(undefined, 10)).toBe('');
   });
 });
 

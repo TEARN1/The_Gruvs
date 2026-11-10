@@ -14,6 +14,7 @@ import {
   payfastConfig,
   processUrl,
   safeReturnUrl,
+  safeText,
   signatureString,
   ticketPriceCents,
 } from "../_shared/payfastCore.js";
@@ -81,7 +82,7 @@ serve(async (req) => {
     if (ev && cents) {
       const tier = (ev.rsvp_tiers as any[]).find((t) => String(t?.id) === String(meta.tierId));
       itemId = `${ev.id}_${tier.id}`;
-      itemName = clip(`${ev.title} — ${tier.name || "Ticket"}`, 100);
+      itemName = safeText(`${ev.title} — ${tier.name || "Ticket"}`, 100);
       details = { eventId: ev.id, tierId: String(tier.id), waitlist: Boolean(meta.waitlist) };
     }
   } else if (itemType === "booking") {
@@ -101,7 +102,7 @@ serve(async (req) => {
     // bounds, and paying switches nothing on by itself (payfast-itn records it).
     cents = chosenAmountCents(body.amountZar);
     itemId = clip(body.itemId, 100);
-    itemName = clip(body.itemName || "Gruvs payment", 100);
+    itemName = safeText(body.itemName || "Gruvs payment", 100) || "Gruvs payment";
     details = {
       eventId: meta.eventId ? clip(meta.eventId, 64) : undefined,
       tableId: meta.tableId ? clip(meta.tableId, 64) : undefined,
@@ -130,7 +131,7 @@ serve(async (req) => {
     return json(503, { error: "Online payment is not available right now. Nothing was charged." });
   }
 
-  const name = clip(user.user_metadata?.full_name || user.user_metadata?.username || "Gruvs Member", 100).split(/\s+/);
+  const name = safeText(user.user_metadata?.full_name || user.user_metadata?.username || "Gruvs Member", 100).split(" ");
   const fallbackReturn = `https://thegruvs.com/payment/success?payment_id=${paymentId}`;
   const fallbackCancel = `https://thegruvs.com/payment/cancelled?payment_id=${paymentId}`;
 
@@ -147,7 +148,7 @@ serve(async (req) => {
     m_payment_id: paymentId,
     amount: (cents / 100).toFixed(2),
     item_name: itemName,
-    item_description: clip(body.itemDescription || itemName, 255),
+    item_description: safeText(body.itemDescription || itemName, 255),
     custom_str1: "thegruvs",
     custom_str2: itemType,
     custom_str3: user.id,
