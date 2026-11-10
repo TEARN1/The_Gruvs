@@ -69,7 +69,7 @@ export const VIPTierSelector = ({ event, primary, textColor, muted, surface, onB
     if (tier.price > 0) {
       try {
         toast.show(`Redirecting to PayFast for ${tier.name}...`, 'info');
-        const session = await PayFastService.checkoutEventTicket({ event, tier, user });
+        const session = await PayFastService.checkoutEventTicket({ event, tier });
         if (session?.paymentUrl) {
           if (typeof window !== 'undefined' && window.location) {
             window.location.href = session.paymentUrl;

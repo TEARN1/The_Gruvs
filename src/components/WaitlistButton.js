@@ -82,15 +82,18 @@ export const WaitlistButton = ({ eventId, event, primary, muted, surface }) => {
     if (!user) return;
     try {
       toast.show('Preparing PayFast Checkout for your spot...', 'info');
+      // The spot is the event's own paid ticket, priced by the server.
+      const paidTier = Array.isArray(event?.rsvp_tiers) ? event.rsvp_tiers.find((t) => Number(t?.price) > 0) : null;
+      if (!paidTier) {
+        toast.show('This event has no paid ticket to claim.', 'info');
+        return;
+      }
       const session = await PayFastService.createCheckoutSession({
-        app: 'thegruvs',
         itemType: 'ticket',
-        itemId: `${eventId}_waitlist`,
-        itemName: `${event?.title || 'Event'} — Waitlist Pass`,
+        itemId: `${eventId}_${paidTier.id}`,
+        itemName: `${event?.title || 'Event'} — ${paidTier.name || 'Ticket'}`,
         itemDescription: `Claimed waitlist ticket for ${event?.title || 'Event'}`,
-        amountZar: event?.price || 150,
-        user,
-        metadata: { eventId, waitlist: true },
+        metadata: { eventId, tierId: paidTier.id, waitlist: true },
       });
 
       if (session?.paymentUrl) {
