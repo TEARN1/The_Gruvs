@@ -19,7 +19,7 @@ import {
   Linking,
   PanResponder,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 

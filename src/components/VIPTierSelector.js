@@ -98,7 +98,7 @@ export const VIPTierSelector = ({ event, primary, textColor, muted, surface, onB
       const ok = await resilient(
         [
           () => supabase.from('event_rsvps').upsert(
-            { event_id: event.id, user_id: user?.id, status: 'going', tier_id: tier.id, payment_status: 'free' },
+            { event_id: event.id, user_id: user?.id, status: 'going', tier_id: tier.id },
             { onConflict: 'event_id,user_id' }
           ),
           () => supabase.rpc('upsert_rsvp_tier', { p_event_id: event.id, p_user_id: user?.id, p_tier_id: tier.id }),
