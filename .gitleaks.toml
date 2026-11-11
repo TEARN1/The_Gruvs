@@ -50,4 +50,9 @@ regexes = [
   # PRIVATE key is a Supabase function secret and is deliberately NOT
   # allowlisted, so leaking that one still trips the scan.
   '''BFcGNc-yn3m7MgqI1y2e4uAfywbTL3pnkP6CtPTOBz247ddaL2MVZqUe_zBoybkaiiCeRa8uifTnc2zZfJ1VLZU''',
+  # The IndexNow key (scripts/ping-indexnow.js) — public by design: the protocol
+  # has the site publish it at https://thegruvs.com/<key>.txt (public/<key>.txt), so
+  # search engines can check the ping came from the site's owner. Pinned to the
+  # exact value, so any other key-shaped string still trips the scan.
+  '''c035e4d2bf8b4ecf8f30740a6b5790be''',
 ]

@@ -1,6 +1,9 @@
 node_modules/
 .expo/
+# Env files stay on the computer that uses them; only the example is shared.
 .env
+.env.*
+!.env.example
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

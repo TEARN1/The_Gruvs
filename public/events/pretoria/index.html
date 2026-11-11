@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Upcoming Events in Pretoria (2026) — The Gruvs</title>
+  <meta name="description" content="Discover upcoming events, nightlife, and festivals in Pretoria. Dates, venues and directions on The Gruvs." />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://thegruvs.com/events/pretoria" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="The Gruvs" />
+  <meta property="og:title" content="Upcoming Events in Pretoria (2026) — The Gruvs" />
+  <meta property="og:description" content="Discover upcoming events, nightlife, and festivals in Pretoria. Dates, venues and directions on The Gruvs." />
+  <meta property="og:url" content="https://thegruvs.com/events/pretoria" />
+  <meta property="og:image" content="https://thegruvs.com/og-default.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="en_ZA" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@thegruvs" />
+  <meta name="twitter:title" content="Upcoming Events in Pretoria (2026) — The Gruvs" />
+  <meta name="twitter:description" content="Discover upcoming events, nightlife, and festivals in Pretoria. Dates, venues and directions on The Gruvs." />
+  <meta name="twitter:image" content="https://thegruvs.com/og-default.jpg" />
+
+  <!-- Styles -->
+  <style>
+    :root {
+      --primary: #00f2ff;
+      --bg: #0d1112;
+      --surface: #131a1c;
+      --surface-border: rgba(255,255,255,0.12);
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.65);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+    header.site-header {
+      border-bottom: 1px solid var(--surface-border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 900;
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+    .brand-link img { border-radius: 8px; width: 32px; height: 32px; }
+    .brand-accent { color: var(--primary); }
+    .nav-cta {
+      background: var(--primary);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 12px;
+      font-weight: 800;
+      text-decoration: none;
+      font-size: 14px;
+      transition: transform 0.15s ease;
+    }
+    .nav-cta:hover { transform: translateY(-2px); }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+    .breadcrumbs {
+      display: flex;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .breadcrumbs a { color: var(--muted); text-decoration: none; }
+    .breadcrumbs a:hover { color: var(--primary); }
+    .hero-title {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 900;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    .hero-lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 800px;
+      margin-bottom: 32px;
+    }
+    .event-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .event-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      text-decoration: none;
+      color: inherit;
+    }
+    .event-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--primary);
+    }
+    .event-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      background: #1a2225;
+    }
+    .event-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .event-date {
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .event-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    .event-venue {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .event-footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 14px;
+      font-size: 14px;
+    }
+    .event-price {
+      font-weight: 800;
+      color: #fff;
+    }
+    .btn-view {
+      color: var(--primary);
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .resident-banner {
+      background: linear-gradient(135deg, rgba(0, 242, 255, 0.08), rgba(0, 242, 255, 0.02));
+      border: 1px solid rgba(0, 242, 255, 0.25);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 40px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .resident-banner-text h3 {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+    .resident-banner-text p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .resident-btn {
+      background: #10b981;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 800;
+      text-decoration: none;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    footer.site-footer {
+      border-top: 1px solid var(--surface-border);
+      padding: 32px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    footer.site-footer a { color: var(--primary); text-decoration: none; }
+  </style>
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Events in Pretoria",
+  "description": "Live music, theatre, picnics, and weekend vibes across Pretoria & Tshwane.",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "item": {
+        "@type": "Event",
+        "name": "Steve Hofmeyr Live",
+        "startDate": "2026-11-05T19:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Fairtree Atterbury Teater",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events10/banners/86e15a54fe940503878d4910fcf6d4fea0e6ef409489012e870972f5def3299b-rimg-w1200-h628-dcf8f8f8-gmir?v=1789694008",
+        "url": "https://thegruvs.com/events/steve-hofmeyr-live-fairtree-atterbury-teater-pretoria-6b6446c9-5c72-4ce1-af05-97a5f664f4fe"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "Event",
+        "name": "Mr and Miss Pretoria Gay Pride 2026 Finale",
+        "startDate": "2026-11-07T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Barnyard Theatre Menlyn Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/mr-and-miss-pretoria-gay-pride-2026-finale-barnyard-theatre-menlyn-910b5e6b-fa5b-464b-acc2-5090f2611d85"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "Event",
+        "name": "Jill Scott — To Whom This May Concern Tour",
+        "startDate": "2026-11-07T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SunBet Arena",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events5/banners/1c18bfb8a1145075c73bc352b3f66fd69f14d2b5a6ec739d5cbc2f7fa6a461bc-rimg-w1200-h328-dc604634-gmir?v=1784706898",
+        "url": "https://thegruvs.com/events/jill-scott-to-whom-this-may-concern-tour-sunbet-arena-pretoria-ed996129-089b-4f99-80a6-dd32d1bd3e43"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@type": "Event",
+        "name": "Afrikaans is Groot 2026: Konsert 1",
+        "startDate": "2026-11-20T19:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Time Square Casino",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751",
+        "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-1-time-square-casino-pretoria-5cfcdb06-0fd2-4022-be16-fbc8ef91398e"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "item": {
+        "@type": "Event",
+        "name": "Nu Metal Era: Meteora Linkin Park Tribute",
+        "startDate": "2026-11-21T19:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Atterbury Rd & Lois Ave",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/nu-metal-era-meteora-linkin-park-tribute-atterbury-rd-and-lois-ave-9cec770d-aded-4c5c-9fd1-0667ef1acbe6"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "item": {
+        "@type": "Event",
+        "name": "Afrikaans is Groot 2026: Konsert 2",
+        "startDate": "2026-11-21T13:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Time Square South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751",
+        "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "item": {
+        "@type": "Event",
+        "name": "Afrikaans is Groot 2026: Konsert 3",
+        "startDate": "2026-11-21T19:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Time Square South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751",
+        "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
+      "item": {
+        "@type": "Event",
+        "name": "Afrikaans is Groot 2026: Konsert 4",
+        "startDate": "2026-11-22T12:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Time Square South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751",
+        "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 9,
+      "item": {
+        "@type": "Event",
+        "name": "Nickel Christmas Market",
+        "startDate": "2026-11-27T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Nickel Market",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/nickel-christmas-market-nickel-market-pretoria-58a16b85-15a0-467d-a498-51db278f53c2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 10,
+      "item": {
+        "@type": "Event",
+        "name": "Afrikaans is Groot 2026: Konsert 6",
+        "startDate": "2026-11-27T19:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Time Square South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751",
+        "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 11,
+      "item": {
+        "@type": "Event",
+        "name": "Afrikaans is Groot 2026: Konsert 8",
+        "startDate": "2026-11-28T19:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Time Square South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751",
+        "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 12,
+      "item": {
+        "@type": "Event",
+        "name": "Afrikaans is Groot 2026: Konsert 10",
+        "startDate": "2026-11-29T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Time Square South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events8/banners/9e0a02757503c6feaa7f95823c5435585768ab532ee52f8bb78426a001d53310-rimg-w1200-h566-dc083848-gmir?v=1788206754",
+        "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 13,
+      "item": {
+        "@type": "Event",
+        "name": "Bearfest SA 2026",
+        "startDate": "2026-12-04T14:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Die Windpomp Male Resort",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events9/banners/3711961c9db20223afe846b6884b652aa1a803af3720cc6b270be1ba7bd44f4c-rimg-w1200-h1698-dce8e8e8-gmir?v=1788283398",
+        "url": "https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 14,
+      "item": {
+        "@type": "Event",
+        "name": "+LIVE+ at Time Square (Night 1)",
+        "startDate": "2026-12-11T20:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Time Square South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589",
+        "url": "https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 15,
+      "item": {
+        "@type": "Event",
+        "name": "+LIVE+ at Time Square (Night 2)",
+        "startDate": "2026-12-12T20:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Time Square South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589",
+        "url": "https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 16,
+      "item": {
+        "@type": "Event",
+        "name": "The Kehlani World Tour: South Africa",
+        "startDate": "2026-12-15T20:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SunBet Arena Time Square",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png",
+        "url": "https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 17,
+      "item": {
+        "@type": "Event",
+        "name": "Brandy Live in South Africa",
+        "startDate": "2026-12-17T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SunBet Arena",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694",
+        "url": "https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 18,
+      "item": {
+        "@type": "Event",
+        "name": "Candlelight: Christmas Classics",
+        "startDate": "2026-12-19T20:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Voortrekker Monument",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373",
+        "url": "https://thegruvs.com/events/candlelight-christmas-classics-voortrekker-monument-pretoria-bc1981e6-9222-4ed7-a273-4178eb2700d9"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 19,
+      "item": {
+        "@type": "Event",
+        "name": "Christmas on an Ultra Luxury Train",
+        "startDate": "2026-12-23T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Rovos Rail",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/christmas-on-an-ultra-luxury-train-rovos-rail-pretoria-628f4b39-73bb-4138-8b95-26e71da6a097"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 20,
+      "item": {
+        "@type": "Event",
+        "name": "Champions Cup: Bulls v Bath",
+        "startDate": "2027-01-09T17:15:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Loftus Versfeld",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/champions-cup-bulls-v-bath-loftus-versfeld-pretoria-dae53448-dc68-414a-ba44-9504df6ae2bb"
+      }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://thegruvs.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Events",
+      "item": "https://thegruvs.com/events"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Pretoria",
+      "item": "https://thegruvs.com/events/pretoria"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+  <header class="site-header">
+    <a href="https://thegruvs.com/" class="brand-link">
+      <img src="https://thegruvs.com/logo.png" alt="The Gruvs Logo" />
+      <span>THE <span class="brand-accent">GRUVS</span></span>
+    </a>
+    <a href="https://thegruvs.com/" class="nav-cta">Open in App →</a>
+  </header>
+
+  <div class="container">
+    
+      <div class="breadcrumbs">
+        <a href="https://thegruvs.com/">Home</a> <span>›</span>
+        <span>Events</span> <span>›</span>
+        <span style="color:#fff;">Pretoria</span>
+      </div>
+
+      <h1 class="hero-title">Events in <span class="brand-accent">Pretoria</span></h1>
+      <p class="hero-lead">Live music, theatre, picnics, and weekend vibes across Pretoria &amp; Tshwane. Browse what's listed, with dates, venues and directions.</p>
+
+      <div class="resident-banner">
+        <div class="resident-banner-text">
+          <h3>Need Accommodation in Pretoria?</h3>
+          <p>Heading to an event? Look for student rooms, guest houses and shared flats near venues on The Resident Crew.</p>
+        </div>
+        <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
+      </div>
+
+      <div class="event-grid">
+        
+    <a class="event-card" href="https://thegruvs.com/events/steve-hofmeyr-live-fairtree-atterbury-teater-pretoria-6b6446c9-5c72-4ce1-af05-97a5f664f4fe">
+      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/86e15a54fe940503878d4910fcf6d4fea0e6ef409489012e870972f5def3299b-rimg-w1200-h628-dcf8f8f8-gmir?v=1789694008" alt="Steve Hofmeyr Live" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Thu, 05 Nov 2026 · 19:00</div>
+        <h3 class="event-title">Steve Hofmeyr Live</h3>
+        <p class="event-venue">Fairtree Atterbury Teater · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/mr-and-miss-pretoria-gay-pride-2026-finale-barnyard-theatre-menlyn-910b5e6b-fa5b-464b-acc2-5090f2611d85">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Mr and Miss Pretoria Gay Pride 2026 Finale" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026 · 18:00</div>
+        <h3 class="event-title">Mr and Miss Pretoria Gay Pride 2026 Finale</h3>
+        <p class="event-venue">Barnyard Theatre Menlyn Park · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/jill-scott-to-whom-this-may-concern-tour-sunbet-arena-pretoria-ed996129-089b-4f99-80a6-dd32d1bd3e43">
+      <img class="event-img" src="https://cdn-az.allevents.in/events5/banners/1c18bfb8a1145075c73bc352b3f66fd69f14d2b5a6ec739d5cbc2f7fa6a461bc-rimg-w1200-h328-dc604634-gmir?v=1784706898" alt="Jill Scott — To Whom This May Concern Tour" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 07 Nov 2026</div>
+        <h3 class="event-title">Jill Scott — To Whom This May Concern Tour</h3>
+        <p class="event-venue">SunBet Arena · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid — see venue for tickets</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-1-time-square-casino-pretoria-5cfcdb06-0fd2-4022-be16-fbc8ef91398e">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 1" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 20 Nov 2026 · 19:30</div>
+        <h3 class="event-title">Afrikaans is Groot 2026: Konsert 1</h3>
+        <p class="event-venue">Time Square Casino · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/nu-metal-era-meteora-linkin-park-tribute-atterbury-rd-and-lois-ave-9cec770d-aded-4c5c-9fd1-0667ef1acbe6">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Nu Metal Era: Meteora Linkin Park Tribute" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 21 Nov 2026 · 19:30</div>
+        <h3 class="event-title">Nu Metal Era: Meteora Linkin Park Tribute</h3>
+        <p class="event-venue">Atterbury Rd &amp; Lois Ave · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 2" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 21 Nov 2026 · 13:00</div>
+        <h3 class="event-title">Afrikaans is Groot 2026: Konsert 2</h3>
+        <p class="event-venue">Time Square South Africa · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 3" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 21 Nov 2026 · 19:30</div>
+        <h3 class="event-title">Afrikaans is Groot 2026: Konsert 3</h3>
+        <p class="event-venue">Time Square South Africa · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 4" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 22 Nov 2026 · 12:00</div>
+        <h3 class="event-title">Afrikaans is Groot 2026: Konsert 4</h3>
+        <p class="event-venue">Time Square South Africa · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/nickel-christmas-market-nickel-market-pretoria-58a16b85-15a0-467d-a498-51db278f53c2">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Nickel Christmas Market" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 27 Nov 2026</div>
+        <h3 class="event-title">Nickel Christmas Market</h3>
+        <p class="event-venue">Nickel Market · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Free entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 6" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 27 Nov 2026 · 19:30</div>
+        <h3 class="event-title">Afrikaans is Groot 2026: Konsert 6</h3>
+        <p class="event-venue">Time Square South Africa · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 8" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 28 Nov 2026 · 19:30</div>
+        <h3 class="event-title">Afrikaans is Groot 2026: Konsert 8</h3>
+        <p class="event-venue">Time Square South Africa · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/9e0a02757503c6feaa7f95823c5435585768ab532ee52f8bb78426a001d53310-rimg-w1200-h566-dc083848-gmir?v=1788206754" alt="Afrikaans is Groot 2026: Konsert 10" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sun, 29 Nov 2026 · 18:00</div>
+        <h3 class="event-title">Afrikaans is Groot 2026: Konsert 10</h3>
+        <p class="event-venue">Time Square South Africa · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee">
+      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/3711961c9db20223afe846b6884b652aa1a803af3720cc6b270be1ba7bd44f4c-rimg-w1200-h1698-dce8e8e8-gmir?v=1788283398" alt="Bearfest SA 2026" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 04 Dec 2026 · 14:00</div>
+        <h3 class="event-title">Bearfest SA 2026</h3>
+        <p class="event-venue">Die Windpomp Male Resort · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 1)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Fri, 11 Dec 2026 · 20:00</div>
+        <h3 class="event-title">+LIVE+ at Time Square (Night 1)</h3>
+        <p class="event-venue">Time Square South Africa · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 2)" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 12 Dec 2026 · 20:00</div>
+        <h3 class="event-title">+LIVE+ at Time Square (Night 2)</h3>
+        <p class="event-venue">Time Square South Africa · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png" alt="The Kehlani World Tour: South Africa" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Tue, 15 Dec 2026 · 20:00</div>
+        <h3 class="event-title">The Kehlani World Tour: South Africa</h3>
+        <p class="event-venue">SunBet Arena Time Square · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f">
+      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694" alt="Brandy Live in South Africa" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Thu, 17 Dec 2026</div>
+        <h3 class="event-title">Brandy Live in South Africa</h3>
+        <p class="event-venue">SunBet Arena · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid — see venue for tickets</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/candlelight-christmas-classics-voortrekker-monument-pretoria-bc1981e6-9222-4ed7-a273-4178eb2700d9">
+      <img class="event-img" src="https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373" alt="Candlelight: Christmas Classics" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 19 Dec 2026 · 20:00</div>
+        <h3 class="event-title">Candlelight: Christmas Classics</h3>
+        <p class="event-venue">Voortrekker Monument · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/christmas-on-an-ultra-luxury-train-rovos-rail-pretoria-628f4b39-73bb-4138-8b95-26e71da6a097">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Christmas on an Ultra Luxury Train" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Wed, 23 Dec 2026 · 10:00</div>
+        <h3 class="event-title">Christmas on an Ultra Luxury Train</h3>
+        <p class="event-venue">Rovos Rail · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/champions-cup-bulls-v-bath-loftus-versfeld-pretoria-dae53448-dc68-414a-ba44-9504df6ae2bb">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Champions Cup: Bulls v Bath" loading="lazy" />
+      <div class="event-body">
+        <div class="event-date">Sat, 09 Jan 2027 · 17:15</div>
+        <h3 class="event-title">Champions Cup: Bulls v Bath</h3>
+        <p class="event-venue">Loftus Versfeld · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+      </div>
+    
+  </div>
+
+  <footer class="site-footer">
+    <p>© 2026 The Gruvs · South Africa's Live Event & Vibe Discovery Platform.</p>
+    <p style="margin-top: 8px;">
+      <a href="https://thegruvs.com/">Home</a> · 
+      <a href="https://thegruvs.com/events/ke-dezemba">Ke Dezemba</a> · 
+      <a href="https://thegruvs.com/events/johannesburg">Johannesburg</a> · 
+      <a href="https://thegruvs.com/events/pretoria">Pretoria</a> · 
+      <a href="https://thegruvs.com/events/midrand">Midrand</a> · 
+      <a href="https://theresidentcrew.com" target="_blank" rel="noopener">Find Stays on The Resident</a>
+    </p>
+  </footer>
+</body>
+</html>

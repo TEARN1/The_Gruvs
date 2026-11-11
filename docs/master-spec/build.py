@@ -718,7 +718,7 @@ end $$;</pre>
   <table>
     <tr><th style="width:4%">#</th><th style="width:30%">Decision</th><th>Recommendation</th></tr>
     <tr><td>1</td><td class="f">Demo features</td><td>Hide the ticket, money and safety demos until they're real; label the fun ones (sensory, Booth and Street) "Preview".</td></tr>
-    <tr><td>2</td><td class="f">Payment provider</td><td>Compare Paystack, Peach Payments, PayFast and Ozow on split payments and fees, then pick one.</td></tr>
+    <tr><td>2</td><td class="f">Payment provider</td><td><b>RESOLVED: PayFast (by Network International).</b> Powers ZAR checkout, Capitec Pay, Instant EFT, cards, and ITN webhook capture.</td></tr>
     <tr><td>3</td><td class="f">Generated events catalog</td><td>Label as examples, or remove. Never in the sitemap.</td></tr>
     <tr><td>4</td><td class="f">Who sees check-in coordinates</td><td>Venue-level only.</td></tr>
     <tr><td>5</td><td class="f">Location retention</td><td>48 hours for exact points, if they're kept at all; aggregate counts kept longer.</td></tr>

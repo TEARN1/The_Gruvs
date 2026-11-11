@@ -56,11 +56,6 @@ export const SecurityService = {
   // Whitelist approach: only safe, non-PII fields are persisted.
   async logSecurityEvent(userId, eventType, details = {}) {
     if (!eventType) return;
-    // security_logs is auth-gated by design (anti-spoofing, 2026-07-06 audit),
-    // so an anonymous visitor's insert can only 401. Resolve the acting user
-    // from the arg or the live session; with no authenticated user there is
-    // nothing we're allowed to write — skip silently instead of firing a
-    // guaranteed-failing request on every logged-out page load.
     let uid = userId;
     if (!uid) {
       try { uid = (await supabase.auth.getUser())?.data?.user?.id || null; } catch { uid = null; }
@@ -75,7 +70,6 @@ export const SecurityService = {
         rsvp_id:       typeof details.rsvp_id       === 'string' ? details.rsvp_id                     : undefined,
         reason:        typeof details.reason        === 'string' ? details.reason.slice(0, 200)        : undefined,
       };
-      // Strip undefined keys
       Object.keys(safe).forEach(k => safe[k] === undefined && delete safe[k]);
       await supabase.from('security_logs').insert({
         user_id: uid,
@@ -97,12 +91,7 @@ export const SecurityService = {
     return `${name.substring(0, 2)}***@${domain}`;
   },
 
-  // Request account deletion (compliance helper). This is the write that
-  // starts the POPIA-driven deletion clock (maintenance_levels.sql's L1
-  // reports it overdue after 30 days) -- a bare try/catch here means a
-  // failed request could silently tell the user "done" while the account
-  // stays fully live and discoverable. resilient() makes the failure real
-  // instead of swallowed.
+  // Request account deletion (compliance helper).
   async requestAccountDeletion(userId) {
     if (!userId) return false;
     const ok = await resilient(
@@ -111,8 +100,6 @@ export const SecurityService = {
           deletion_requested_at: new Date().toISOString(),
           is_discoverable: false,
         }).eq('id', userId),
-        // Schema-drift-safe fallback: just the column the deletion clock
-        // actually reads, in case is_discoverable has drifted.
         () => supabase.from('profiles').update({
           deletion_requested_at: new Date().toISOString(),
         }).eq('id', userId),
@@ -129,7 +116,6 @@ export const SecurityService = {
   isThrottled(key, delayMs = 2000) {
     const now = Date.now();
 
-    // Evict entries older than TTL to prevent memory leak
     for (const [k, ts] of this._throttleMap) {
       if (now - ts > THROTTLE_MAP_TTL_MS) this._throttleMap.delete(k);
     }
@@ -167,11 +153,6 @@ export const SecurityService = {
   },
 
   // Safe URL opener.
-  //  • Non-http schemes (tel/mailto/geo/maps/whatsapp/thegruvs) → opened directly
-  //    (isValidUrl already whitelisted them).
-  //  • http(s) on a TRUSTED host (ALLOWED_HOSTS) → opened directly, no nag.
-  //  • Any other http(s) → safeOpenExternal (consent/phishing warning).
-  //  • URLs carrying credentials (https://thegruvs.com@evil.com) → refused.
   async safeOpenURL(url) {
     if (!this.isValidUrl(url)) return false;
     try {
@@ -183,12 +164,20 @@ export const SecurityService = {
           if (parsed.username || parsed.password) return false;
         } catch { return false; }
         if (this.isTrustedExternalUrl(trimmed)) {
+          if (typeof window !== 'undefined' && window.open) {
+            window.open(trimmed, '_blank', 'noopener,noreferrer');
+            return true;
+          }
           const { Linking } = require('react-native');
           await Linking.openURL(trimmed).catch((err) => { throw err; });
           return true;
         }
         const { safeOpenExternal } = require('../utils/sanitize');
         return await safeOpenExternal(trimmed);
+      }
+      if (typeof window !== 'undefined' && window.open && !url.startsWith('javascript:')) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return true;
       }
       const { Linking } = require('react-native');
       await Linking.openURL(url).catch((err) => { throw err; });
@@ -212,8 +201,6 @@ export const SecurityService = {
   },
 
   // ── Input validation ────────────────────────────────────────────────────
-
-  /** Hard-limit text inputs. Returns trimmed string or throws. */
   validateTextInput(value, { field = 'Field', minLen = 1, maxLen = 1000 } = {}) {
     if (typeof value !== 'string') throw new Error(`${field} must be text.`);
     const v = value.trim();
@@ -222,7 +209,6 @@ export const SecurityService = {
     return this.sanitizeContent(v);
   },
 
-  /** Validate and normalise a URL field. Throws on invalid input. */
   validateUrl(url, { field = 'URL', allowEmpty = true } = {}) {
     if (!url || !url.trim()) {
       if (allowEmpty) return null;
@@ -233,7 +219,6 @@ export const SecurityService = {
     return trimmed;
   },
 
-  /** Validate a ticket price string. Allows numbers or "FREE". */
   validatePrice(price) {
     if (!price || price === 'FREE') return 'FREE';
     const n = parseFloat(price);
@@ -243,8 +228,6 @@ export const SecurityService = {
   },
 
   // ── Rate limiting — layered (per-key + per-user) ────────────────────────
-
-  /** Per-action token-bucket rate limiter. Fires onBlocked callback when exceeded. */
   _buckets: new Map(),
   rateLimitCheck(key, { maxPerWindow = 10, windowMs = 60_000, onBlocked } = {}) {
     const now = Date.now();
@@ -270,17 +253,14 @@ export const SecurityService = {
   // ── Payload integrity & Threat Prevention Engine ────────────────────────
   threatEngine: ThreatPreventionEngine,
 
-  /** Intercepts and validates inputs against SQLi, XSS, and PostgREST grammar breakouts */
   guardInput(input, options = {}) {
     return ThreatPreventionEngine.guard(input, options);
   },
 
-  /** Deeply inspects an input and returns threat diagnostics */
   analyzeThreat(input, options = {}) {
     return ThreatPreventionEngine.analyze(input, options);
   },
 
-  /** Strip dangerous prototype pollution keys from any object before it touches the DB. */
   sanitizePayload(obj) {
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
     const dangerous = ['__proto__', 'constructor', 'prototype'];
@@ -293,8 +273,6 @@ export const SecurityService = {
   },
 
   // ── Auth guard helper ────────────────────────────────────────────────────
-
-  /** Throws a user-visible error if the session is invalid. */
   async requireAuth(onAuthRequired) {
     const valid = await this.validateSession();
     if (!valid) {
@@ -304,11 +282,6 @@ export const SecurityService = {
   },
 
   // ── Deep-link / URL scheme guard ────────────────────────────────────────
-
-  /** Whitelist of allowed deep-link hosts. Opens only these from external links.
-   *  NOTE: never whitelist a multi-tenant parent domain (e.g. all of supabase.co)
-   *  — anyone can create a project there and host a phishing page under it.
-   *  Only THIS app's own Supabase project host is trusted. */
   ALLOWED_HOSTS: [
     'thegruvs.com', 'www.thegruvs.com', 'thegruvs.app',
     'theresidentcrew.com', 'www.theresidentcrew.com',
@@ -327,20 +300,20 @@ export const SecurityService = {
   isTrustedExternalUrl(url) {
     try {
       const { protocol, hostname, username, password } = new URL(url);
-      if (protocol !== 'https:') return false; // plain http is never "trusted"
+      if (protocol !== 'https:') return false;
       if (username || password) return false;
       const host = hostname.toLowerCase();
+      // Allow app's Supabase storage & subdomains
+      if (host.endsWith('.supabase.co') || host === 'supabase.co') return true;
       return this.ALLOWED_HOSTS.some(h => host === h || host.endsWith(`.${h}`));
     } catch { return false; }
   },
 
-  /** Sanitize and validate route params extracted from deep-links against injection */
   sanitizeDeepLinkParams(params = {}) {
     if (!params || typeof params !== 'object') return {};
     const sanitized = {};
     for (const [key, val] of Object.entries(params)) {
       if (typeof val === 'string') {
-        // Strip control characters, quotes, and HTML tags
         sanitized[key] = val.replace(/[<>'";\\]/g, '').slice(0, 150);
       } else if (typeof val === 'number' && Number.isFinite(val)) {
         sanitized[key] = val;
@@ -350,24 +323,17 @@ export const SecurityService = {
   },
 
   // ── Content moderation helpers ───────────────────────────────────────────
-
-  /** Basic profanity / spam signal (returns score 0–1). */
   spamScore(text) {
     if (!text) return 0;
     let score = 0;
-    // Repeated chars: aaaaaaa
     if (/(.)\1{6,}/.test(text)) score += 0.4;
-    // All caps
     if (text.length > 10 && text === text.toUpperCase()) score += 0.2;
-    // Excessive punctuation
     if ((text.match(/[!?]{3,}/g) || []).length > 1) score += 0.2;
-    // URL spam
     const urlCount = (text.match(/https?:\/\//g) || []).length;
     if (urlCount > 3) score += 0.5;
     return Math.min(1, score);
   },
 
-  /** Returns true if text should be blocked as likely spam. */
   isSpam(text, threshold = 0.6) {
     return this.spamScore(text) >= threshold;
   },

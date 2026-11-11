@@ -212,7 +212,15 @@ export function createServer({ dir, static: staticDir = 'dist' }) {
     const file = normalize(join(staticRoot, decodeURIComponent(pathname)));
     if (file !== staticRoot && !file.startsWith(staticRoot + sep)) return null;
     try {
-      return statSync(file).isFile() ? file : null;
+      const stat = statSync(file);
+      if (stat.isFile()) return file;
+      // A folder's own page (/learn/x/ is learn/x/index.html), so nginx can send every
+      // HTML page through here and each one gets vercel.json's headers, such as the CSP.
+      if (stat.isDirectory() && file !== staticRoot) {
+        const index = join(file, 'index.html');
+        return statSync(index).isFile() ? index : null;
+      }
+      return null;
     } catch {
       return null;
     }

@@ -21,7 +21,6 @@ import { heatScore as canonicalHeatScore } from '../utils/heatScore';
 import { getXpLevel } from '../utils/vibeLevel';
 import { rankEventResults, rankUserResults } from '../utils/searchRelevance';
 import { secureCode } from '../utils/secureId';
-import { loadEventsCatalog } from './eventsCatalog';
 import { TicketCache } from './offlineCache';
 import { durationLabel } from '../utils/beaconDuration';
 
@@ -214,50 +213,6 @@ _extend('dating',     'dating','speed_dating','singles_night','lgbtq','pride','s
                       'meetup','party','birthday','anniversary','wedding','engagement',
                       'babyshower','reunion');
 
-// Helper to filter and paginate the curated Global Events Catalog
-export const filterCatalog = async ({ category = 'all', query = '', dateRange = null, mode = 'drop', limit = 30 } = {}) => {
-  const catalog = await loadEventsCatalog();
-  // A dated catalog entry that has already happened is never worth showing —
-  // without this, a third of the file was past events padding the live feed.
-  const today = new Date().toISOString().split('T')[0];
-  let list = Array.isArray(catalog) ? catalog.filter(e => !e.event_date || String(e.event_date) >= today) : [];
-  
-  if (category && category !== 'all') {
-    const subCats = CAT_KEY_TO_SUBCATS[category];
-    if (subCats && subCats.size > 0) {
-      list = list.filter(e => subCats.has(e.category) || e.category === category);
-    } else {
-      list = list.filter(e => e.category === category);
-    }
-  }
-
-  if (dateRange?.from) {
-    list = list.filter(e => String(e.event_date) >= String(dateRange.from));
-  }
-  if (dateRange?.to) {
-    list = list.filter(e => String(e.event_date) <= String(dateRange.to));
-  }
-
-  if (query && query.trim()) {
-    const s = query.trim().toLowerCase();
-    list = list.filter(e => 
-      (e.title && e.title.toLowerCase().includes(s)) ||
-      (e.venue_name && e.venue_name.toLowerCase().includes(s)) ||
-      (e.description && e.description.toLowerCase().includes(s)) ||
-      (e.city && e.city.toLowerCase().includes(s)) ||
-      (Array.isArray(e.tags) && e.tags.some(t => t.toLowerCase().includes(s)))
-    );
-  }
-
-  if (mode === 'upcoming') {
-    list.sort((a, b) => String(a.event_date || '').localeCompare(String(b.event_date || '')));
-  } else {
-    // Drop mode: shuffle slightly by vibe_count / date
-    list.sort((a, b) => (b.vibe_count || 0) - (a.vibe_count || 0));
-  }
-
-  return list.slice(0, limit);
-};
 
 // ── INTELLIGENCE MONITORING (Autonomous Training) ──────────────────────────
 export const IntelligenceMonitor = {
@@ -938,18 +893,9 @@ export const FeedManager = {
           } catch { /* boosted slot is enhancement only */ }
         }
       }
-      // If database returned fewer events (e.g. sparse results, offline, or specific category),
-      // enrich with curated real-world global events from the catalog
-      if (mode !== 'mine' && mode !== 'following' && events.length < 15) {
-        try {
-          const catalogEvents = await filterCatalog({ category, query, dateRange, mode, limit: 30 });
-          const existingIds = new Set(events.map(e => String(e.id)));
-          const additions = catalogEvents.filter(ce => !existingIds.has(String(ce.id)));
-          if (additions.length > 0) {
-            events = [...events, ...additions];
-          }
-        } catch { /* catalog fallback best-effort */ }
-      }
+      // A short list stays short. It used to be topped up from a generated
+      // catalogue of events that were not real; the feed shows only events
+      // people posted.
 
       const result = { events, total: Math.max(count || 0, events.length), page, hasMore: data?.length === this.PAGE_SIZE };
       cache.set(cacheKey, result);
@@ -982,13 +928,8 @@ export const FeedManager = {
         if (stale) return stale;
         throw new Error('cache miss');
       },
-      // ── Mother escalation: fallback to curated global events catalog ──────
-      async () => {
-        const fallbackList = (mode !== 'mine' && mode !== 'following')
-          ? await filterCatalog({ category, query, dateRange, mode, limit: pageSize })
-          : [];
-        return { events: fallbackList, total: fallbackList.length, page, hasMore: false };
-      },
+      // ── Last resort: nothing loaded and nothing cached → an empty feed ────
+      async () => ({ events: [], total: 0, page, hasMore: false }),
       `FeedManager.fetchPage:${mode}`
     );
   },
@@ -1126,11 +1067,6 @@ export const FeedManager = {
   },
 
   async fetchSingle(eventId) {
-    if (eventId && (String(eventId).startsWith('gp_') || String(eventId).startsWith('global_'))) {
-      const found = (await loadEventsCatalog()).find(e => String(e.id) === String(eventId));
-      if (found) return normalizeEvent(found);
-    }
-
     const cacheKey = `event:${eventId}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;

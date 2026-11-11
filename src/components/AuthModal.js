@@ -2,9 +2,9 @@ import React, { useState, useRef } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import {
-  Modal, View, Text, StyleSheet, TextInput,
+  Modal, View, Text, StyleSheet, TextInput, Image,
   TouchableOpacity, Animated, KeyboardAvoidingView,
-  Platform, ScrollView, ActivityIndicator, Dimensions, useWindowDimensions,
+  Platform, ScrollView, ActivityIndicator, Dimensions, useWindowDimensions, Linking,
 } from 'react-native';
 
 import { useTheme } from '../context/ThemeContext';
@@ -184,6 +184,13 @@ export const AuthModal = ({ visible, onClose }) => {
       return;
     }
     setError('');
+    // A reset link opens on thegruvs.com, which only accepts links it asked
+    // for itself (PKCE), so the app sends people there to ask for one.
+    if (Platform.OS !== 'web') {
+      setSuccess('Reset your password on thegruvs.com: tap Sign in, then "Forgot password". Then sign in here with the new one.');
+      Linking.openURL(APP_WEB_URL).catch(() => {});
+      return;
+    }
     // Send them back to a place that can complete the reset. On a deployed web
     // origin that's this exact origin (AuthContext picks up the recovery token in
     // the URL). On localhost dev or native, route to the production site so the
@@ -609,9 +616,16 @@ export const AuthModal = ({ visible, onClose }) => {
                   <View style={[styles.glowBar, { backgroundColor: primary }]} />
 
             <View style={styles.headerRow}>
-              <Text style={[styles.title, { color: primary }]}>
-                {mode === 'signin' ? 'Welcome back' : 'Create your account'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Image
+                  source={require('../../assets/icon-512.png')}
+                  style={{ width: 32, height: 32, borderRadius: 8 }}
+                  resizeMode="contain"
+                />
+                <Text style={[styles.title, { color: primary }]}>
+                  {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+                </Text>
+              </View>
               <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Feather name="x" size={22} color={textColor} />
               </TouchableOpacity>
@@ -666,8 +680,15 @@ export const AuthModal = ({ visible, onClose }) => {
                 so this is just an alternate front door, not a separate flow. */}
             {(mode === 'signin' || signupStep === 1) && (
               <>
-                <View style={{ flexDirection: 'row', marginHorizontal: HM, marginBottom: 16 }}>
-                  {/* Google temporarily pulled — Supabase provider isn't configured yet. */}
+                <View style={{ flexDirection: 'row', marginHorizontal: HM, marginBottom: 16, gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => handleOAuth('google')}
+                    disabled={loading || checkingName}
+                    style={[styles.oauthBtn, { borderColor: `${primary}30` }]}
+                  >
+                    <MaterialCommunityIcons name="google" size={16} color={textColor} />
+                    <Text style={[styles.oauthText, { color: textColor }]}>Google</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleOAuth('facebook')}
                     disabled={loading || checkingName}
