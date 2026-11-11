@@ -34,7 +34,9 @@ export const WaitlistButton = ({ eventId, event, primary, muted, surface }) => {
         user
           ? supabase
               .from('event_waitlist')
-              .select('id, status, reserved_until')
+              // Live event_waitlist has only id/event_id/user_id/created_at —
+              // status/reserved_until (the "offered spot" flow) aren't in the DB yet.
+              .select('id')
               .eq('event_id', eventId)
               .eq('user_id', user?.id)
               .maybeSingle()
@@ -125,8 +127,8 @@ export const WaitlistButton = ({ eventId, event, primary, muted, surface }) => {
       } else {
         const ok = await resilient(
           [
-            () => supabase.from('event_waitlist').upsert({ event_id: eventId, user_id: user?.id, status: 'queued' }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
-            () => supabase.from('event_waitlist').insert({ event_id: eventId, user_id: user?.id, status: 'queued' }),
+            () => supabase.from('event_waitlist').upsert({ event_id: eventId, user_id: user?.id }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
+            () => supabase.from('event_waitlist').insert({ event_id: eventId, user_id: user?.id }),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: 'Waitlist.join', fallbackValue: null }
         );
