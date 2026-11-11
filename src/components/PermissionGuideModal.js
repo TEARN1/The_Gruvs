@@ -128,7 +128,7 @@ export function PermissionGuideModal({
               {checking ? <ActivityIndicator color="#000" /> : <Text style={s.ctaText}>Try again</Text>}
             </TouchableOpacity>
 
-            {typeof window !== 'undefined' && (
+            {typeof window !== 'undefined' && !!window.location && (
               <TouchableOpacity onPress={() => { try { window.location.reload(); } catch {} }} style={s.secondary}>
                 <Text style={[s.secondaryText, { color: muted }]}>Reload the page</Text>
               </TouchableOpacity>

@@ -37,7 +37,8 @@ export const PayFastService = {
       throw new Error('Invalid payment amount');
     }
 
-    const host = typeof window !== 'undefined' ? window.location.origin : 'https://thegruvs.com';
+    // RN defines window but not window.location — optional-chain so native gets the site URL.
+    const host = (typeof window !== 'undefined' && window.location?.origin) || 'https://thegruvs.com';
     const finalReturnUrl = returnUrl || `${host}/payment/success?item=${encodeURIComponent(itemId || '')}`;
     const finalCancelUrl = cancelUrl || `${host}/payment/cancelled?item=${encodeURIComponent(itemId || '')}`;
 
