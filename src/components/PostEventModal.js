@@ -272,6 +272,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     setGeocoding(false);
   }, [resolveCoords]);
 
+  // A pending lookup must not fire after the modal is gone (setState on an
+  // unmounted component; in tests it ran after teardown and failed another file).
+  useEffect(() => () => clearTimeout(geocodeTimer.current), []);
+
   // Debounced geocode: fires 1.5s after user stops typing
   const handleAddressChange = useCallback((v) => {
     setAddress(v);
