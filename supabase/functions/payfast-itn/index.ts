@@ -1,272 +1,174 @@
+// payfast-itn — PayFast's server-to-server payment notification (ITN).
+//
+// A ticket is issued only when ALL of these hold:
+//   1. (live) the request comes from a PayFast IP
+//   2. the MD5 signature matches (with the passphrase, if set)
+//   3. PayFast's own /query/validate endpoint answers "VALID"
+//   4. merchant_id is OURS
+//   5. m_payment_id is an order we created, and amount_gross equals what WE
+//      priced it at (payfast-checkout stored it from the event, not the client)
+//   6. payment_status is COMPLETE
+// It is idempotent: PayFast retries ITNs, and a completed order is never
+// fulfilled twice (status check + unique ticket_tokens.order_id).
+//
+// Sandbox orders are recorded but do NOT issue real tickets unless the secret
+// PAYFAST_SANDBOX_FULFIL=true is set (for an end-to-end test). Otherwise anyone
+// could "pay" with PayFast's sandbox test card and get a real door ticket.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-function md5(string: string): string {
-  const hash = crypto.subtle.digestSync("MD5", new TextEncoder().encode(string));
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+function md5(s: string): string {
+  const hash = crypto.subtle.digestSync("MD5", new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function verifySignature(data: Record<string, string>, passphrase?: string): boolean {
-  const signatureReceived = data["signature"];
-  if (!signatureReceived) return false;
-
-  let pfOutput = "";
-  for (const key of Object.keys(data)) {
-    if (key !== "signature" && data[key] !== undefined && data[key] !== null && data[key] !== "") {
-      pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, "+")}&`;
-    }
-  }
-
-  let getString = pfOutput.slice(0, -1);
-  if (passphrase) {
-    getString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`;
-  }
-
-  return md5(getString) === signatureReceived;
+// Signature over every posted field except `signature`, in the order received.
+function signatureOk(pairs: [string, string][], passphrase: string): boolean {
+  const received = pairs.find(([k]) => k === "signature")?.[1];
+  if (!received) return false;
+  let s = pairs
+    .filter(([k, v]) => k !== "signature" && v !== "")
+    .map(([k, v]) => `${k}=${encodeURIComponent(v.trim()).replace(/%20/g, "+")}`)
+    .join("&");
+  if (passphrase) s += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`;
+  return md5(s) === received;
 }
 
-const PAYFAST_AWS_IPS = [
-  "3.163.232.237",
-  "3.163.233.237",
-  "3.163.234.237",
-  "3.163.235.237",
-  "3.163.236.237",
-  "3.163.237.237",
-  "3.163.238.237",
-  "3.163.239.237",
-  "3.163.240.237",
-  "3.163.241.237",
-  "3.163.242.237",
-  "3.163.243.237",
-  "3.163.244.237",
-  "3.163.245.237",
-  "3.163.246.237",
-  "3.163.247.237",
-  "3.163.248.237",
-  "3.163.249.237",
-  "3.163.250.237",
-  "3.163.251.237",
-  "3.163.252.237"
-];
+// PayFast's documented ITN source addresses.
+const PAYFAST_IPS = new Set([
+  ...Array.from({ length: 21 }, (_, i) => `3.163.${232 + i}.237`),
+  ...Array.from({ length: 15 }, (_, i) => `197.97.145.${144 + i}`),
+  ...Array.from({ length: 13 }, (_, i) => `41.74.179.${194 + i}`),
+]);
 
-const PAYFAST_LEGACY_IPS = [
-  "197.97.145.144", "197.97.145.145", "197.97.145.146", "197.97.145.147", "197.97.145.148",
-  "197.97.145.149", "197.97.145.150", "197.97.145.151", "197.97.145.152", "197.97.145.153",
-  "197.97.145.154", "197.97.145.155", "197.97.145.156", "197.97.145.157", "197.97.145.158",
-  "41.74.179.194", "41.74.179.195", "41.74.179.196", "41.74.179.197", "41.74.179.198",
-  "41.74.179.199", "41.74.179.200", "41.74.179.201", "41.74.179.202", "41.74.179.203",
-  "41.74.179.204", "41.74.179.205", "41.74.179.206"
-];
-
-const PAYFAST_WHITELIST = new Set([...PAYFAST_AWS_IPS, ...PAYFAST_LEGACY_IPS]);
-
-function normalizeIp(ip: string): string {
-  if (!ip) return "";
-  let cleaned = ip.trim();
-  if (cleaned.startsWith("::ffff:")) cleaned = cleaned.slice(7);
-  if (cleaned.startsWith("[") && cleaned.includes("]:")) {
-    cleaned = cleaned.slice(1, cleaned.indexOf("]:"));
-  } else if (cleaned.includes(":") && cleaned.includes(".")) {
-    cleaned = cleaned.split(":")[0];
-  }
-  return cleaned;
+function clientIp(req: Request): string {
+  const raw = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") ||
+    (req.headers.get("x-forwarded-for") || "").split(",")[0] || "";
+  return raw.trim().replace(/^::ffff:/, "");
 }
 
-function getClientIp(req: Request): string {
-  const cfIp = req.headers.get("cf-connecting-ip");
-  if (cfIp) return normalizeIp(cfIp);
-  const xRealIp = req.headers.get("x-real-ip");
-  if (xRealIp) return normalizeIp(xRealIp);
-  const xForwarded = req.headers.get("x-forwarded-for");
-  if (xForwarded) {
-    const first = xForwarded.split(",")[0].trim();
-    if (first) return normalizeIp(first);
-  }
-  return "unknown";
-}
+const SANDBOX_MERCHANT_ID = "10000100";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
+  // PayFast expects a 200 for anything we've consumed; non-200 makes it retry.
+  // So: 200 once handled (including deliberate rejections we've recorded),
+  // 4xx only for requests that aren't a usable ITN at all.
+  if (req.method !== "POST") return new Response("method_not_allowed", { status: 405 });
+
+  const isSandbox = Deno.env.get("PAYFAST_SANDBOX") !== "false";
+  const sandboxFulfil = Deno.env.get("PAYFAST_SANDBOX_FULFIL") === "true";
+  const passphrase = Deno.env.get("PAYFAST_PASSPHRASE") || "";
+  const ourMerchant = Deno.env.get("PAYFAST_MERCHANT_ID") || (isSandbox ? SANDBOX_MERCHANT_ID : "");
+  if (!ourMerchant) return new Response("not_configured", { status: 503 });
+
+  // 1. Source IP (live only — sandbox ITNs come from elsewhere).
+  if (!isSandbox && Deno.env.get("PAYFAST_SKIP_IP_CHECK") !== "true") {
+    const ip = clientIp(req);
+    if (!PAYFAST_IPS.has(ip)) {
+      console.warn(`[payfast-itn] rejected source IP ${ip}`);
+      return new Response("forbidden", { status: 403 });
+    }
   }
 
+  const text = await req.text();
+  const pairs = [...new URLSearchParams(text).entries()];
+  const post = Object.fromEntries(pairs) as Record<string, string>;
+
+  // 2. Signature
+  if (!signatureOk(pairs, passphrase)) {
+    console.warn("[payfast-itn] signature mismatch", post.m_payment_id);
+    return new Response("bad_signature", { status: 400 });
+  }
+
+  // 3. Ask PayFast whether it really sent this.
+  const validateUrl = isSandbox
+    ? "https://sandbox.payfast.co.za/eng/query/validate"
+    : "https://www.payfast.co.za/eng/query/validate";
+  let verdict = "";
   try {
-    const isSandbox = Deno.env.get("PAYFAST_SANDBOX") !== "false";
-    const skipIpCheck = Deno.env.get("PAYFAST_SKIP_IP_CHECK") === "true";
-    const enforceIp = Deno.env.get("PAYFAST_ENFORCE_IP_WHITELIST") === "true" || !isSandbox;
-
-    if (enforceIp && !skipIpCheck) {
-      const clientIp = getClientIp(req);
-      if (!PAYFAST_WHITELIST.has(clientIp)) {
-        console.warn(`[PayFast ITN] Request rejected - Source IP ${clientIp} not in PayFast whitelist`);
-        return new Response(`Forbidden: IP ${clientIp} not whitelisted`, { status: 403 });
-      }
-    }
-    const passphrase = Deno.env.get("PAYFAST_PASSPHRASE") || "";
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // PayFast ITN posts as application/x-www-form-urlencoded
-    const textBody = await req.text();
-    const params = new URLSearchParams(textBody);
-    const postData: Record<string, string> = {};
-    params.forEach((value, key) => {
-      postData[key] = value;
+    const r = await fetch(validateUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: text,
     });
-
-    console.log(`[PayFast ITN] Received notification for payment: ${postData.m_payment_id}`);
-
-    // 1. Verify Signature
-    if (!verifySignature(postData, passphrase)) {
-      console.error("[PayFast ITN] Invalid MD5 signature");
-      return new Response("Signature mismatch", { status: 400 });
-    }
-
-    // 2. Validate with PayFast query/validate
-    const validateHost = isSandbox
-      ? "https://sandbox.payfast.co.za/eng/query/validate"
-      : "https://www.payfast.co.za/eng/query/validate";
-
-    try {
-      const validateRes = await fetch(validateHost, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: textBody,
-      });
-      const validateText = await validateRes.text();
-      if (validateText.trim() !== "VALID") {
-        console.warn(`[PayFast ITN] Validation check returned: ${validateText}`);
-      }
-    } catch (err) {
-      console.warn("[PayFast ITN] Error checking validate host:", err);
-    }
-
-    // 3. Confirm payment status is COMPLETE
-    const paymentStatus = postData.payment_status;
-    const paymentId = postData.m_payment_id;
-    const pfPaymentId = postData.pf_payment_id;
-    const amountGross = parseFloat(postData.amount_gross || "0");
-    const app = postData.custom_str1 || "thegruvs";
-    const itemType = postData.custom_str2 || "ticket";
-    const userId = postData.custom_str3;
-    let metadata: any = {};
-    try {
-      metadata = postData.custom_str4 ? JSON.parse(postData.custom_str4) : {};
-    } catch {}
-
-    // Record raw transaction in audit table
-    await supabase.from("payfast_transactions").upsert({
-      m_payment_id: paymentId,
-      pf_payment_id: pfPaymentId,
-      payment_status: paymentStatus,
-      item_name: postData.item_name,
-      amount_gross: amountGross,
-      amount_fee: parseFloat(postData.amount_fee || "0"),
-      amount_net: parseFloat(postData.amount_net || "0"),
-      user_id: userId !== "anonymous" ? userId : null,
-      app: app,
-      item_type: itemType,
-      raw_payload: postData,
-      created_at: new Date().toISOString(),
-    }, { onConflict: "m_payment_id" });
-
-    if (paymentStatus === "COMPLETE") {
-      console.log(`[PayFast ITN] Processing completed capture for ${app}:${itemType}`);
-
-      // ── THE GRUVS DISPATCH ──────────────────────────────────────────
-      if (app === "thegruvs") {
-        if (itemType === "ticket") {
-          const { eventId, tierId } = metadata;
-          if (eventId && userId && userId !== "anonymous") {
-            // Generate ticket token
-            const secureToken = `TKT_${Date.now()}_${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-            await supabase.from("ticket_tokens").insert({
-              token: secureToken,
-              event_id: eventId,
-              user_id: userId,
-              tier_id: tierId || null,
-              used_at: null,
-              created_at: new Date().toISOString(),
-            });
-
-            // Mark RSVP as captured
-            await supabase.from("event_rsvps").upsert({
-              event_id: eventId,
-              user_id: userId,
-              status: "going",
-              tier_id: tierId || null,
-              payment_status: "captured",
-              payment_ref: pfPaymentId || paymentId,
-              updated_at: new Date().toISOString(),
-            }, { onConflict: "event_id,user_id" });
-
-            // Record in append-only wallet ledger
-            await supabase.from("wallet_transactions").insert({
-              user_id: userId,
-              amount_cents: Math.round(amountGross * 100),
-              type: "ticket_purchase",
-              status: "settled",
-              reference: paymentId,
-              description: `Ticket: ${postData.item_name}`,
-              created_at: new Date().toISOString(),
-            });
-          }
-        } else if (itemType === "booking") {
-          const { bookingId } = metadata;
-          if (bookingId) {
-            await supabase.from("service_bookings").update({
-              payment_status: "captured",
-              payment_ref: pfPaymentId || paymentId,
-              status: "escrow_held",
-              updated_at: new Date().toISOString(),
-            }).eq("id", bookingId);
-
-            await supabase.from("wallet_transactions").insert({
-              user_id: userId !== "anonymous" ? userId : null,
-              amount_cents: Math.round(amountGross * 100),
-              type: "escrow_held",
-              status: "settled",
-              reference: paymentId,
-              description: `Escrow funded for booking ${bookingId}`,
-              created_at: new Date().toISOString(),
-            });
-          }
-        }
-      }
-
-      // ── THE RESIDENT DISPATCH ──────────────────────────────────────
-      else if (app === "theresident") {
-        if (userId && userId !== "anonymous") {
-          const tier = itemType; // priority | premium | plus
-          if (["priority", "premium", "plus"].includes(tier)) {
-            await supabase.from("res_subscriptions").upsert({
-              user_id: userId,
-              product: tier === "plus" ? "household" : "provider",
-              tier: tier,
-              status: "active",
-              payment_ref: pfPaymentId || paymentId,
-              period_start: new Date().toISOString(),
-              period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              updated_at: new Date().toISOString(),
-            }, { onConflict: "user_id,product" });
-          }
-        }
-      }
-
-      // ── THE EXCELLENCY DISPATCH ────────────────────────────────────
-      else if (app === "theexcellency") {
-        // Mark course / enterprise order as paid
-        console.log(`[PayFast ITN] Excellency order settled: ${paymentId}`);
-      }
-    }
-
-    return new Response("OK", { status: 200 });
-  } catch (err) {
-    console.error("[PayFast ITN] Execution error:", err);
-    return new Response("Internal error", { status: 500 });
+    verdict = (await r.text()).trim();
+  } catch (e) {
+    console.error("[payfast-itn] validate call failed:", e);
+    return new Response("validate_unreachable", { status: 502 }); // PayFast will retry
   }
+  if (verdict !== "VALID") {
+    console.warn(`[payfast-itn] PayFast validate said "${verdict}"`, post.m_payment_id);
+    return new Response("not_valid", { status: 400 });
+  }
+
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const reject = async (orderId: string, reason: string) => {
+    await admin.from("payfast_orders").update({
+      status: "rejected", status_reason: reason, itn_payload: post, updated_at: new Date().toISOString(),
+    }).eq("id", orderId).eq("status", "pending");
+    console.warn(`[payfast-itn] order ${orderId} rejected: ${reason}`);
+    return new Response("OK", { status: 200 });
+  };
+
+  // 4–5. Our order, our merchant, our price.
+  const { data: order } = await admin
+    .from("payfast_orders").select("*").eq("m_payment_id", post.m_payment_id || "").maybeSingle();
+  if (!order) {
+    console.warn("[payfast-itn] unknown m_payment_id", post.m_payment_id);
+    return new Response("OK", { status: 200 }); // nothing of ours to update
+  }
+  if (order.status === "complete") return new Response("OK", { status: 200 }); // retry of a done ITN
+  if (post.merchant_id !== ourMerchant) return reject(order.id, "merchant_mismatch");
+  if (order.sandbox !== isSandbox) return reject(order.id, "mode_mismatch");
+  const paidCents = Math.round(parseFloat(post.amount_gross || "0") * 100);
+  if (paidCents !== order.amount_cents) return reject(order.id, `amount_mismatch:${paidCents}`);
+
+  // 6. Status
+  const status = post.payment_status;
+  if (status === "CANCELLED" || status === "FAILED") {
+    await admin.from("payfast_orders").update({
+      status: status === "CANCELLED" ? "cancelled" : "failed",
+      pf_payment_id: post.pf_payment_id || null, itn_payload: post, updated_at: new Date().toISOString(),
+    }).eq("id", order.id).eq("status", "pending");
+    return new Response("OK", { status: 200 });
+  }
+  if (status !== "COMPLETE") return new Response("OK", { status: 200 }); // e.g. PENDING; wait for the next ITN
+
+  // Sandbox: record, don't issue a real ticket (unless explicitly testing).
+  if (order.sandbox && !sandboxFulfil) {
+    await admin.from("payfast_orders").update({
+      status: "complete", status_reason: "sandbox_no_ticket",
+      pf_payment_id: post.pf_payment_id || null, itn_payload: post, updated_at: new Date().toISOString(),
+    }).eq("id", order.id).eq("status", "pending");
+    return new Response("OK", { status: 200 });
+  }
+
+  // Fulfil. Unique ticket_tokens.order_id makes a duplicate insert fail safely.
+  const token = `TKT-${crypto.randomUUID().replace(/-/g, "").slice(0, 20).toUpperCase()}`;
+  const { data: ticket, error: tErr } = await admin.from("ticket_tokens").insert({
+    token, event_id: order.event_id, user_id: order.user_id, tier_id: order.tier_id, order_id: order.id,
+  }).select("id").single();
+  let ticketId = ticket?.id;
+  if (tErr) {
+    const { data: existing } = await admin.from("ticket_tokens").select("id").eq("order_id", order.id).maybeSingle();
+    if (!existing) {
+      console.error("[payfast-itn] ticket insert failed:", tErr.message);
+      return new Response("ticket_failed", { status: 500 }); // PayFast retries
+    }
+    ticketId = existing.id;
+  }
+
+  const { error: rErr } = await admin.from("event_rsvps").upsert({
+    event_id: order.event_id, user_id: order.user_id, status: "going",
+    tier_id: order.tier_id, updated_at: new Date().toISOString(),
+  }, { onConflict: "event_id,user_id" });
+  if (rErr) console.error("[payfast-itn] rsvp upsert failed:", rErr.message); // ticket still stands
+
+  await admin.from("payfast_orders").update({
+    status: "complete", ticket_id: ticketId, pf_payment_id: post.pf_payment_id || null,
+    itn_payload: post, updated_at: new Date().toISOString(),
+  }).eq("id", order.id);
+
+  return new Response("OK", { status: 200 });
 });
