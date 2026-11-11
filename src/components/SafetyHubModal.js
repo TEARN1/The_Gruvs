@@ -49,7 +49,7 @@ export function SafetyHubModal({ visible, onClose, onManageContacts }) {
         { text: 'Disappear', style: 'destructive', onPress: async () => {
             const { ok } = await PanicMode.disappear(user.id);
             try { setIdentityMode?.('ghost'); } catch {}
-            toast?.show(ok ? "You're invisible now 🫥" : 'Going invisible…', ok ? 'success' : 'info');
+            toast?.show(ok ? "You're invisible now" : 'Going invisible…', ok ? 'success' : 'info');
             onClose?.();
           } },
       ],

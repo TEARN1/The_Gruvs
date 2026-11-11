@@ -781,7 +781,7 @@ export const PathMapScreen = ({ visible, onClose }) => {
         {/* Movement Trace Creator */}
         {showTraceCreator && (
           <GlassView style={[s.traceCreator, { top: showTraceCreator.y + 40, left: Math.max(10, Math.min(SW - 210, showTraceCreator.x - 100)), borderColor: `${primary}30`, backgroundColor: bg }]}>
-            <Text style={{ color: primary, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>📍 DROP A TRACE</Text>
+            <Text style={{ color: primary, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>DROP A TRACE</Text>
             <TextInput
               style={{ color: textColor, fontSize: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: `${primary}30` }}
               placeholder="Leave a message here..."

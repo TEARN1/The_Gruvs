@@ -29,7 +29,7 @@ const KOTA_SPOTS = [
     name: "Braam's Famous Midnight Kota",
     suburb: 'Braamfontein, JHB',
     distance: '0.8 km from active venues',
-    hours: 'Open until 4:30 AM 🌙',
+    hours: 'Open until 4:30 AM',
     rating: '4.9 ★ (340 vibers)',
     isOpenNow: true,
     signature: 'The Mega Dagwood (Russian, Polony, Cheese, Egg, Chips & Atchar)',
@@ -42,7 +42,7 @@ const KOTA_SPOTS = [
     name: 'Soweto Sunset Shisa Nyama & Grill',
     suburb: 'Vilakazi St, Soweto',
     distance: 'Near Soweto Festival Hub',
-    hours: 'Open until 3:00 AM 🔥',
+    hours: 'Open until 3:00 AM',
     rating: '5.0 ★ (620 vibers)',
     isOpenNow: true,
     signature: 'Braai Platter (Wors, Chops, Pap & Spicy Chakalaka)',
@@ -55,7 +55,7 @@ const KOTA_SPOTS = [
     name: 'Maboneng Night Market Food Truck',
     suburb: 'Maboneng Precinct',
     distance: '1.2 km from Warehouse Rave',
-    hours: 'Open until 2:00 AM 🌮',
+    hours: 'Open until 2:00 AM',
     rating: '4.8 ★ (190 vibers)',
     isOpenNow: true,
     signature: 'Smash Burgers & Loaded Truffle Fries',
@@ -71,7 +71,7 @@ const SIGNATURE_DISHES = [
     name: 'The Royal King Kota',
     desc: 'Hollowed fresh quarter loaf, double russian, spiced chips, melted gouda, fried egg, beef patty & hot mango atchar.',
     price: 'R 75',
-    tag: 'Bestseller 🔥',
+    tag: 'Bestseller',
     color: '#f59e0b',
   },
   {
@@ -79,7 +79,7 @@ const SIGNATURE_DISHES = [
     name: 'Kasi Shisa Nyama Combo',
     desc: 'Wood-fired beef brisket, boerewors, braai broodjie, hot chakalaka & steamed pap.',
     price: 'R 95',
-    tag: 'Crowd Voted 🥩',
+    tag: 'Crowd Voted',
     color: '#ef4444',
   },
   {
@@ -87,7 +87,7 @@ const SIGNATURE_DISHES = [
     name: 'Sunrise Recovery Smash Burger',
     desc: 'Double smash patty, crispy bacon, cheddar, pickles & secret midnight sauce.',
     price: 'R 80',
-    tag: 'Afters Hit 🌅',
+    tag: 'Afters Hit',
     color: '#10b981',
   },
 ];
@@ -137,9 +137,9 @@ export function FoodKotaSection({
           <View style={styles.filtersRow}>
             {[
               { key: 'all', label: 'All Street Food' },
-              { key: 'kota', label: 'Quarter / Kotas 🥪' },
-              { key: 'braai', label: 'Shisa Nyama 🔥' },
-              { key: 'street', label: 'Food Trucks 🚚' },
+              { key: 'kota', label: 'Quarter / Kotas' },
+              { key: 'braai', label: 'Shisa Nyama' },
+              { key: 'street', label: 'Food Trucks' },
             ].map((f) => {
               const active = selectedFilter === f.key;
               return (

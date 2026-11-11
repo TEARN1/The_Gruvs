@@ -193,7 +193,7 @@ export const ResidentStaysSection = ({ event, primary, surface, textColor, muted
   const onContact = useCallback((listing, host) => {
     setDm({
       recipient: host,
-      initialMessage: `Hi 👋 I saw your place "${listing.title}" on The Gruvs — I'm heading to ${event?.title || 'an event'} nearby. Is it still available?`,
+      initialMessage: `Hi I saw your place "${listing.title}" on The Gruvs — I'm heading to ${event?.title || 'an event'} nearby. Is it still available?`,
     });
   }, [event?.title]);
 

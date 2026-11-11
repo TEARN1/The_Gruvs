@@ -98,10 +98,10 @@ export function MapReportSheet({ visible, onClose, onSubmit }) {
                   <Text style={[s.group, { color: muted, marginBottom: 2 }]}>PREDICTED TRAFFIC IMPACT</Text>
                   <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                     {[
-                      { key: 'Normal Flow', label: '🟢 Normal' },
-                      { key: 'Moderate Delay (+10m)', label: '🟡 Moderate (+10m)' },
-                      { key: 'Heavy Delay (+25m)', label: '🟠 Heavy (+25m)' },
-                      { key: 'Gridlock / Road Closed', label: '🔴 Road Closed' }
+                      { key: 'Normal Flow', label: 'Normal' },
+                      { key: 'Moderate Delay (+10m)', label: 'Moderate (+10m)' },
+                      { key: 'Heavy Delay (+25m)', label: 'Heavy (+25m)' },
+                      { key: 'Gridlock / Road Closed', label: 'Road closed' }
                     ].map(d => {
                       const active = trafficDensity === d.key;
                       return (
@@ -139,9 +139,9 @@ export function MapReportSheet({ visible, onClose, onSubmit }) {
                       <Text style={[s.group, { color: muted, marginBottom: 2 }]}>POINTSMAN AT INTERSECTION</Text>
                       <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                         {[
-                          { key: 'police', label: '👮 Metro Police' },
-                          { key: 'volunteer', label: '🦺 Volunteer Pointsman' },
-                          { key: 'none', label: '⚠️ Unmanned (4-Way)' },
+                          { key: 'police', label: 'Metro police' },
+                          { key: 'volunteer', label: 'Volunteer pointsman' },
+                          { key: 'none', label: 'Unmanned (4-way)' },
                         ].map((p) => {
                           const active = pointsman === p.key;
                           return (

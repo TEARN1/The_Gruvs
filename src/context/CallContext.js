@@ -146,7 +146,7 @@ export function CallProvider({ children }) {
       const mm = Math.floor(secs / 60), ss = secs % 60;
       body = `${video ? '📹 Video call' : '📞 Voice call'} · ${mm}:${String(ss).padStart(2, '0')}`;
     } else {
-      body = video ? '📹 Missed video call' : '📞 Missed voice call';
+      body = video ? 'Missed video call' : 'Missed voice call';
     }
     try { await MessageManager.send(user.id, other.id, body); } catch { /* a missing log must never surface */ }
   }, [user?.id]);
@@ -237,7 +237,7 @@ export function CallProvider({ children }) {
     endCallLocal();
     if (user?.id && targetPeer?.id && msgText) {
       try {
-        await MessageManager.send(user.id, targetPeer.id, `📞 Decline reply: "${msgText}"`);
+        await MessageManager.send(user.id, targetPeer.id, `Decline reply: "${msgText}"`);
         showToast('Message sent to caller.', 'info');
       } catch (_) {}
     }

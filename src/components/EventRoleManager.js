@@ -203,7 +203,7 @@ export const EventRoleManager = ({ visible, onClose, event, primary, textColor, 
 
       invalidateEventRoleCache(event.id);
       const roleDef = ROLES.find(r => r.key === role);
-      showToast(`${targetProfile.username} is now ${roleDef?.label}! 🎉`, 'success');
+      showToast(`${targetProfile.username} is now ${roleDef?.label}!`, 'success');
       fetchData();
     } catch (e) {
       showToast(e.message || 'Could not assign role', 'error');

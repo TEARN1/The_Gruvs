@@ -372,7 +372,7 @@ export const EventPlaylistSection = ({ eventId, canModerate = false }) => {
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: textColor, fontSize: 17, fontWeight: '900' }}>Song Requests 🎧</Text>
+          <Text style={{ color: textColor, fontSize: 17, fontWeight: '900' }}>Song Requests</Text>
           <Text style={{ color: muted, fontSize: 12 }}>
             Request songs for the DJ before the night — vote what gets played.
             {playedCount > 0 ? `  ·  ${playedCount} played ✓` : ''}

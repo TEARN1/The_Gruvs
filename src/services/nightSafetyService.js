@@ -27,7 +27,7 @@ export function buildSafetyShareUrl(kind, { eventTitle, destination, minutes, pa
   const at = eventTitle ? ` from ${eventTitle}` : '';
   const text = {
     trip: `Heading out${at} now, going to ${destination || 'home'}. Should be there in about ${minutes || '?'} min. If you haven't heard from me by then, please call me.`,
-    home: `Home safe ✅ Thanks for keeping an eye on me.`,
+    home: `Home safe Thanks for keeping an eye on me.`,
     walk: `I'm walking to my car${at} (${parkingArea || 'parking'}). Can you walk with me or stay on the phone?`,
   }[kind] || '';
   return `https://wa.me/?text=${encodeURIComponent(text)}`;

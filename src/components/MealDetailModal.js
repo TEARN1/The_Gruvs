@@ -103,7 +103,7 @@ export function MealDetailModal({ visible, meal, onClose }) {
                 <View style={[s.pill, { backgroundColor: `${primary}18` }]}>
                   <Text style={[s.pillText, { color: primary }]}>{TYPE_LABEL[meal.meal_type] || 'Menu'}</Text>
                 </View>
-                {boosted && <View style={[s.pill, { backgroundColor: '#f9731622' }]}><Text style={[s.pillText, { color: '#f97316' }]}>⚡ Boosted</Text></View>}
+                {boosted && <View style={[s.pill, { backgroundColor: '#f9731622' }]}><Text style={[s.pillText, { color: '#f97316' }]}>Boosted</Text></View>}
                 {liveNow && <View style={[s.pill, { backgroundColor: '#10b98122' }]}><Text style={[s.pillText, { color: '#10b981' }]}>● On now</Text></View>}
               </View>
 

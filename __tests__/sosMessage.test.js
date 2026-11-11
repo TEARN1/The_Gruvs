@@ -3,7 +3,7 @@ import { buildSosMessage, normalizePhone, whatsappLink, smsLink } from '../src/u
 describe('sosMessage — actionable emergency contacts', () => {
   it('builds a help message with a maps link when location is known', () => {
     const m = buildSosMessage({ fromName: 'Lindi', lat: -26.2, lon: 28.04 });
-    expect(m).toMatch(/🆘 Lindi needs help/);
+    expect(m).toMatch(/^Lindi needs help/);
     expect(m).toMatch(/maps\.google\.com\/\?q=-26\.2,28\.04/);
   });
 

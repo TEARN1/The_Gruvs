@@ -77,7 +77,7 @@ export function MealComposeModal({ visible, business, onClose, onPosted }) {
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
         lat: coords?.lat ?? null, lon: coords?.lon ?? null,
       });
-      showToast('Posted to The Meal 🍽️', 'success');
+      showToast('Posted to The Meal', 'success');
       reset();
       onPosted?.(meal);
       onClose?.();

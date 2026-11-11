@@ -2,13 +2,13 @@ import { buildShareText, eventShareUrl } from '../src/utils/shareText';
 
 describe('buildShareText — Truth Protocol in every share', () => {
   it('always leads with the title', () => {
-    expect(buildShareText({ title: 'Amapiano Sundays' })).toMatch(/^🎉 "Amapiano Sundays"/);
+    expect(buildShareText({ title: 'Amapiano Sundays' })).toMatch(/^"Amapiano Sundays"/);
   });
 
   it('leads social proof with verified presence, then intent', () => {
     const msg = buildShareText({ title: 'X', here_count: 5, going: 20 });
-    expect(msg).toContain('🔥 5 already there');
-    expect(msg).toContain('✅ 20 locked in');
+    expect(msg).toContain('5 already there');
+    expect(msg).toContain('20 locked in');
     expect(msg.indexOf('already there')).toBeLessThan(msg.indexOf('locked in'));
   });
 
@@ -19,7 +19,7 @@ describe('buildShareText — Truth Protocol in every share', () => {
   });
 
   it('marks FREE when there is no price', () => {
-    expect(buildShareText({ title: 'X' })).toContain('🆓 FREE entry');
+    expect(buildShareText({ title: 'X' })).toContain('FREE entry');
     expect(buildShareText({ title: 'X', price: 'R150' })).not.toContain('FREE entry');
   });
 

@@ -579,7 +579,7 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
     const list = upcomingEvents.length ? upcomingEvents : monthEvents;
     if (!list.length) return;
     const scheduleSummary = list.slice(0, 5).map(e => `• ${e.title} (${e.event_date}) @ ${e.venue_name || 'TBA'}`).join('\n');
-    const shareText = `👑 My Gruvs Lineup:\n\n${scheduleSummary}\n\nDiscover more on https://thegruvs.com`;
+    const shareText = `My Gruvs Lineup:\n\n${scheduleSummary}\n\nDiscover more on https://thegruvs.com`;
     try {
       await Share.share({ message: shareText, title: 'My Gruvs Lineup' });
     } catch {}
@@ -651,8 +651,8 @@ export const CalendarPage = ({ onAuthRequired, onNavigateToEvent }) => {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 8 }}>
           {[
             { key: 'all',      label: 'All Gruvs' },
-            { key: 'my_rsvps', label: '⚡ Locked In' },
-            { key: 'free',     label: '🎫 Free' },
+            { key: 'my_rsvps', label: 'Locked In' },
+            { key: 'free',     label: 'Free' },
           ].map(f => (
             <TouchableOpacity
               key={f.key}

@@ -114,7 +114,7 @@ export const useNotifications = ({ onNavigate } = {}) => {
               const currentUser = userRef.current;
               if (partnerId && currentUser?.id) {
                 await MessageManager.send(currentUser.id, partnerId, userText);
-                showToast('Reply sent! 💬', 'success');
+                showToast('Reply sent!', 'success');
               }
             } catch (e) {
               showToast('Could not send reply: ' + e.message, 'error');

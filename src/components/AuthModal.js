@@ -339,7 +339,7 @@ export const AuthModal = ({ visible, onClose }) => {
       } else {
         SecurityService.logSecurityEvent(data.user.id, 'AUTH_SIGNIN_SUCCESS');
         onClose();
-        setTimeout(() => toast?.show('Welcome back! 👑', 'success'), 300);
+        setTimeout(() => toast?.show('Welcome back!', 'success'), 300);
       }
     } catch (e) {
       setError(e?.message || 'Sign in failed — check your connection.');
@@ -531,7 +531,7 @@ export const AuthModal = ({ visible, onClose }) => {
     // signUp; we don't double-send.
     if (hasSession) {
       handleClose();
-      toast?.show('Welcome to The Gruvs! 🎉', 'success');
+      toast?.show('Welcome to The Gruvs!', 'success');
     } else {
       // No session = the project enforces email confirmation. The account exists;
       // they just need to confirm via the mail Supabase already sent, then sign in.
@@ -623,7 +623,7 @@ export const AuthModal = ({ visible, onClose }) => {
                   resizeMode="contain"
                 />
                 <Text style={[styles.title, { color: primary }]}>
-                  {mode === 'signin' ? '👑 Welcome back' : '⚡ Create your account'}
+                  {mode === 'signin' ? 'Welcome back' : 'Create your account'}
                 </Text>
               </View>
               <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -654,7 +654,7 @@ export const AuthModal = ({ visible, onClose }) => {
                 <View style={styles.ecosystemPills}>
                   {ECOSYSTEM_APPS.map((app) => (
                     <View key={app.id} style={[styles.ecosystemPill, { borderColor: `${app.color}40`, backgroundColor: `${app.color}10` }]}>
-                      <Text style={{ fontSize: 11 }}>{app.badge}</Text>
+                      <Feather name={app.icon} size={11} color={app.color} />
                       <Text style={[styles.ecosystemPillText, { color: textColor }]}>{app.name}</Text>
                     </View>
                   ))}
@@ -915,7 +915,7 @@ export const AuthModal = ({ visible, onClose }) => {
 
             {!!error && (
               <View style={styles.errorBox}>
-                <Text style={styles.errorText}>⚠️ {error}</Text>
+                <Text style={styles.errorText}>{error}</Text>
                 {!!unconfirmedEmail && (
                   <>
                     <Text style={[styles.errorText, { fontWeight: '400', marginTop: 6 }]}>
@@ -938,7 +938,7 @@ export const AuthModal = ({ visible, onClose }) => {
             )}
             {!!success && (
               <View style={styles.successBox}>
-                <Text style={styles.successText}>✅ {success}</Text>
+                <Text style={styles.successText}>{success}</Text>
               </View>
             )}
 

@@ -490,13 +490,13 @@ const VendorsTab = ({ event, config, primary, textColor, surface, muted }) => {
 // ── Live Updates Tab ──────────────────────────────────────────────────────────
 
 const UPDATE_TYPES = [
-  { key: 'announcement',    label: '📢 Announce' },
-  { key: 'general',         label: '💬 General' },
-  { key: 'set_now_playing', label: '🎵 Now Playing' },
-  { key: 'delay',           label: '⏱ Delay' },
+  { key: 'announcement',    label: 'Announce' },
+  { key: 'general',         label: 'General' },
+  { key: 'set_now_playing', label: 'Now Playing' },
+  { key: 'delay',           label: 'Delay' },
   { key: 'session_starting',label: '▶️ Session Starting' },
-  { key: 'result',          label: '🏆 Result' },
-  { key: 'safety',          label: '⚠️ Safety' },
+  { key: 'result',          label: 'Result' },
+  { key: 'safety',          label: 'Safety' },
 ];
 
 const UpdatesTab = ({ event, primary, textColor, muted }) => {

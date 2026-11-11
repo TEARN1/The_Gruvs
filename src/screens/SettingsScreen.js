@@ -131,7 +131,7 @@ export const SettingsScreen = ({
   const toggleCyberAudioMute = useCallback((val) => {
     setCyberAudioMuted(val);
     cyberAudio.setMuted(val);
-    toast?.show(val ? 'Synthesizer muted' : 'Futuristic synthesizer active ⚡', 'info');
+    toast?.show(val ? 'Synthesizer muted' : 'Futuristic synthesizer active', 'info');
   }, [toast]);
 
   // Privacy toggles mirror the profile; write-through on change.
@@ -152,7 +152,7 @@ export const SettingsScreen = ({
   const toggleSound = useCallback((next) => {
     setSoundOn(next);
     SoundFX.setEnabled(next); // plays a confirmation chime when turned on
-    toast?.show(next ? 'Sound effects on 🔊' : 'Sound effects off', next ? 'success' : 'info');
+    toast?.show(next ? 'Sound effects on' : 'Sound effects off', next ? 'success' : 'info');
   }, [toast]);
   const changeVolume = useCallback((vol) => {
     setSoundVolume(vol);
@@ -213,7 +213,7 @@ export const SettingsScreen = ({
   const handleToggleRadioTracking = useCallback(async (v) => {
     setRadioTrackingOn(v);
     await setRadioTrackingEnabled(v);
-    toast?.show(v ? 'Radio Proximity Tracking active 📡' : 'Radio Tracking paused', 'info');
+    toast?.show(v ? 'Radio Proximity Tracking active' : 'Radio Tracking paused', 'info');
   }, [toast]);
 
   // Career & looks
@@ -273,7 +273,7 @@ export const SettingsScreen = ({
           toast?.show(Platform.OS === 'web'
             ? 'Allow notifications in your browser to turn these on.'
             : 'Enable notifications in your device settings.', 'info');
-        } else toast?.show('Notifications on 🔔', 'success');
+        } else toast?.show('Notifications on', 'success');
       } else {
         if (Platform.OS === 'web') NotificationService.disableWebPush();
         else await supabase.from('profiles').update({ push_token: null }).eq('id', user.id);
@@ -301,7 +301,7 @@ export const SettingsScreen = ({
             try { setIdentityMode?.('ghost'); } catch {}
             setDiscoverable(false);
             refreshProfile?.();
-            toast?.show(ok ? 'You\'re invisible now 🫥' : 'Went invisible (some steps may retry).', ok ? 'success' : 'info');
+            toast?.show(ok ? 'You\'re invisible now' : 'Went invisible (some steps may retry).', ok ? 'success' : 'info');
           },
         },
       ],
@@ -317,7 +317,7 @@ export const SettingsScreen = ({
     await Biometric.setLockEnabled(next);
     setLockEnabled(next);
     try { haptics.success?.(); } catch {}
-    toast?.show(next ? 'App lock enabled 🔒' : 'App lock disabled', next ? 'success' : 'info');
+    toast?.show(next ? 'App lock enabled' : 'App lock disabled', next ? 'success' : 'info');
   }, [lockEnabled, bioLabel, toast]);
 
   const saveCareer = useCallback(async () => {
@@ -478,7 +478,7 @@ export const SettingsScreen = ({
                     ]}
                   >
                     <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: `${app.color}20`, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 15 }}>{app.badge}</Text>
+                      <Feather name={app.icon} size={15} color={app.color} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

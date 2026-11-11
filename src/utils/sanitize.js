@@ -171,8 +171,8 @@ export async function safeOpenExternal(url) {
     const shown = raw.length > 300 ? `${raw.slice(0, 300)}…` : raw;
     const message =
       `You are leaving The Gruvs to visit:\n\n${host ? `${host}\n` : ''}${shown}\n\n` +
-      (punycode ? '⚠️ This address uses lookalike characters and may be impersonating another site.\n\n' : '') +
-      (insecure ? '⚠️ This link is not encrypted (http).\n\n' : '') +
+      (punycode ? 'This address uses lookalike characters and may be impersonating another site.\n\n' : '') +
+      (insecure ? 'This link is not encrypted (http).\n\n' : '') +
       'To keep your account secure, never enter your password or share sensitive information on unverified external sites.';
 
     if (Platform.OS === 'web') {

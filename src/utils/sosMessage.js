@@ -6,15 +6,15 @@
 
 export function buildSosMessage({ fromName, lat, lon, venueName, batteryPct } = {}) {
   const who = fromName ? `${fromName} needs help` : 'I need help';
-  const lines = [`🆘 ${who}.`];
+  const lines = [`${who}.`];
   if (venueName) {
-    lines.push(`📍 Near/At: ${venueName}`);
+    lines.push(`Near/At: ${venueName}`);
   }
   if (Number.isFinite(lat) && Number.isFinite(lon)) {
-    lines.push(`🗺️ Coordinates: https://maps.google.com/?q=${lat},${lon}`);
+    lines.push(`Coordinates: https://maps.google.com/?q=${lat},${lon}`);
   }
   if (typeof batteryPct === 'number') {
-    lines.push(`🔋 Battery: ${Math.round(batteryPct)}%`);
+    lines.push(`Battery: ${Math.round(batteryPct)}%`);
   }
   lines.push('Sent via The Gruvs Emergency Safety Dispatch.');
   return lines.join('\n');

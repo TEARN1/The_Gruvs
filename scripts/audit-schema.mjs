@@ -53,6 +53,9 @@ const EXPECTED_MISSING = new Set([
   // which is in the repo but not yet applied to production. The client writes are
   // best-effort, so nothing breaks meanwhile. Remove this line once it is applied.
   'reel_conversions',
+  // People you hide from on Find Me. Ships with 20261021000100_find_me_privacy.sql;
+  // the screen says hiding is not on yet until it is applied. Remove once live.
+  'presence_hidden_from',
   // Excellency & Threat Prevention tables. Ships with supabase/migrations/20261024000200_ecosystem_threat_prevention_and_pillars.sql,
   // pending remote application. Client falls back to curated/local state meanwhile.
   'exc_certifications',

@@ -77,9 +77,9 @@ const FILTERS = [
 const RADIUS_OPTIONS = [1, 5, 10, 25, 50, 100];
 
 const DESC_GENDERS = [
-  { key: 'male',       label: '♂ Male' },
-  { key: 'female',     label: '♀ Female' },
-  { key: 'non_binary', label: '⚧ Non-binary' },
+  { key: 'male',       label: 'Male' },
+  { key: 'female',     label: 'Female' },
+  { key: 'non_binary', label: 'Non-binary' },
 ];
 
 const DESC_HAIR = [
