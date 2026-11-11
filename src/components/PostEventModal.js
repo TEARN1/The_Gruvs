@@ -251,6 +251,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   // ── Auto-geocode address → lat/lon when user stops typing ────────────────
   const geocodeTimer = useRef(null);
   const [geocoding, setGeocoding] = useState(false);
+  // Cancel a pending debounced geocode on unmount, so it can't fire (and set
+  // state / hit the network) after the modal is gone.
+  useEffect(() => () => clearTimeout(geocodeTimer.current), []);
 
   // Forward-geocode an address string -> { lat, lon } | null.
   // IMPORTANT: Location.geocodeAsync does NOT exist on web, so web must use
