@@ -60,6 +60,19 @@ describe('resilientRead', () => {
 
     expect(result).toEqual([]);
   });
+
+  it('returns the function emptyResult (never null) when the read deadline fires', async () => {
+    // Regression: on slow mobile data the deadline path returned null, and
+    // FeedManager.fetchPage callers threw "Cannot read property 'events' of null".
+    const never = () => new Promise(() => {});
+    const empty = { events: [], total: 0, page: 0, hasMore: false };
+
+    const promise = resilientRead(never, never, never, async () => empty, 'deadline-fn-' + Math.random());
+    await flush();
+    const result = await promise;
+
+    expect(result).toEqual(empty);
+  });
 });
 
 describe('resilientWrite', () => {
