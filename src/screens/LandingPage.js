@@ -99,6 +99,7 @@ import { BorderTracer } from '../components/KasiIndustrialUI';
 import { deferred } from '../utils/deferred';
 import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 import { fx } from '../styles/webFx';
+import { markStartup } from '../utils/startupTrace';
 
 // Panels load on first open, not at app start (see src/utils/deferred.js).
 const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
@@ -1130,6 +1131,8 @@ const orderForGuest = (list) =>
 //  filters, dedupes and collapses tours; it never re-ranks.)
 
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap, onNavigateToTab, initialFeedFilter, onClearInitialFeedFilter }) => {
+  markStartup('LandingPage first render');
+  useEffect(() => { markStartup('LandingPage mounted'); }, []);
   // Header fit on small phones: at 320 px the logo, wordmark and five round
   // buttons were wider than the screen and the "+" (post) button was cut off.
   const { width: winW } = useWindowDimensions();
@@ -1147,6 +1150,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const flatListRef = useRef(null);
 
   const [events, setEvents] = useState([]);
+  useEffect(() => { if (events.length > 0) markStartup('Feed: first events committed to screen'); }, [events.length]);
   // New seed each mount/refresh so the feed line-up varies every visit.
   const [birthdaysToday, setBirthdaysToday] = useState([]);
   const [birthdayLeadUp, setBirthdayLeadUp] = useState(null);
@@ -1510,7 +1514,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     };
 
     try {
+      markStartup(`Feed: first request (${feedMode}, ${user?.id ? 'user' : 'guest'})`);
       const { events: fetchedEvents, hasMore: moreAvailable, failed } = await FeedManager.fetchPage(fetchOpts);
+      markStartup(`Feed: first response (${fetchedEvents?.length ?? 0} events${failed ? ', FAILED' : ''})`);
       if (!isCurrent()) return; // a newer load owns the screen now
       if (failed) {
         // Couldn't load (timeout / offline). Keep whatever is already showing

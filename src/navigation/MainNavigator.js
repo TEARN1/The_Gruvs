@@ -59,6 +59,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { ALL_TABS, TABS, WIDE_BREAKPOINT, getTabLabel } from './navigationConfig';
 import { TabBar } from './TabBar';
 import { SidebarNav } from './SidebarNav';
+import { markStartup } from '../utils/startupTrace';
 
 const ScreenSkeleton = ({ active }) =>
   active ? (
@@ -68,6 +69,8 @@ const ScreenSkeleton = ({ active }) =>
   ) : null;
 
 export const MainNavigator = () => {
+  markStartup('MainNavigator first render');
+  useEffect(() => { markStartup('MainNavigator mounted (first paint committed)'); }, []);
   const { currentTheme, applyNeuralTheme } = useTheme();
   const { user: authUser, recoveryMode, endRecovery } = useAuth();
   const { width } = useWindowDimensions();

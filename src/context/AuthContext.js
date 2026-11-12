@@ -3,6 +3,7 @@ import { supabase } from '../services/supabase';
 import { UserManager, clearAllCache, PresenceManager, hydrateCacheFromDisk } from '../services/dataFlow';
 import { SecurityService } from '../services/securityService';
 import { claimPendingRef } from '../services/referral';
+import { markStartup } from '../utils/startupTrace';
 
 // Explicit field list — never use select('*') to avoid leaking private columns
 const PROFILE_FIELDS = 'id, username, display_name, avatar_url, bio, vibe_score, is_verified, is_online, last_seen, identity_mode, is_beacon_active, beacon_expires_at, beacon_intent, is_discoverable, push_token, interests, location, career_title, career_description, looks_description, profile_gallery, share_events, show_online, gender, referral_code';
@@ -54,6 +55,7 @@ export const AuthProvider = ({ children }) => {
           }
         } catch {}
         setProfile(data);
+        markStartup('Auth: profile loaded');
       }
     } catch {
       // Profile fetch failure is non-fatal — user can still navigate
@@ -65,7 +67,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
+    markStartup('Auth: getSession started');
     supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      markStartup(`Auth: getSession resolved (${s?.user ? 'signed in' : 'guest'})`);
       if (!mounted) return;
       // Warm the data cache from disk BEFORE releasing the user to the tree.
       // Screens load their data the moment `user` is set, so hydrating after

@@ -4,6 +4,8 @@
  * Bootstraps runtime guards, error reporters, font assets, and mounts the top-level
  * AppProviders wrapper around MainNavigator.
  */
+// First import on purpose: its clock starts as early as JS can start one.
+import { markStartup } from './src/utils/startupTrace';
 import React, { useState, useEffect } from 'react';
 import { useFonts, loadAsync as _loadFontAsync } from 'expo-font';
 const Font = { loadAsync: _loadFontAsync };
@@ -44,7 +46,10 @@ setDriftReporter((label, err, kind) =>
   logError(`${kind}:${label}`.slice(0, 80), err, { code: err?.code || null })
 );
 
+markStartup('App module evaluated');
+
 export default function App() {
+  markStartup('App first render');
   const [syncSafeMode] = useState(() => (Platform.OS === 'web' ? shouldEnterSafeModeSync() : null));
   const [safeModeChecked, setSafeModeChecked] = useState(syncSafeMode !== null);
   const [inSafeMode, setInSafeMode] = useState(!!syncSafeMode);
@@ -90,6 +95,7 @@ export default function App() {
   }, []);
 
   if (!safeModeChecked || (Platform.OS !== 'web' && !fontsLoaded && !forceLoaded)) {
+    markStartup('App gate: waiting (safe-mode check / fonts)');
     return (
       <View style={styles.loadingScreen}>
         <StatusBar barStyle="light-content" backgroundColor="#0d1112" translucent={false} />
@@ -127,6 +133,7 @@ export default function App() {
     );
   }
 
+  markStartup('App gate passed: rendering providers + navigator');
   return (
     <AppProviders>
       <MainNavigator />
