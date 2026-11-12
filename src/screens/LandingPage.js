@@ -512,7 +512,7 @@ const EventCard = React.memo(({
                 opacity: heartAnim.opacity,
                 transform: [{ scale: heartAnim.scale }],
               }}>
-                <Text style={{ fontSize: 72 }}>❤️</Text>
+                <Feather name="heart" size={72} color="#ff3366" />
               </Animated.View>
             )}
             {/* Subtle bottom-edge vignette — only enough to keep the corner controls
@@ -669,7 +669,7 @@ const EventCard = React.memo(({
                   ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' }} />
                   : <Feather name="trending-up" size={11} color="#f59e0b" />}
                 <Text style={[styles.crewBadgeText, { color: heat.live ? '#10b981' : '#f59e0b' }]}>
-                  {heat.live ? `🔥 ${heat.text}` : heat.text}
+                  {heat.live ? `LIVE · ${heat.text}` : heat.text}
                 </Text>
               </View>
             )}
@@ -701,7 +701,7 @@ const EventCard = React.memo(({
               >
                 <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
                 {event.poster_mode
-                  ? <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={1}>📋 Details on the poster</Text>
+                  ? <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={1}>Details on the poster</Text>
                   : <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>}
                 {/* The strongest reason anyone ever leaves the house: someone
                     they know will be there. Names the person — an abstract count
@@ -2157,7 +2157,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     if (isAdded) {
       toast.show('Removed from your journey', 'info');
     } else {
-      toast.show('Added to your journey 📍', 'success');
+      toast.show('Added to your journey', 'success');
       safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
     }
   };
@@ -2178,7 +2178,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <Feather name="gift" size={18} color={primary} />
             <Text style={{ color: textColor, fontWeight: '950', fontSize: 11, letterSpacing: 1 }}>
-              {isToday ? "HAPPY BIRTHDAY TO YOU! 🎂" : `YOUR BIRTHDAY IS IN ${birthdayLeadUp.daysUntil} DAYS! 🎈`}
+              {isToday ? "HAPPY BIRTHDAY TO YOU!" : `YOUR BIRTHDAY IS IN ${birthdayLeadUp.daysUntil} DAYS!`}
             </Text>
           </View>
           <Text style={{ color: muted, fontSize: 12, lineHeight: 18, marginBottom: 10 }}>
@@ -2214,7 +2214,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       items.push(
         <GlassView key="locals-bday" style={{ marginHorizontal: 16, marginBottom: 12, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
           <Text style={{ color: textColor, fontWeight: '950', fontSize: 11, letterSpacing: 1, marginBottom: 10 }}>
-            🎂 CELEBRATING TODAY
+            CELEBRATING TODAY
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, alignItems: 'center' }}>
             {birthdaysToday.map((p) => {
@@ -2806,9 +2806,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           paddingHorizontal: 14, paddingVertical: 10,
           flexDirection: 'row', alignItems: 'center', gap: 10,
         }}>
-          <Text style={{ fontSize: 20 }}>
-            {communityAlert.severity === 'panic' ? '🚨' : '⚠️'}
-          </Text>
+          <Feather name="alert-triangle" size={18} color="#fff" />
           <View style={{ flex: 1 }}>
             <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }} numberOfLines={1}>
               {communityAlert.title}
@@ -3278,7 +3276,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             />
 
             {[
-              { icon: 'zap', label: myVibes.has(quickActionTarget.id) ? 'Remove Vibe' : 'Vibe it ⚡', action: () => { handleVibe(quickActionTarget.id); setQuickActionTarget(null); } },
+              { icon: 'zap', label: myVibes.has(quickActionTarget.id) ? 'Remove Vibe' : 'Vibe it', action: () => { handleVibe(quickActionTarget.id); setQuickActionTarget(null); } },
               { icon: 'bookmark', label: savedEvents.has(quickActionTarget.id) ? 'Unsave' : 'Save', action: () => { handleBookmark(quickActionTarget.id); setQuickActionTarget(null); } },
               { icon: 'check-circle', label: 'RSVP', action: () => { setRsvpEvent(quickActionTarget); setQuickActionTarget(null); } },
               { icon: 'share-2', label: 'Share', action: () => { handleShare(quickActionTarget); setQuickActionTarget(null); } },

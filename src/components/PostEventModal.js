@@ -577,8 +577,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         return;
       }
     }
-    if (posterMode && mediaItems.length === 0) {
-      setError('Upload your poster — in poster mode it carries all the details.');
+    if (mediaItems.length === 0) {
+      setError('A poster or cover image is required for every Gruv listing.');
       setStep(2);
       return;
     }

@@ -426,8 +426,14 @@ function emptyHubNote(what) {
         { headers: { apikey: key, Authorization: `Bearer ${key}` } }
       );
       if (res.ok) {
-        events = await res.json();
-        console.log(`[build-seo-hubs] Loaded ${events.length} live upcoming events from Supabase.`);
+        const rawEvents = await res.json();
+        events = rawEvents.filter(e => {
+          if (e.cover_url && typeof e.cover_url === 'string' && e.cover_url.trim().length > 5) return true;
+          if (e.cover_image && typeof e.cover_image === 'string' && e.cover_image.trim().length > 5) return true;
+          if (Array.isArray(e.media_urls) && e.media_urls.length > 0 && typeof e.media_urls[0] === 'string' && e.media_urls[0].trim().length > 5) return true;
+          return false;
+        });
+        console.log(`[build-seo-hubs] Loaded ${events.length} live upcoming events with verified images (filtered from ${rawEvents.length}).`);
       }
     } catch (e) {
       console.warn('[build-seo-hubs] Failed to fetch events from Supabase:', e.message);

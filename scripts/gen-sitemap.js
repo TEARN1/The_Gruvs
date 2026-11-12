@@ -227,7 +227,11 @@ function buildXml(entries) {
       );
       let events = [];
       if (res.ok) {
-        events = await res.json();
+        const rawEvents = await res.json();
+        events = rawEvents.filter(e => {
+          const cover = e.cover_url || e.cover_image || (Array.isArray(e.media_urls) && e.media_urls[0]);
+          return Boolean(cover && typeof cover === 'string' && cover.trim().length > 5);
+        });
       }
 
       for (const e of events) {

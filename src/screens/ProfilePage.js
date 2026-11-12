@@ -250,12 +250,12 @@ const pAvatarBg = (name) => {
 
 const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage, onKeepBusy }) => {
   const isBored = person.beacon_intent === 'bored' || person.intent === 'bored';
-  const intentLabel = person.beacon_intent === 'bored' ? '🥱 Bored · Keep Me Busy' :
-    person.beacon_intent === 'late_bites' ? '🍔 Late Bites / Drive' :
-    person.beacon_intent === 'crew' ? '👥 Squad Hangout' :
-    person.beacon_intent === 'music' ? '🎧 Jam Session' :
-    person.beacon_intent === 'chill' ? '🛋️ Deep Talks & Chill' :
-    person.beacon_intent === 'open' ? '👋 Open to Meet' : null;
+  const intentLabel = person.beacon_intent === 'bored' ? 'Bored · Keep Me Busy' :
+    person.beacon_intent === 'late_bites' ? 'Late Bites / Drive' :
+    person.beacon_intent === 'crew' ? 'Squad Hangout' :
+    person.beacon_intent === 'music' ? 'Jam Session' :
+    person.beacon_intent === 'chill' ? 'Deep Talks & Chill' :
+    person.beacon_intent === 'open' ? 'Open to Meet' : null;
 
   return (
     <View style={[pcard.wrap, { borderColor: isBored ? `${primary}50` : `${primary}18`, backgroundColor: isBored ? `${primary}08` : 'transparent' }]}>
@@ -271,7 +271,7 @@ const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage, on
           <Text style={[pcard.name, { color: textColor }]}>{person.username}</Text>
           {person.is_verified ? <Feather name="check-circle" size={12} color={primary} /> : null}
         </Row>
-        <Text style={[pcard.meta, { color: muted }]}>{person.distance_km?.toFixed(1) || '?'} km away · {person.cloak_location ? 'Approx Area 🛡️' : 'Live Pin 📍'}</Text>
+        <Text style={[pcard.meta, { color: muted }]}>{person.distance_km?.toFixed(1) || '?'} km away · {person.cloak_location ? 'Approx Area' : 'Live Pin'}</Text>
         {intentLabel ? (
           <View style={{ marginTop: 4, alignSelf: 'flex-start', backgroundColor: `${primary}20`, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: `${primary}45` }}>
             <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>{intentLabel}</Text>
@@ -291,7 +291,7 @@ const PersonCard = ({ person, primary, muted, textColor, onFollow, onMessage, on
             accessibilityRole="button"
             accessibilityLabel={`Keep ${person.username} busy`}
           >
-            <Text style={pcard.keepBusyText}>Keep Busy ⚡</Text>
+            <Text style={pcard.keepBusyText}>Keep Busy</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={[pcard.followBtn, { backgroundColor: primary }]} onPress={onFollow}>
@@ -324,12 +324,12 @@ const pcard = StyleSheet.create({
 
 // ── Find Me Sub-View ──────────────────────────────────────────────────────────
 const BEACON_INTENTS = [
-  { key: 'bored',      label: 'Bored / Keep Me Busy', emoji: '🥱' },
-  { key: 'late_bites', label: 'Late Bites / Drive',   emoji: '🍔' },
-  { key: 'open',       label: 'Open to meeting',      emoji: '👋' },
-  { key: 'crew',       label: 'Squad / Crew Only',    emoji: '👥' },
-  { key: 'music',      label: 'Music & Jam Session',  emoji: '🎧' },
-  { key: 'chill',      label: 'Deep Talks & Chill',   emoji: '🛋️' },
+  { key: 'bored',      label: 'Bored / Keep Me Busy', icon: 'zap' },
+  { key: 'late_bites', label: 'Late Bites / Drive',   icon: 'coffee' },
+  { key: 'open',       label: 'Open to meeting',      icon: 'users' },
+  { key: 'crew',       label: 'Squad / Crew Only',    icon: 'shield' },
+  { key: 'music',      label: 'Music & Jam Session',  icon: 'music' },
+  { key: 'chill',      label: 'Deep Talks & Chill',   icon: 'message-circle' },
 ];
 
 const BEACON_DURATIONS = [
@@ -340,9 +340,9 @@ const BEACON_DURATIONS = [
 ];
 
 const BEACON_AUDIENCES = [
-  { key: 'all',     label: 'Radius (Anyone Nearby)', emoji: '🌍', desc: 'Vibers in your neighborhood radius' },
-  { key: 'mutuals', label: 'People Who Know Me',     emoji: '✨', desc: 'Mutual follows / people you follow back' },
-  { key: 'crew',    label: 'Squad / Crew Only',      emoji: '🔒', desc: 'Restricted strictly to your squad' },
+  { key: 'all',     label: 'Radius (Anyone Nearby)', icon: 'map-pin', desc: 'Vibers in your neighborhood radius' },
+  { key: 'mutuals', label: 'People Who Know Me',     icon: 'users',   desc: 'Mutual follows / people you follow back' },
+  { key: 'crew',    label: 'Squad / Crew Only',      icon: 'lock',    desc: 'Restricted strictly to your squad' },
 ];
 
 /** Minutes remaining until an ISO timestamp, floored at 0. Null-safe. */
@@ -778,7 +778,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
                   {zodiac.sign.toUpperCase()} · {zodiac.element.toUpperCase()} ELEMENT
                 </Text>
                 <Text style={{ color: muted, fontSize: 10.5 }}>
-                  {daysToBday === 0 ? "🎉 Today is your special day!" : `⏳ ${daysToBday} days until next orbit`}
+                  {daysToBday === 0 ? "Today is your special day!" : `${daysToBday} days until next orbit`}
                 </Text>
               </View>
             </View>
@@ -1039,7 +1039,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
                     style={[fm.intentChip, { minWidth: '30%', flex: 1, borderColor: active ? primary : `${primary}30`, backgroundColor: active ? `${primary}18` : 'rgba(255,255,255,0.02)', position: 'relative' }]}
                     activeOpacity={0.8}
                   >
-                    <Text style={{ fontSize: 16 }}>{i.emoji}</Text>
+                    <Feather name={i.icon || 'circle'} size={16} color={active ? primary : muted} />
                     <Text style={{ color: active ? primary : muted, fontSize: 10, fontWeight: '800', marginTop: 3, textAlign: 'center' }}>{i.label}</Text>
                     <ControlledGlitterBurst trigger={intentGlitter[i.key]} count={10} radius={26} colors={[primary, '#fff', '#ffd700']} />
                   </TouchableOpacity>
@@ -1103,7 +1103,7 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
                       backgroundColor: active ? `${primary}15` : 'rgba(255,255,255,0.02)',
                     }}
                   >
-                    <Text style={{ fontSize: 16 }}>{aud.emoji}</Text>
+                    <Feather name={aud.icon || 'circle'} size={16} color={active ? primary : muted} />
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: active ? primary : textColor, fontSize: 12, fontWeight: '800' }}>{aud.label}</Text>
                       <Text style={{ color: muted, fontSize: 10 }}>{aud.desc}</Text>
@@ -1157,13 +1157,13 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
                 <Text style={{ color: '#10b981', fontSize: 11, fontWeight: '900', letterSpacing: 1 }}>RADAR BEACON BROADCASTING</Text>
               </Row>
               <Text style={{ color: textColor, fontSize: 15, fontWeight: '900' }}>
-                {chosen ? `${chosen.emoji} ${chosen.label}` : 'Active Beacon'}
+                {chosen ? chosen.label : 'Active Beacon'}
               </Text>
               <Text style={{ color: muted, fontSize: 11 }}>
-                Audience: <Text style={{ color: primary, fontWeight: '800' }}>{aud?.label || 'Nearby Radius'}</Text> · {cloakLocation ? 'Fuzzy Cloak Active 🛡️' : 'Exact Pin 📍'}
+                Audience: <Text style={{ color: primary, fontWeight: '800' }}>{aud?.label || 'Nearby Radius'}</Text> · {cloakLocation ? 'Fuzzy Cloak Active' : 'Exact Pin'}
               </Text>
               <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '800', marginTop: 2 }}>
-                {mins == null ? 'Live on Radar' : mins <= 0 ? 'Wrapping up…' : `⏳ Live for ${mins} more min`}
+                {mins == null ? 'Live on Radar' : mins <= 0 ? 'Wrapping up…' : `Live for ${mins} more min`}
               </Text>
             </View>
           );
@@ -1362,10 +1362,10 @@ const RoyalCouncilPage = ({ primary, textColor, muted, user, toast }) => {
 // ── Find Them Sub-View ────────────────────────────────────────────────────────
 const VIBE_SEARCH_FILTERS = [
   { key: 'all',        label: 'All Vibers' },
-  { key: 'bored',      label: '🥱 Bored / Keep Me Busy' },
-  { key: 'crew',       label: '👥 Squad / Crew' },
-  { key: 'mutuals',    label: '✨ People I Know' },
-  { key: 'late_bites', label: '🍔 Late Bites' },
+  { key: 'bored',      label: 'Bored / Keep Me Busy' },
+  { key: 'crew',       label: 'Squad / Crew' },
+  { key: 'mutuals',    label: 'People I Know' },
+  { key: 'late_bites', label: 'Late Bites' },
 ];
 
 const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, applyLocationPrivacy, initialDistance = 5, onShowMap }) => {
@@ -1419,7 +1419,7 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
   }, [people, activeFilter, vibeFilter]);
 
   const handleKeepBusy = (person) => {
-    setDmInitialMessage(`Hey @${person.username}! Saw your late-night beacon on Find Me — down to keep you busy? 👋`);
+    setDmInitialMessage(`Hey @${person.username}! Saw your late-night beacon on Find Me — down to keep you busy?`);
     setDmTarget(person);
   };
 
@@ -1574,7 +1574,7 @@ const FindThemPage = ({ primary, muted, textColor, user, onAuthRequired, toast, 
         <View style={{ paddingHorizontal: 16 }}>
           {displayed.length === 0 && !loading ? (
             <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-              <Text style={{ fontSize: 36 }}>📍</Text>
+              <Feather name="map-pin" size={32} color={muted} />
               <Text style={{ color: textColor, fontSize: 15, fontWeight: '800', marginTop: 12 }}>
                 No one found nearby
               </Text>
@@ -1772,7 +1772,7 @@ const ClubsModal = ({ userId, primary, textColor, muted, surface, onClose, onClu
         <View style={[styles.modalSheet, { backgroundColor: surface }]}>
           {/* Header */}
           <View style={styles.modalHeaderRow}>
-            <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>⚔️ My Clubs</Text>
+            <Text style={{ color: textColor, fontSize: 18, fontWeight: '900' }}>My Clubs</Text>
             <TouchableOpacity onPress={onClose}><Feather name="x" size={20} color={muted} /></TouchableOpacity>
           </View>
 
@@ -1985,7 +1985,7 @@ const ClubsAndAwardsSection = ({ userId, primary, textColor, muted, surface, onC
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {awards.map(a => (
               <View key={a.id} style={{ alignItems: 'center', gap: 3, width: 70, backgroundColor: `${primary}10`, borderRadius: 12, borderWidth: 1, borderColor: `${primary}25`, padding: 8 }}>
-                <Text style={{ fontSize: 22 }}>{a.award_icon || '🏆'}</Text>
+                <Feather name="award" size={20} color="#fbbf24" />
                 <Text style={{ color: textColor, fontSize: 9, fontWeight: '800', textAlign: 'center' }} numberOfLines={2}>{a.award_label}</Text>
                 <Text style={{ color: muted, fontSize: 8, textAlign: 'center' }} numberOfLines={1}>{a.events?.title}</Text>
                 {a.stat_value != null && (
@@ -3313,7 +3313,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               activeOpacity={0.8}
             >
               <View {...fx('float', 1)} style={[styles.hubIconWrap, { borderColor: '#10b98150', backgroundColor: 'rgba(16,185,129,0.20)' }]}>
-                <Text style={{ fontSize: 16 }}>🏆</Text>
+                <Feather name="award" size={16} color="#10b981" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Sports & Cups</Text>
               <Text style={[styles.hubTileSub, { color: muted }]}>Top 32 & Fair Play</Text>
@@ -3341,7 +3341,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               activeOpacity={0.8}
             >
               <View {...fx('float', 2)} style={[styles.hubIconWrap, { borderColor: '#f59e0b50', backgroundColor: 'rgba(245,158,11,0.20)' }]}>
-                <Text style={{ fontSize: 16 }}>🍔</Text>
+                <Feather name="coffee" size={16} color="#f59e0b" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Kotas & Food</Text>
               <Text style={[styles.hubTileSub, { color: muted }]}>Late Night Kitchens</Text>
@@ -3367,7 +3367,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
               activeOpacity={0.8}
             >
               <View {...fx('float', 3)} style={[styles.hubIconWrap, { borderColor: '#ec489950', backgroundColor: 'rgba(236,72,153,0.20)' }]}>
-                <Text style={{ fontSize: 16 }}>🎂</Text>
+                <Feather name="gift" size={16} color="#ec4899" />
               </View>
               <Text style={[styles.hubTileTitle, { color: textColor }]}>Birthday Radar</Text>
               <Text style={[styles.hubTileSub, { color: muted }]}>Perks & Free Drinks</Text>
@@ -3901,7 +3901,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 </View>
               ))}
               {!!vibeCoachData.next_milestone && (
-                <Text style={{ color: primary, fontSize: 11, fontWeight: '700', marginTop: 4 }}>🎯 {vibeCoachData.next_milestone}</Text>
+                <Text style={{ color: primary, fontSize: 11, fontWeight: '700', marginTop: 4 }}>Next Milestone: {vibeCoachData.next_milestone}</Text>
               )}
             </>
           ) : (
