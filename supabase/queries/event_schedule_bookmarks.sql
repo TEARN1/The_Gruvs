@@ -1,6 +1,5 @@
 -- Starred lineup / personal schedule (src/services/eventLifecycleManager.js).
--- NOT YET APPLIED. Until it is, starring works on-device only (in-memory Set);
--- the DB writes fail softly. Idempotent; safe to re-run.
+-- APPLIED to live (feevvddvrjmfbhffccbf) 2026-11-12. Idempotent; safe to re-run.
 create table if not exists public.event_schedule_bookmarks (
   event_id         uuid not null references public.events(id) on delete cascade,
   schedule_item_id text not null,
