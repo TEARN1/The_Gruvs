@@ -34,6 +34,11 @@ import {
 let MLRN = null;
 try { MLRN = require('@maplibre/maplibre-react-native'); } catch { MLRN = null; }
 
+// Our own text layers must name a font the tile server actually serves.
+// Left unset, MapLibre falls back to "Open Sans Regular, Arial Unicode MS
+// Regular", which OpenFreeMap 404s, so every label/count we draw vanished.
+const MAP_TEXT_FONT = ['Noto Sans Bold'];
+
 const MAP_STYLES = {
   dark: 'https://tiles.openfreemap.org/styles/dark',
   light: 'https://tiles.openfreemap.org/styles/bright',
@@ -197,7 +202,7 @@ export function LiveMap({
       <ShapeSource id="zone-markers" shape={zoneMarkersFC}>
         <SymbolLayer
           id="zone-marker-text"
-          style={{ textField: ['get', 'label'], textSize: 10, textColor: '#fff', textHaloColor: '#000', textHaloWidth: 1 }}
+          style={{ textFont: MAP_TEXT_FONT, textField: ['get', 'label'], textSize: 10, textColor: '#fff', textHaloColor: '#000', textHaloWidth: 1 }}
         />
       </ShapeSource>
 
@@ -223,13 +228,13 @@ export function LiveMap({
       <ShapeSource id="crew" shape={crewFC} onPress={(e) => onEventPress?.(e?.features?.[0]?.properties?.eventId)}>
         <CircleLayer id="crew-ring" style={{ circleRadius: 16, circleColor: 'transparent', circleStrokeColor: '#ec4899', circleStrokeWidth: 2, ...vis(showCrew) }} />
         <CircleLayer id="crew-dot" style={{ circleRadius: 6, circleColor: '#ec4899', ...vis(showCrew) }} />
-        <SymbolLayer id="crew-count" style={{ textField: ['to-string', ['get', 'count']], textSize: 10, textColor: '#fff', ...vis(showCrew) }} />
+        <SymbolLayer id="crew-count" style={{ textFont: MAP_TEXT_FONT, textField: ['to-string', ['get', 'count']], textSize: 10, textColor: '#fff', ...vis(showCrew) }} />
       </ShapeSource>
 
       <ShapeSource id="nearby" shape={nearbyFC} onPress={(e) => onViberPress?.(firstId(e))}>
         <CircleLayer id="nearby-glow" style={{ circleRadius: 14, circleColor: '#00f2ff', circleOpacity: 0.18, ...vis(showNearby) }} />
         <CircleLayer id="nearby-dot" style={{ circleRadius: 5, circleColor: '#00f2ff', ...vis(showNearby) }} />
-        <SymbolLayer id="nearby-text" style={{ textField: ['get', 'username'], textSize: 9, textColor: '#fff', textOffset: [0, 1.4], ...vis(showNearby) }} />
+        <SymbolLayer id="nearby-text" style={{ textFont: MAP_TEXT_FONT, textField: ['get', 'username'], textSize: 9, textColor: '#fff', textOffset: [0, 1.4], ...vis(showNearby) }} />
       </ShapeSource>
 
       <ShapeSource id="stays" shape={staysFC} onPress={(e) => onStayPress?.(firstId(e))}>
@@ -238,7 +243,7 @@ export function LiveMap({
       </ShapeSource>
 
       <ShapeSource id="pois" shape={poisFC}>
-        <SymbolLayer id="pois-icon" style={{ textField: ['get', 'icon'], textSize: 16 }} />
+        <SymbolLayer id="pois-icon" style={{ textFont: MAP_TEXT_FONT, textField: ['get', 'icon'], textSize: 16 }} />
       </ShapeSource>
 
       <ShapeSource id="reports" shape={reportsFC} onPress={(e) => onReportPress?.(firstId(e))}>
@@ -287,7 +292,7 @@ export function LiveMap({
         <SymbolLayer
           id="ev-cluster-count"
           filter={['has', 'point_count']}
-          style={{ textField: ['to-string', ['get', 'point_count']], textSize: 12, textColor: '#001014', ...vis(!heat) }}
+          style={{ textFont: MAP_TEXT_FONT, textField: ['to-string', ['get', 'point_count']], textSize: 12, textColor: '#001014', ...vis(!heat) }}
         />
         <CircleLayer
           id="ev-glow"
