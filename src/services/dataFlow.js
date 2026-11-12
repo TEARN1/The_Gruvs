@@ -4487,3 +4487,8 @@ export const DraftManager = {
     return () => supabase.removeChannel(channel);
   },
 };
+
+// ── Re-export EventLifecycleManager & SmartAlertEngine ──────────────────────
+export { EventLifecycleManager } from './eventLifecycleManager';
+export { SmartAlertEngine } from './smartAlertEngine';
+
