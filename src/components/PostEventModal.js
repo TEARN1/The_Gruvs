@@ -773,7 +773,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (contactPhone.trim()) payload.contact_phone = contactPhone.trim();
     if (contactEmail.trim()) payload.contact_email = contactEmail.trim();
     if (selectedVibeRules.length > 0) payload.vibe_rules = selectedVibeRules;
-    if (selectedAspectRatio) payload.aspect_ratio = selectedAspectRatio;
+    // aspect_ratio is NOT sent: events has no such column, and the default
+    // '4:5' made EVERY post fail tiers 1 and 2 (PGRST204), landing on the
+    // minimal tier-3 insert that drops media, tags, schedule and audience.
+    // Nothing reads it yet; add the column before sending it again.
 
     // Recurrence
     if (isRecurring) {
