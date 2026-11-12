@@ -61,6 +61,9 @@ const EXPECTED_MISSING = new Set([
   // Ticket Vault & Talent Escrow (parked behind feature('ticketVault') = false).
   'ticket_resales',
   'talent_escrow',
+  // Starred lineup (eventLifecycleManager). Ships with supabase/queries/event_schedule_bookmarks.sql,
+  // pending user approval. Starring works on-device meanwhile. Remove once applied.
+  'event_schedule_bookmarks',
 ]);
 
 // Known, ACKNOWLEDGED drift with an owner and a plan. These do not fail the

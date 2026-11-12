@@ -50,8 +50,7 @@ export const EventLifecycleManager = {
           schedule_item_id: itemId,
           user_id: userId,
           item_data: itemData,
-          created_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'user_id,event_id,schedule_item_id' });
       } catch (e) {
         logError('EventLifecycleManager.starScheduleItem', e);
       }
