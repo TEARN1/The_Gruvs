@@ -21,7 +21,9 @@ export const SidebarNav = ({
   onDownloadApp,
 }) => (
   <View
-    accessibilityRole="navigation"
+    // 'navigation' is web-only; Android rejects it and crashes. Web keeps the
+    // landmark through the role prop.
+    {...(Platform.OS === 'web' ? { role: 'navigation' } : { accessibilityRole: 'menu' })}
     accessibilityLabel="Main navigation"
     style={[
       styles.root,
