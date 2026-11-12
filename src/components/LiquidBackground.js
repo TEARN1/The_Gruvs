@@ -3,14 +3,15 @@
  *
  * Two or three large, soft colour blobs gently rise, fall and breathe to give
  * the UI a living, liquid feel. Pure-JS and cross-platform:
- *   • web   — CSS radial-gradient blobs, animated via Animated transforms
- *   • native — large translucent circles (big borderRadius + low opacity) drifting
+ *   • web    — CSS radial-gradient blobs drifting on a compositor CSS animation
+ *   • native — large translucent circles, held still (an endless native loop kept
+ *              the phone redrawing every frame while idle)
  *
  * Respects prefers-reduced-motion (web) and renders a static wash instead.
- * Cheap: 2–3 Views, all transforms on the native driver.
+ * Cheap: 2–3 Views; no per-frame work on native.
  */
-import { useEffect, useRef } from 'react';
-import { View, Animated, Platform, Easing } from 'react-native';
+
+import { View, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { MOTION } from '../constants/DesignTokens';
 import { cssLoop } from '../utils/cssLoop';
@@ -28,20 +29,19 @@ const hexA = (hex, a) => {
 };
 
 const Blob = ({ color, size, from, to, duration, delay = 0, style }) => {
-  const t = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (IS_WEB || reducedMotion()) return;   // web: CSS animation below
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(t, { toValue: 1, duration, delay, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(t, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [t, duration, delay]);
-
   if (IS_WEB) {
+    if (reducedMotion()) {
+      return (
+        <View
+          pointerEvents="none"
+          style={[{
+            position: 'absolute', width: size, height: size, borderRadius: size / 2,
+            backgroundImage: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+            transform: `translateX(${from.x}px) translateY(${from.y}px)`,
+          }, style]}
+        />
+      );
+    }
     const at = (p, s) => ({ transform: `translateX(${p.x}px) translateY(${p.y}px) scale(${s})` });
     return (
       <View
@@ -59,12 +59,12 @@ const Blob = ({ color, size, from, to, duration, delay = 0, style }) => {
     );
   }
 
-  const translateY = t.interpolate({ inputRange: [0, 1], outputRange: [from.y, to.y] });
-  const translateX = t.interpolate({ inputRange: [0, 1], outputRange: [from.x, to.x] });
-  const scale = t.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.12, 1] });
-
+  // Native: a still circle at its starting spot. An endless native drift on big
+  // translucent layers (on up to 5 kept-alive screens at once) made the phone
+  // redraw ~80 frames/s while idle, 28% of them late. Colour and placement are
+  // unchanged; only the slow drift is web-only now.
   return (
-    <Animated.View
+    <View
       pointerEvents="none"
       style={[
         {
@@ -72,10 +72,8 @@ const Blob = ({ color, size, from, to, duration, delay = 0, style }) => {
           width: size,
           height: size,
           borderRadius: size / 2,
-          transform: [{ translateX }, { translateY }, { scale }],
-          ...(IS_WEB
-            ? { backgroundImage: `radial-gradient(circle, ${color} 0%, transparent 70%)` }
-            : { backgroundColor: color }),
+          backgroundColor: color,
+          transform: [{ translateX: from.x }, { translateY: from.y }],
         },
         style,
       ]}

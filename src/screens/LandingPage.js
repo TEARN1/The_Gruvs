@@ -150,12 +150,16 @@ const SkeletonCard = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
     if (IS_WEB_LOOP) return;   // web: CSS animation (cssLoop) — no per-frame re-render
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.7, duration: 1000, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 0.3, duration: 1000, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    loop.start();
+    // Stop on unmount. Without this the native loop outlived the skeleton,
+    // and every feed load added another endless animation.
+    return () => loop.stop();
   }, []);
   return (
     <Animated.View style={[skStyles.card, IS_WEB_LOOP ? { opacity: 0.3, ...cssLoop({ '0%': { opacity: 0.3 }, '100%': { opacity: 0.7 } }, 1000) } : { opacity: pulse }, { borderColor: `${primary}30` }]}>
