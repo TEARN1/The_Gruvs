@@ -1191,23 +1191,24 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
                     </View>
                   );
                 })()}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4, gap: 2 }}>
-                  <Text
-                    style={[
-                      dm.timeText,
-                      {
-                        color: !isMine
-                          ? muted
-                          : item.read_at
-                            ? "#10b981" // green for read
-                            : item.delivered_at
-                              ? "#ff9800" // orange for delivered
-                              : "#ef4444" // red for sent
-                      }
-                    ]}
-                  >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4, gap: 3 }}>
+                  {/* Time in a readable tone; status as ticks (the old
+                      red/orange/green time text was unreadable on the yellow
+                      "mine" bubble and meant nothing without a legend). */}
+                  <Text style={[dm.timeText, { color: isMine ? 'rgba(0,0,0,0.6)' : muted }]}>
                     {fmtTime(item.created_at)}
                   </Text>
+                  {isMine && (
+                    <View
+                      style={{ flexDirection: 'row' }}
+                      accessibilityLabel={item.read_at ? 'Read' : item.delivered_at ? 'Delivered' : 'Sent'}
+                    >
+                      <Feather name="check" size={12} color={item.read_at ? '#04603a' : 'rgba(0,0,0,0.55)'} />
+                      {(item.read_at || item.delivered_at) && (
+                        <Feather name="check" size={12} color={item.read_at ? '#04603a' : 'rgba(0,0,0,0.55)'} style={{ marginLeft: -7 }} />
+                      )}
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -1801,7 +1802,9 @@ const dm = StyleSheet.create({
   input: { flex: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 120 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   bubbleImage: { width: 220, height: 160, borderRadius: 12, marginBottom: 8 },
-  docCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, padding: 10, width: 240, marginBottom: 4 },
+  // maxWidth: a fixed 240 was wider than the bubble's 78% cap on a phone, so
+  // the card spilled out past the bubble's edge.
+  docCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, padding: 10, width: 240, maxWidth: '100%', marginBottom: 4 },
   docIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   eventCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 10, overflow: 'hidden', marginBottom: 6 },
   eventBar: { width: 4, height: '100%' },

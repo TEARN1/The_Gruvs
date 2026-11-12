@@ -122,6 +122,9 @@ export function AnimatedChatBubble({
     <Animated.View
       style={[
         styles.root,
+        // Hug the sender's edge. With only maxWidth set, the bubble started
+        // at the left and stopped at 85%, so "mine" floated mid-screen.
+        { alignSelf: isMine ? 'flex-end' : 'flex-start' },
         style,
         {
           opacity: opacityAnim,
@@ -156,11 +159,15 @@ export function AnimatedChatBubble({
         <Animated.View
           style={[
             styles.bubbleContainer,
+            // Same corners as the bubble inside (tail at the bottom on the
+            // sender's side). The old top-tail + rounded-bottom clip shape, with
+            // overflow hidden, sliced off the inner bubble's corner — and the
+            // timestamp that sits there.
             {
-              borderTopRightRadius: isMine ? 6 : 20,
-              borderTopLeftRadius: isMine ? 20 : 6,
-              borderBottomLeftRadius: 20,
-              borderBottomRightRadius: 20,
+              borderTopLeftRadius: 18,
+              borderTopRightRadius: 18,
+              borderBottomRightRadius: isMine ? 4 : 18,
+              borderBottomLeftRadius: isMine ? 18 : 4,
             },
             bubbleStyle,
             isSelected && {
