@@ -8,6 +8,7 @@
  */
 import { Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RouteEngine } from './routeEngine';
 
 const ACTIVE_TRIP_KEY = 'gruvs_active_safe_trip';
 
@@ -97,5 +98,13 @@ export const SafeRoute = {
     } catch {
       return null;
     }
+  },
+
+  /**
+   * Plans an optimal, shortest safe return & crew pick-up route using
+   * the Ivory Park AC TSP & accurate tracking strategy.
+   */
+  planSafeCrewPickupRoute(attendees = [], destination, departureTime = '23:30', startOrigin = null) {
+    return RouteEngine.optimizePickupRoute(attendees, destination, departureTime, startOrigin);
   },
 };

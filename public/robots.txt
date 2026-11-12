@@ -1,4 +1,39 @@
+# The Gruvs — robots.txt
+# Optimized for Googlebot, Bingbot, Applebot, and Social Preview Crawlers
+
 User-agent: *
+Allow: /
+Allow: /events/
+Allow: /venues/
+Allow: /services/
+Allow: /feed.xml
+Allow: /sitemap.xml
+Disallow: /*?token=*
+Disallow: /*?session=*
+Disallow: /*?code=*
+
+User-agent: Googlebot
+Allow: /
+Allow: /events/
+Allow: /venues/
+Allow: /services/
+Allow: /*.js$
+Allow: /*.css$
+
+User-agent: Googlebot-Image
+Allow: /
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.webp$
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: WhatsApp
 Allow: /
 
 Sitemap: https://thegruvs.com/sitemap.xml

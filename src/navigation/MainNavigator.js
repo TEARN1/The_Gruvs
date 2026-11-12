@@ -615,9 +615,12 @@ export const MainNavigator = () => {
         </TouchableOpacity>
       )}
 
-      <ErrorBoundary label="Install banner" inline>
-        <InstallAppBanner primary={primary} />
-      </ErrorBoundary>
+      {/* Floating install pill stays off the Map tab — it sat on top of the venue deck. Sidebar still offers Get App. */}
+      {currentTab !== 'map' && (
+        <ErrorBoundary label="Install banner" inline>
+          <InstallAppBanner primary={primary} />
+        </ErrorBoundary>
+      )}
 
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}

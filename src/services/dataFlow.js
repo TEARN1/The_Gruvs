@@ -24,6 +24,23 @@ import { secureCode } from '../utils/secureId';
 import { TicketCache } from './offlineCache';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
+export const hasPosterOrImage = (event) => {
+  if (!event || typeof event !== 'object') return false;
+  if (typeof event.cover_url === 'string' && event.cover_url.trim().length > 5) return true;
+  if (typeof event.cover_image === 'string' && event.cover_image.trim().length > 5) return true;
+  if (typeof event.poster_url === 'string' && event.poster_url.trim().length > 5) return true;
+  if (Array.isArray(event.media_urls) && event.media_urls.length > 0) {
+    const u = event.media_urls[0];
+    if (typeof u === 'string' && u.trim().length > 5) return true;
+  }
+  if (Array.isArray(event.media) && event.media.length > 0) {
+    const m = event.media[0];
+    if (typeof m === 'string' && m.trim().length > 5) return true;
+    if (m && typeof m === 'object' && ((typeof m.uri === 'string' && m.uri.trim().length > 5) || (typeof m.url === 'string' && m.url.trim().length > 5))) return true;
+  }
+  return false;
+};
+
 export const normalizeEvent = (event) => {
   if (!event) return event;
   const parsed = { ...event };
@@ -52,7 +69,7 @@ export const normalizeEvent = (event) => {
 export const normalizeEvents = (events) => {
   if (!events) return [];
   if (Array.isArray(events)) {
-    return events.map(normalizeEvent);
+    return events.map(normalizeEvent).filter(hasPosterOrImage);
   }
   return normalizeEvent(events);
 };
@@ -439,6 +456,7 @@ export const ScoreEngine = {
     crossedPathIds = [],
     aiRecommendedIds = new Set(), // kept for API compatibility
   } = {}) {
+    if (!event) return 0;
     const now = Date.now();
     const ageH = Math.max(0.01, (now - new Date(event.created_at).getTime()) / 3600000);
     const vibes = event.vibe_count || 0;
@@ -1337,6 +1355,7 @@ export const TrendingManager = {
 // +1 the server (correctly) ignored, so counts drifted. After every successful
 // toggle we broadcast the new state, then the server's real count.
 const _vibeListeners = new Set();
+const _inFlightVibes = new Set();
 const _emitVibe = (change) => _vibeListeners.forEach((fn) => { try { fn(change); } catch { /* listener bug must not break vibing */ } });
 async function _settleVibe(eventId, userId, vibed) {
   cache.invalidate(`user_vibes:${userId}`);
@@ -1353,55 +1372,69 @@ export const VibeManager = {
 
   // Returns true on success, 'self' if own event, null on failure
   async sendVibe(eventId, userId, authorId = null) {
-    // Throttled taps did nothing but reported success, so the screen kept a +1
-    // the server never saw. Say so, and let the caller roll back.
-    if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return 'throttled';
-    if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
+    const opKey = `${userId}:${eventId}`;
+    if (_inFlightVibes.has(opKey)) return 'throttled';
+    _inFlightVibes.add(opKey);
+    try {
+      // Throttled taps did nothing but reported success, so the screen kept a +1
+      // the server never saw. Say so, and let the caller roll back.
+      if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return 'throttled';
+      if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
 
-    // Self-vibe check — use passed authorId first to avoid extra round-trip
-    const ownerId = authorId ?? (await supabase.from('events').select('author_id').eq('id', eventId).maybeSingle()).data?.author_id;
-    if (ownerId === userId) return 'self';
+      // Self-vibe check — use passed authorId first to avoid extra round-trip
+      const ownerId = authorId ?? (await supabase.from('events').select('author_id').eq('id', eventId).maybeSingle()).data?.author_id;
+      if (ownerId === userId) return 'self';
 
-    const result = await resilient(
-      [
-        // Tier 1: upsert with conflict resolution
-        () => supabase.from('event_vibes').upsert({ event_id: eventId, user_id: userId }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
-        // Tier 2: plain insert (fallback if upsert fails on this DB version)
-        () => supabase.from('event_vibes').insert({ event_id: eventId, user_id: userId }),
-        // Tier 3: RPC increment — bypasses row insert entirely
-        () => supabase.rpc('increment_vibe_count', { p_event_id: eventId, p_user_id: userId }),
-      ],
-      { attemptsPerTier: 3, baseMs: 300, label: 'VibeManager.sendVibe', fallbackValue: null }
-    );
-    if (result !== null) {
-      FeedManager.invalidate(eventId);
-      _settleVibe(eventId, userId, true);
-      VibeEquityLedger.mintEquity(userId, 'SOCIAL_RESONANCE').catch(() => {});
-      ScoreEngine.computeVibeScore(userId).catch(() => {});
-      _notifyEventAuthor(eventId, userId, 'vibe').catch(() => {});
-      return true;
+      const result = await resilient(
+        [
+          // Tier 1: upsert with conflict resolution
+          () => supabase.from('event_vibes').upsert({ event_id: eventId, user_id: userId }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
+          // Tier 2: plain insert (fallback if upsert fails on this DB version)
+          () => supabase.from('event_vibes').insert({ event_id: eventId, user_id: userId }),
+          // Tier 3: RPC increment — bypasses row insert entirely
+          () => supabase.rpc('increment_vibe_count', { p_event_id: eventId, p_user_id: userId }),
+        ],
+        { attemptsPerTier: 3, baseMs: 300, label: 'VibeManager.sendVibe', fallbackValue: null }
+      );
+      if (result !== null) {
+        FeedManager.invalidate(eventId);
+        _settleVibe(eventId, userId, true);
+        VibeEquityLedger.mintEquity(userId, 'SOCIAL_RESONANCE').catch(() => {});
+        ScoreEngine.computeVibeScore(userId).catch(() => {});
+        _notifyEventAuthor(eventId, userId, 'vibe').catch(() => {});
+        return true;
+      }
+      log.error('VibeManager:sendVibe', 'all tiers exhausted');
+      return null;
+    } finally {
+      _inFlightVibes.delete(opKey);
     }
-    log.error('VibeManager:sendVibe', 'all tiers exhausted');
-    return null;
   },
 
   async removeVibe(eventId, userId) {
-    if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
+    const opKey = `${userId}:${eventId}`;
+    if (_inFlightVibes.has(opKey)) return 'throttled';
+    _inFlightVibes.add(opKey);
+    try {
+      if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
 
-    const result = await resilient(
-      [
-        // Tier 1: delete by composite key
-        () => supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId),
-        // Tier 2: retry delete (transient failure)
-        () => supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId),
-        // Tier 3: RPC decrement — skip row delete entirely
-        () => supabase.rpc('decrement_vibe_count', { p_event_id: eventId, p_user_id: userId }),
-      ],
-      { attemptsPerTier: 3, baseMs: 300, label: 'VibeManager.removeVibe', fallbackValue: null }
-    );
-    if (result !== null) { FeedManager.invalidate(eventId); _settleVibe(eventId, userId, false); return true; }
-    log.error('VibeManager:removeVibe', 'all tiers exhausted');
-    return null;
+      const result = await resilient(
+        [
+          // Tier 1: delete by composite key
+          () => supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId),
+          // Tier 2: retry delete (transient failure)
+          () => supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId),
+          // Tier 3: RPC decrement — skip row delete entirely
+          () => supabase.rpc('decrement_vibe_count', { p_event_id: eventId, p_user_id: userId }),
+        ],
+        { attemptsPerTier: 3, baseMs: 300, label: 'VibeManager.removeVibe', fallbackValue: null }
+      );
+      if (result !== null) { FeedManager.invalidate(eventId); _settleVibe(eventId, userId, false); return true; }
+      log.error('VibeManager:removeVibe', 'all tiers exhausted');
+      return null;
+    } finally {
+      _inFlightVibes.delete(opKey);
+    }
   },
 
   async getUserVibes(eventIds, userId) {
@@ -4485,3 +4518,8 @@ export const DraftManager = {
     return () => supabase.removeChannel(channel);
   },
 };
+
+// ── Re-export EventLifecycleManager & SmartAlertEngine ──────────────────────
+export { EventLifecycleManager } from './eventLifecycleManager';
+export { SmartAlertEngine } from './smartAlertEngine';
+

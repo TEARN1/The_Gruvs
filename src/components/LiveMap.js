@@ -575,7 +575,7 @@ export function LiveMap({
       map.addLayer({
         id: 'stays-icon', type: 'symbol', source: 'stays',
         layout: { visibility: staysRef.current ? 'visible' : 'none',
-          'text-font': MAP_TEXT_FONT, 'text-field': '🛏', 'text-size': 11, 'text-allow-overlap': true },
+          'text-font': MAP_TEXT_FONT, 'text-field': 'H', 'text-size': 11, 'text-allow-overlap': true },
       });
 
       map.addSource('ripple', { type: 'geojson', data: emptyFC() });

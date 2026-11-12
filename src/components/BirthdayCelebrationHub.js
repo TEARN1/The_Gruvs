@@ -116,7 +116,7 @@ export function BirthdayCelebrationHub({
     try { haptics.success(); } catch {}
     setWishedMap((prev) => ({ ...prev, [bdayId]: true }));
     setGlitterTrigger(Date.now());
-    toast(`Sent Birthday Vibe & Glitter to ${name}! 🎂✨`, 'success');
+    toast(`Sent Birthday Vibe & Glitter to ${name}!`, 'success');
   };
 
   if (!visible) return null;
@@ -130,7 +130,7 @@ export function BirthdayCelebrationHub({
           <View style={styles.headRow}>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                <Text style={{ fontSize: 18 }}>🎂</Text>
+                <Feather name="gift" size={18} color="#ec4899" />
                 <Text style={[styles.title, { color: textColor }]}>Birthday Celebration Radar</Text>
               </View>
               <Text style={[styles.sub, { color: muted }]}>
@@ -166,7 +166,7 @@ export function BirthdayCelebrationHub({
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <Text style={[styles.bdayName, { color: textColor }]}>{bday.name}</Text>
                           <View style={styles.bdayBadge}>
-                            <Text style={styles.bdayBadgeText}>TURNING {bday.ageTurned} 🎈</Text>
+                            <Text style={styles.bdayBadgeText}>TURNING {bday.ageTurned}</Text>
                           </View>
                         </View>
                         <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>
@@ -174,7 +174,7 @@ export function BirthdayCelebrationHub({
                         </Text>
                         {bday.plans ? (
                           <Text style={{ color: primary, fontSize: 11, fontWeight: '700', marginTop: 3 }}>
-                            📍 {bday.plans}
+                            {bday.plans}
                           </Text>
                         ) : null}
                       </View>
@@ -195,7 +195,7 @@ export function BirthdayCelebrationHub({
                       >
                         <Feather name={wished ? 'check' : 'heart'} size={13} color={wished ? '#10b981' : '#fff'} />
                         <Text numberOfLines={1} style={[styles.wishBtnText, { color: wished ? '#10b981' : '#fff' }]}>
-                          {wished ? 'Vibe Sent ✨' : 'Send Birthday Vibe ✨'}
+                          {wished ? 'Vibe Sent' : 'Send Birthday Vibe'}
                         </Text>
                         <ControlledGlitterBurst trigger={glitterTrigger} count={12} radius={35} colors={['#ec4899', '#fde047', '#fff']} />
                       </TouchableOpacity>
@@ -253,7 +253,7 @@ export function BirthdayCelebrationHub({
 
                   <View style={[styles.perkBox, { borderColor: `${sug.color}35`, backgroundColor: `${sug.color}10` }]}>
                     <Text style={{ color: sug.color, fontSize: 11, fontWeight: '800' }}>
-                      🎁 Special Birthday Offer: {sug.perk}
+                      Special Birthday Offer: {sug.perk}
                     </Text>
                   </View>
 

@@ -25,13 +25,13 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 
 const SPORT_CATEGORIES = [
-  { key: 'soccer', label: 'Soccer / Football', icon: '⚽', color: '#10b981' },
-  { key: 'basketball', label: 'Basketball', icon: '🏀', color: '#f97316' },
-  { key: 'padel', label: 'Padel / Tennis', icon: '🎾', color: '#a3e635' },
-  { key: 'netball', label: 'Netball', icon: '🏐', color: '#ec4899' },
-  { key: 'rugby', label: 'Rugby 7s', icon: '🏉', color: '#f59e0b' },
-  { key: 'esports', label: 'Esports & Gaming', icon: '🎮', color: '#8b5cf6' },
-  { key: 'running', label: 'Running Club', icon: '🏃', color: '#06b6d4' },
+  { key: 'soccer', label: 'Soccer / Football', icon: 'activity', color: '#10b981' },
+  { key: 'basketball', label: 'Basketball', icon: 'target', color: '#f97316' },
+  { key: 'padel', label: 'Padel / Tennis', icon: 'circle', color: '#a3e635' },
+  { key: 'netball', label: 'Netball', icon: 'disc', color: '#ec4899' },
+  { key: 'rugby', label: 'Rugby 7s', icon: 'shield', color: '#f59e0b' },
+  { key: 'esports', label: 'Esports & Gaming', icon: 'cpu', color: '#8b5cf6' },
+  { key: 'running', label: 'Running Club', icon: 'zap', color: '#06b6d4' },
 ];
 
 const INITIAL_TOURNAMENTS = [
@@ -154,9 +154,9 @@ export function SportTournamentHub({
       minute: "84'",
       status: 'LIVE',
       events: [
-        { min: "82'", text: "GOAL! Sipho header into top right corner (3-2) ⚽" },
-        { min: "65'", text: "Yellow card for tackle on edge of box 🟨" },
-        { min: "44'", text: "GOAL! Jozi Dribblers equalizer via penalty (2-2) ⚽" },
+        { min: "82'", text: "GOAL! Sipho header into top right corner (3-2)" },
+        { min: "65'", text: "Yellow card for tackle on edge of box" },
+        { min: "44'", text: "GOAL! Jozi Dribblers equalizer via penalty (2-2)" },
       ],
     },
     {
@@ -168,7 +168,7 @@ export function SportTournamentHub({
       minute: 'Set 3 (5-4)',
       status: 'MATCH POINT',
       events: [
-        { min: 'Set 3', text: 'Break point won by Diepkloof Aces 🎾' },
+        { min: 'Set 3', text: 'Break point won by Diepkloof Aces' },
       ],
     },
   ]);
@@ -228,7 +228,7 @@ export function SportTournamentHub({
           <View style={styles.headRow}>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                <Text style={{ fontSize: 18 }}>🏆</Text>
+                <Feather name="award" size={18} color="#f59e0b" />
                 <Text style={[styles.title, { color: textColor }]}>Sports & Tournament Hub</Text>
               </View>
               <Text style={[styles.sub, { color: muted }]}>
@@ -257,7 +257,7 @@ export function SportTournamentHub({
                   ]}
                   activeOpacity={0.7}
                 >
-                  <Text style={{ fontSize: 14 }}>{sport.icon}</Text>
+                  <Feather name={sport.icon || 'circle'} size={14} color={active ? sport.color : textColor} style={{ marginRight: 6 }} />
                   <Text style={[styles.sportPillText, { color: active ? sport.color : textColor }]}>
                     {sport.label}
                   </Text>
@@ -314,7 +314,7 @@ export function SportTournamentHub({
 
                 {filteredTournaments.length === 0 ? (
                   <View style={styles.emptyState}>
-                    <Text style={{ fontSize: 32 }}>🏆</Text>
+                    <Feather name="award" size={32} color={muted} style={{ marginBottom: 8 }} />
                     <Text style={{ color: textColor, fontWeight: '800', fontSize: 14 }}>
                       No active {selectedSport} tournaments today
                     </Text>
@@ -619,7 +619,7 @@ export function SportTournamentHub({
               <View style={{ gap: 12 }}>
                 <Text style={[styles.sectionTitle, { color: muted }]}>SPECTATOR BRACKET PREDICTIONS</Text>
                 <View style={[styles.fairPlayCard, { borderColor: '#8b5cf650', backgroundColor: 'rgba(139,92,246,0.08)' }]}>
-                  <Text style={{ color: textColor, fontSize: 13, fontWeight: '900' }}>Pick Matchup Winners · Win Coins 🎯</Text>
+                  <Text style={{ color: textColor, fontSize: 13, fontWeight: '900' }}>Pick Matchup Winners · Win Coins</Text>
                   <Text style={{ color: muted, fontSize: 11 }}>Lock your prediction before the final whistle. Correct picks earn 50 Coins!</Text>
                 </View>
 
@@ -633,7 +633,7 @@ export function SportTournamentHub({
                           onPress={() => {
                             setPredictionGlitters(prev => ({ ...prev, [`${m.id}_A`]: Date.now() }));
                             setPredictions(prev => ({ ...prev, [m.id]: m.teamA }));
-                            toast(`Prediction locked: ${m.teamA} to win! 🎯`, 'success');
+                            toast(`Prediction locked: ${m.teamA} to win!`, 'success');
                           }}
                           style={[
                             styles.teamActionBtn,
@@ -655,7 +655,7 @@ export function SportTournamentHub({
                           onPress={() => {
                             setPredictionGlitters(prev => ({ ...prev, [`${m.id}_B`]: Date.now() }));
                             setPredictions(prev => ({ ...prev, [m.id]: m.teamB }));
-                            toast(`Prediction locked: ${m.teamB} to win! 🎯`, 'success');
+                            toast(`Prediction locked: ${m.teamB} to win!`, 'success');
                           }}
                           style={[
                             styles.teamActionBtn,

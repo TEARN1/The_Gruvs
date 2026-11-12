@@ -55,6 +55,7 @@ export function MapVenueDeck({
   onOpenEventDetail,
   onOpenWhoHere,
   onAuthRequired,
+  onStateChange,
   primary = '#00f2ff',
   bg = '#080b0d',
   textColor = '#fff',
@@ -68,24 +69,40 @@ export function MapVenueDeck({
   const isWide = width >= 768;
   const bottomOffset = isWide ? 0 : Math.max(insets.bottom || 0, 10) + 70;
 
-  const [deckState, setDeckState] = useState('carousel'); // 'peek' | 'carousel' | 'expanded'
+  const [deckState, setDeckState] = useState('peek'); // 'peek' | 'carousel' | 'expanded'
   const [currentIndex, setCurrentIndex] = useState(0);
   const [doorStatusMap, setDoorStatusMap] = useState({});
   const [rsvpStates, setRsvpStates] = useState({});
   const [savedStates, setSavedStates] = useState({});
 
   const scrollRef = useRef(null);
-  const animHeight = useRef(new Animated.Value(235)).current;
+  const animHeight = useRef(new Animated.Value(48)).current;
+
+  // Animate deck height changes
+  const transitionDeck = useCallback((state) => {
+    setDeckState(state);
+    onStateChange?.(state);
+    const toValue = state === 'peek' ? 48 : state === 'expanded' ? 420 : 220;
+    Animated.spring(animHeight, {
+      toValue,
+      friction: 9,
+      tension: 50,
+      useNativeDriver: false,
+    }).start();
+  }, [animHeight, onStateChange]);
 
   // Sync active event from parent (e.g. when user taps a pin on the map)
   useEffect(() => {
     if (!activeEventId || !events?.length) return;
     const idx = events.findIndex((e) => e.id === activeEventId);
-    if (idx !== -1 && idx !== currentIndex) {
-      setCurrentIndex(idx);
-      scrollRef.current?.scrollTo({ x: idx * (CARD_WIDTH + 12), animated: true });
+    if (idx !== -1) {
+      if (idx !== currentIndex) {
+        setCurrentIndex(idx);
+        scrollRef.current?.scrollTo({ x: idx * (CARD_WIDTH + 12), animated: true });
+      }
+      transitionDeck('carousel');
     }
-  }, [activeEventId, events]);
+  }, [activeEventId, events, transitionDeck]);
 
   // Load door status for currently visible events
   useEffect(() => {
@@ -101,18 +118,6 @@ export function MapVenueDeck({
     }
     return () => { alive = false; };
   }, [currentIndex, events, doorStatusMap]);
-
-  // Animate deck height changes
-  const transitionDeck = useCallback((state) => {
-    setDeckState(state);
-    const toValue = state === 'peek' ? 56 : state === 'expanded' ? 440 : 235;
-    Animated.spring(animHeight, {
-      toValue,
-      friction: 9,
-      tension: 50,
-      useNativeDriver: false,
-    }).start();
-  }, [animHeight]);
 
   const handleCardScroll = (e) => {
     const offsetX = e.nativeEvent.contentOffset.x;

@@ -7,6 +7,21 @@
   <meta name="description" content="Discover upcoming events, nightlife, and festivals in Midrand. Dates, venues and directions on The Gruvs." />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://thegruvs.com/events/midrand" />
+  <link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/midrand" />
+  <link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/midrand" />
+
+  <!-- App Deep Linking & Google Play Store -->
+  <meta property="al:android:url" content="thegruvs://web?url=https%3A%2F%2Fthegruvs.com%2Fevents%2Fmidrand" />
+  <meta property="al:android:package" content="com.thegruvs_tearn" />
+  <meta property="al:android:app_name" content="The Gruvs" />
+  <meta property="al:web:url" content="https://thegruvs.com/events/midrand" />
+  <meta name="google-play-app" content="app-id=com.thegruvs_tearn" />
+  <meta name="twitter:app:name:googleplay" content="The Gruvs" />
+  <meta name="twitter:app:id:googleplay" content="com.thegruvs_tearn" />
+
+  <!-- Regional Geo Meta -->
+  <meta name="geo.region" content="ZA" />
+  <meta name="geo.placename" content="South Africa" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
@@ -229,26 +244,6 @@
       "position": 1,
       "item": {
         "@type": "Event",
-        "name": "Nine Hours of Kyalami",
-        "startDate": "2026-11-13T18:00:00+02:00",
-        "location": {
-          "@type": "Place",
-          "name": "Kyalami Grand Prix Circuit",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Midrand",
-            "addressCountry": "ZA"
-          }
-        },
-        "image": "https://thegruvs.com/og-default.jpg",
-        "url": "https://thegruvs.com/events/nine-hours-of-kyalami-kyalami-grand-prix-circuit-midrand-644b39f7-a623-43b8-b318-220ea4a7bbad"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "item": {
-        "@type": "Event",
         "name": "TinMan Joburg #5",
         "startDate": "2026-11-29T06:30:00+02:00",
         "location": {
@@ -293,6 +288,19 @@
   ]
 }
 </script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "The Gruvs",
+  "url": "https://thegruvs.com",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://thegruvs.com/?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
 </head>
 <body>
   <header class="site-header">
@@ -324,19 +332,6 @@
 
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/nine-hours-of-kyalami-kyalami-grand-prix-circuit-midrand-644b39f7-a623-43b8-b318-220ea4a7bbad">
-      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Nine Hours of Kyalami" loading="lazy" />
-      <div class="event-body">
-        <div class="event-date">Fri, 13 Nov 2026</div>
-        <h3 class="event-title">Nine Hours of Kyalami</h3>
-        <p class="event-venue">Kyalami Grand Prix Circuit · Midrand</p>
-        <div class="event-footer">
-          <span class="event-price">Paid</span>
-          <span class="btn-view">Get Tickets →</span>
-        </div>
-      </div>
-    </a>
-  
     <a class="event-card" href="https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891">
       <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703" alt="TinMan Joburg #5" loading="lazy" />
       <div class="event-body">
