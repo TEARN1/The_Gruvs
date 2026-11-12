@@ -4,13 +4,12 @@
  * gets an automated 10-minute reservation window with PayFast checkout.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
-import { PayFastService } from '../services/payfastService';
 
 export const WaitlistButton = ({ eventId, event, primary, muted, surface }) => {
   const { user } = useAuth();
@@ -34,7 +33,9 @@ export const WaitlistButton = ({ eventId, event, primary, muted, surface }) => {
         user
           ? supabase
               .from('event_waitlist')
-              .select('id, status, reserved_until')
+              // Live event_waitlist has only id/event_id/user_id/created_at —
+              // status/reserved_until (the "offered spot" flow) aren't in the DB yet.
+              .select('id')
               .eq('event_id', eventId)
               .eq('user_id', user?.id)
               .maybeSingle()
@@ -78,31 +79,12 @@ export const WaitlistButton = ({ eventId, event, primary, muted, surface }) => {
     return () => clearInterval(timer);
   }, [isOffered, secondsRemaining]);
 
-  const claimOfferedSpot = async () => {
-    if (!user) return;
-    try {
-      toast.show('Preparing PayFast Checkout for your spot...', 'info');
-      const session = await PayFastService.createCheckoutSession({
-        app: 'thegruvs',
-        itemType: 'ticket',
-        itemId: `${eventId}_waitlist`,
-        itemName: `${event?.title || 'Event'} — Waitlist Pass`,
-        itemDescription: `Claimed waitlist ticket for ${event?.title || 'Event'}`,
-        amountZar: event?.price || 150,
-        user,
-        metadata: { eventId, waitlist: true },
-      });
-
-      if (session?.paymentUrl) {
-        if (typeof window !== 'undefined' && window.location) {
-          window.location.href = session.paymentUrl;
-        } else {
-          Linking.openURL(session.paymentUrl);
-        }
-      }
-    } catch (err) {
-      toast.show(err.message || 'Could not initiate checkout', 'error');
-    }
+  // Paid waitlist claims need an "offered" state the database doesn't have yet
+  // (event_waitlist has no status/reserved_until), so this can't be reached.
+  // It used to send an unpriced, client-chosen amount to PayFast; now it only
+  // explains itself if it ever is.
+  const claimOfferedSpot = () => {
+    toast.show('Claiming a waitlist spot isn\'t available yet. You\'ll be notified.', 'info');
   };
 
   const toggle = async () => {
@@ -125,8 +107,8 @@ export const WaitlistButton = ({ eventId, event, primary, muted, surface }) => {
       } else {
         const ok = await resilient(
           [
-            () => supabase.from('event_waitlist').upsert({ event_id: eventId, user_id: user?.id, status: 'queued' }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
-            () => supabase.from('event_waitlist').insert({ event_id: eventId, user_id: user?.id, status: 'queued' }),
+            () => supabase.from('event_waitlist').upsert({ event_id: eventId, user_id: user?.id }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
+            () => supabase.from('event_waitlist').insert({ event_id: eventId, user_id: user?.id }),
           ],
           { attemptsPerTier: 2, baseMs: 300, label: 'Waitlist.join', fallbackValue: null }
         );

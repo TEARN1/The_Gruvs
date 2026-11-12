@@ -61,7 +61,9 @@ export function setProductionReporter(reportFn) {
  * never sees.
  */
 export function installWebErrorHandler({ logError, logSecurityEvent } = {}) {
-  if (typeof window === 'undefined') return;
+  // React Native defines a global `window` (aliased to global) but WITHOUT
+  // addEventListener — checking only `typeof window` crashed Android at boot.
+  if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
 
   window.addEventListener('error', (evt) => {
     const raw = evt?.error?.message || evt?.message || 'window.onerror';

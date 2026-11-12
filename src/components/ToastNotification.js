@@ -108,7 +108,11 @@ const ToastItem = ({ toast, onDone }) => {
     <Animated.View
       {...panResponder.panHandlers}
       accessibilityLiveRegion={isAlert ? 'assertive' : 'polite'}
-      accessibilityRole={isAlert ? 'alert' : 'status'}
+      // 'status' is a web-only role: Android throws "Invalid accessibility
+      // role value: status" and the WHOLE APP crashed on any info/success
+      // toast. 'text' is valid everywhere; the polite live region above still
+      // announces it to screen readers.
+      accessibilityRole={isAlert ? 'alert' : 'text'}
       style={[
         s.toast,
         {

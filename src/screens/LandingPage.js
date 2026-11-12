@@ -99,6 +99,7 @@ import { BorderTracer } from '../components/KasiIndustrialUI';
 import { deferred } from '../utils/deferred';
 import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 import { fx } from '../styles/webFx';
+import { markStartup } from '../utils/startupTrace';
 
 // Panels load on first open, not at app start (see src/utils/deferred.js).
 const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
@@ -150,12 +151,16 @@ const SkeletonCard = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
     if (IS_WEB_LOOP) return;   // web: CSS animation (cssLoop) — no per-frame re-render
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.7, duration: 1000, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 0.3, duration: 1000, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    loop.start();
+    // Stop on unmount. Without this the native loop outlived the skeleton,
+    // and every feed load added another endless animation.
+    return () => loop.stop();
   }, []);
   return (
     <Animated.View style={[skStyles.card, IS_WEB_LOOP ? { opacity: 0.3, ...cssLoop({ '0%': { opacity: 0.3 }, '100%': { opacity: 0.7 } }, 1000) } : { opacity: pulse }, { borderColor: `${primary}30` }]}>
@@ -1126,6 +1131,8 @@ const orderForGuest = (list) =>
 //  filters, dedupes and collapses tours; it never re-ranks.)
 
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap, onNavigateToTab, initialFeedFilter, onClearInitialFeedFilter }) => {
+  markStartup('LandingPage first render');
+  useEffect(() => { markStartup('LandingPage mounted'); }, []);
   // Header fit on small phones: at 320 px the logo, wordmark and five round
   // buttons were wider than the screen and the "+" (post) button was cut off.
   const { width: winW } = useWindowDimensions();
@@ -1143,6 +1150,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const flatListRef = useRef(null);
 
   const [events, setEvents] = useState([]);
+  useEffect(() => { if (events.length > 0) markStartup('Feed: first events committed to screen'); }, [events.length]);
   // New seed each mount/refresh so the feed line-up varies every visit.
   const [birthdaysToday, setBirthdaysToday] = useState([]);
   const [birthdayLeadUp, setBirthdayLeadUp] = useState(null);
@@ -1271,6 +1279,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
   const followedIdsRef = useRef([]); // stable ref so fetchPage can use it without re-render
   const pageRef = useRef(0);
+  const loadSeqRef = useRef(0); // newest feed refresh; older ones are ignored
   // Just-posted events: a fresh feed fetch (read-replica lag / ranking) can omit
   // an event you just created, so a refresh would clobber the optimistic prepend
   // and the post seems to "disappear / take long". Hold them briefly and merge
@@ -1467,6 +1476,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     } catch { /* trending load is best-effort — feed still works without it */ }
   }, []);
 
+  const interestsKey = (feedMode === 'upcoming' || feedMode === 'mine')
+    ? ''
+    : JSON.stringify(profile?.interests || []);
+
   const loadData = useCallback(async (isRefreshing = false) => {
     if (loadingMore || (!hasMore && !isRefreshing)) {
       if (isRefreshing) setLoading(false);
@@ -1483,6 +1496,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
 
     const currentPage = isRefreshing ? 0 : pageRef.current;
+    // Only the NEWEST refresh may touch the screen. Several refreshes start
+    // together on open (mount, profile, age); an older one finishing last used
+    // to overwrite the feed — sometimes with an empty "Nothing Upcoming Yet".
+    const seq = isRefreshing ? ++loadSeqRef.current : loadSeqRef.current;
+    const isCurrent = () => seq === loadSeqRef.current;
     const fetchOpts = {
       page: currentPage,
       category: selectedCat,
@@ -1496,7 +1514,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     };
 
     try {
-      const { events: fetchedEvents, hasMore: moreAvailable } = await FeedManager.fetchPage(fetchOpts);
+      markStartup(`Feed: first request (${feedMode}, ${user?.id ? 'user' : 'guest'})`);
+      const { events: fetchedEvents, hasMore: moreAvailable, failed } = await FeedManager.fetchPage(fetchOpts);
+      markStartup(`Feed: first response (${fetchedEvents?.length ?? 0} events${failed ? ', FAILED' : ''})`);
+      if (!isCurrent()) return; // a newer load owns the screen now
+      if (failed) {
+        // Couldn't load (timeout / offline). Keep whatever is already showing
+        // rather than replacing it with an empty feed.
+        if (events.length === 0) toast.show('Failed to load gruvs. Check your connection.', 'error');
+        return;
+      }
       // Logged-out visitors get the "happening soon + buzzing" ordering for an
       // exciting first impression; signed-in users keep their personalized feed.
       const orderedEvents = user?.id ? fetchedEvents : orderForGuest(fetchedEvents);
@@ -1560,15 +1587,21 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         FeedManager.prefetchPage({ ...fetchOpts, page: currentPage + 1 });
       }
     } catch (err) {
+      if (!isCurrent()) return;
       logError('Feed.load', err, { mode: feedMode, page: currentPage });
       toast.show('Failed to load gruvs. Check your connection.', 'error');
     } finally {
-      setLoading(false);
       setLoadingMore(false);
-      setRefreshing(false);
+      if (isCurrent()) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  // page/hasMore intentionally excluded — use pageRef to read page without recreating on every scroll
-  }, [selectedCat, debouncedQuery, feedMode, user?.id, profile?.interests, dateRange]);
+  // page/hasMore intentionally excluded — use pageRef to read page without recreating on every scroll.
+  // Interests only shape ranking in the personalised modes, and are keyed by
+  // VALUE: a profile re-fetch with the same interests no longer reloads the feed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCat, debouncedQuery, feedMode, user?.id, interestsKey, dateRange]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -1783,10 +1816,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // would leave an adult viewer over-filtered until their next load, so when a
   // real age lands late we re-run the filter. That second pass reads the feed
   // cache populated moments earlier, so it costs no additional network trip.
+  // The main feed effect above already loads on mount and on user change; this
+  // one only re-runs the age filter if the viewer's age arrives late. (It used
+  // to ALSO call loadData(true) here, doubling every cold-start load.)
   useEffect(() => {
     let alive = true;
     const ageWasKnown = viewerAgeSync() != null;
-    loadData(true);
     loadViewerAge(user?.id)
       .then((age) => { if (alive && age != null && !ageWasKnown) loadData(true); })
       .catch(() => {});
@@ -2876,9 +2911,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         // matter how far you scroll — "I only see 5 events"). Browsers handle a
         // few hundred cards fine, so render everything and let the DOM scroll.
         disableVirtualization={Platform.OS === 'web'}
-        maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 8}
+        maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 4}
         windowSize={Platform.OS === 'web' ? 25 : 14}
-        initialNumToRender={Platform.OS === 'web' ? 16 : 7}
+        // Native: the hero card fills most of the screen, so 3 covers what's visible;
+        // 7 heavy EventCards (~800-line component) cost ~1.5 s before first paint.
+        initialNumToRender={Platform.OS === 'web' ? 16 : 3}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>

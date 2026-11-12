@@ -750,7 +750,9 @@ export const FeedManager = {
     // (flaky onEndReached), don't hit the network: PostgREST answers an offset
     // past the last row with 416 Range Not Satisfiable, which spammed an error
     // on every load. There is nothing after page 0 here, so return empty.
-    if (singlePage && page > 0) return [];
+    // Same shape as every other page result: callers destructure { events },
+    // and a bare [] made that undefined ("Failed to load gruvs" on scroll).
+    if (singlePage && page > 0) return { events: [], total: 0, page, hasMore: false };
 
     // ── Tier helpers ──────────────────────────────────────────────────────────
     const buildBaseQuery = (select, opts = {}) => {
@@ -946,7 +948,9 @@ export const FeedManager = {
         throw new Error('cache miss');
       },
       // ── Last resort: nothing loaded and nothing cached → an empty feed ────
-      async () => ({ events: [], total: 0, page, hasMore: false }),
+      // `failed` marks this as "couldn't load", not "there are no events", so the
+      // screen keeps what it already shows instead of "Nothing Upcoming Yet".
+      async () => ({ events: [], total: 0, page, hasMore: false, failed: true }),
       `FeedManager.fetchPage:${mode}`
     );
   },
@@ -4308,25 +4312,19 @@ export const TicketManager = {
     const token = String(tokenStr || '').trim();
     if (!token) return { valid: false, reason: 'empty', ticket: null };
 
-    // Atomic claim: only an unused ticket transitions to used.
-    let q = supabase
-      .from('ticket_tokens')
-      .update({ used_at: new Date().toISOString() })
-      .eq('token', token)
-      .is('used_at', null);
-    if (eventId) q = q.eq('event_id', eventId);
-    const { data, error } = await q.select('*, profiles:user_id(username, avatar_url), events(title)');
+    // Server-side, host-only, atomic claim (validate_ticket RPC). Tickets are
+    // read-only to clients: the old direct UPDATE ran under the HOST's session,
+    // and RLS (owner-only) blocked it, so a host could never check a guest in.
+    const { data, error } = await supabase.rpc('validate_ticket', {
+      p_token: token,
+      p_event: eventId || null,
+    });
     if (error) { logError('Ticket.validate', error); return { valid: false, reason: 'error', ticket: null }; }
-
-    if (data && data.length) return { valid: true, reason: 'ok', ticket: data[0] };
-
-    // Nothing flipped — say WHY: already used, wrong event, or never existed.
-    const { data: existing } = await supabase
-      .from('ticket_tokens')
-      .select('used_at, event_id')
-      .eq('token', token)
-      .maybeSingle();
-    return ticketOutcome(existing, eventId);
+    const reason = data?.reason || 'error';
+    const ticket = data?.ticket
+      ? { ...data.ticket, profiles: { username: data.ticket.username } }
+      : null;
+    return { valid: !!data?.valid, reason, ticket };
   },
 };
 

@@ -21,6 +21,7 @@ import {
   Animated,
   PanResponder,
   Platform,
+  Linking,
   Dimensions,
   useWindowDimensions,
 } from 'react-native';
@@ -171,7 +172,10 @@ export function MapVenueDeck({
     const lng = ev.lon ?? ev.longitude;
     if (lat && lng) {
       const url = directionsUrl({ lat, lon: lng, label: ev.venue_name || ev.title }, userCoords, Platform.OS);
-      if (url && typeof window !== 'undefined') window.open(url, '_blank');
+      if (!url) return;
+      // RN has a global window but no window.open — calling it threw on Android.
+      if (Platform.OS === 'web') window.open(url, '_blank');
+      else Linking.openURL(url).catch(() => {});
     }
   };
 

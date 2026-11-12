@@ -251,6 +251,9 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   // ── Auto-geocode address → lat/lon when user stops typing ────────────────
   const geocodeTimer = useRef(null);
   const [geocoding, setGeocoding] = useState(false);
+  // Cancel a pending debounced geocode on unmount, so it can't fire (and set
+  // state / hit the network) after the modal is gone.
+  useEffect(() => () => clearTimeout(geocodeTimer.current), []);
 
   // Forward-geocode an address string -> { lat, lon } | null.
   // IMPORTANT: Location.geocodeAsync does NOT exist on web, so web must use
@@ -770,7 +773,10 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (contactPhone.trim()) payload.contact_phone = contactPhone.trim();
     if (contactEmail.trim()) payload.contact_email = contactEmail.trim();
     if (selectedVibeRules.length > 0) payload.vibe_rules = selectedVibeRules;
-    if (selectedAspectRatio) payload.aspect_ratio = selectedAspectRatio;
+    // aspect_ratio is NOT sent: events has no such column, and the default
+    // '4:5' made EVERY post fail tiers 1 and 2 (PGRST204), landing on the
+    // minimal tier-3 insert that drops media, tags, schedule and audience.
+    // Nothing reads it yet; add the column before sending it again.
 
     // Recurrence
     if (isRecurring) {
@@ -2616,6 +2622,10 @@ const pm = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 22,
     paddingBottom: 10,
+    // A real height, not only maxHeight: the form inside is a flex:1
+    // ScrollView, and flex:1 in a content-sized parent resolves to 0 on
+    // Android — the sheet showed only its header and nobody could post.
+    height: '94%',
     maxHeight: '94%',
     overflow: 'hidden',
   },

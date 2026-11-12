@@ -150,13 +150,16 @@ export const CyberScanline = ({ color = '#00f2ff', opacity = 0.15, duration = 35
   const y = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (reducedMotion()) return;
+    // Two sweeps then rest on native: an endless sweep kept the phone drawing
+    // every frame while idle. Web keeps looping (cheap compositor animation).
     const loop = Animated.loop(
       Animated.timing(y, {
         toValue: 1,
         duration,
         easing: Easing.linear,
         useNativeDriver: true,
-      })
+      }),
+      { iterations: IS_WEB ? -1 : 2 }
     );
     loop.start();
     return () => loop.stop();

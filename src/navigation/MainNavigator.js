@@ -19,7 +19,7 @@ import {
   Linking,
   PanResponder,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 
@@ -59,6 +59,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { ALL_TABS, TABS, WIDE_BREAKPOINT, getTabLabel } from './navigationConfig';
 import { TabBar } from './TabBar';
 import { SidebarNav } from './SidebarNav';
+import { markStartup } from '../utils/startupTrace';
 
 const ScreenSkeleton = ({ active }) =>
   active ? (
@@ -68,6 +69,8 @@ const ScreenSkeleton = ({ active }) =>
   ) : null;
 
 export const MainNavigator = () => {
+  markStartup('MainNavigator first render');
+  useEffect(() => { markStartup('MainNavigator mounted (first paint committed)'); }, []);
   const { currentTheme, applyNeuralTheme } = useTheme();
   const { user: authUser, recoveryMode, endRecovery } = useAuth();
   const { width } = useWindowDimensions();
@@ -123,6 +126,13 @@ export const MainNavigator = () => {
     prewarmSections({ userId: authUser?.id || null });
   }, [authUser?.id]);
 
+  // Read the current tab through a ref so handleTabChange keeps ONE identity.
+  // It used to depend on currentTab, so every tap made a new function, which
+  // was passed into every mounted screen and forced them all to re-render —
+  // ~850 ms of redrawing the feed/map/profile behind the screen on each tap.
+  const currentTabRef = useRef(currentTab);
+  currentTabRef.current = currentTab;
+
   const handleTabChange = useCallback(
     (tab) => {
       if (Platform.OS !== 'web') {
@@ -133,7 +143,7 @@ export const MainNavigator = () => {
         }
       }
 
-      if (tab === currentTab && tab === 'feed') {
+      if (tab === currentTabRef.current && tab === 'feed') {
         setFeedRefreshKey((k) => k + 1);
       } else {
         setCurrentTab(tab);
@@ -141,14 +151,12 @@ export const MainNavigator = () => {
         Animated.timing(screenOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
       }
     },
-    [currentTab, screenOpacity]
+    [screenOpacity]
   );
 
   const isWide = width >= WIDE_BREAKPOINT;
 
-  // Swipe between tabs on mobile touch devices
-  const currentTabRef = useRef(currentTab);
-  currentTabRef.current = currentTab;
+  // Swipe between tabs on mobile touch devices (reads currentTabRef, above)
   const tabSwipe = useMemo(() => {
     const order = TABS.map((t) => t.key);
     return PanResponder.create({
@@ -454,17 +462,32 @@ export const MainNavigator = () => {
     document.title = `${tabLabel} — The Gruvs`;
   }, [currentTab]);
 
-  const handleAuthRequired = () => setAuthModalVisible(true);
+  // Stable callbacks (setState functions never change), so memoized screens
+  // below aren't re-rendered just because the navigator re-rendered.
+  const handleAuthRequired = useCallback(() => setAuthModalVisible(true), []);
 
-  const handleNavigateToEvent = (event) => {
+  const handleNavigateToEvent = useCallback((event) => {
     if (!event) return;
     setTargetEvent(event);
     setCurrentTab('feed');
-  };
+  }, []);
 
-  const handleNavigateToServices = () => {
+  const handleNavigateToServices = useCallback(() => {
     setCurrentTab('explore');
-  };
+  }, []);
+
+  const clearTargetEvent = useCallback(() => setTargetEvent(null), []);
+  const clearTargetReel = useCallback(() => setTargetReel(null), []);
+  const clearInitialFeedFilter = useCallback(() => setInitialFeedFilter(null), []);
+  const navigateToMap = useCallback((ev) => {
+    if (ev) setTargetEvent(ev);
+    handleTabChange('map');
+  }, [handleTabChange]);
+  const navigateToReels = useCallback((reelId) => {
+    if (reelId) setTargetReel(reelId);
+    handleTabChange('reels');
+  }, [handleTabChange]);
+  const exitReelsToDrop = useCallback(() => handleTabChange('feed'), [handleTabChange]);
 
   // Keep-alive screen management with lazy first-mount
   const [visitedTabs, setVisitedTabs] = useState(() => new Set([currentTab]));
@@ -490,70 +513,65 @@ export const MainNavigator = () => {
     return () => timers.forEach(clearTimeout);
   }, [authUser]);
 
-  const screenFor = (tabKey) => {
-    switch (tabKey) {
-      case 'feed':
-        return (
-          <LandingPage
-            mode="drop"
-            onAuthRequired={handleAuthRequired}
-            targetEvent={targetEvent}
-            onTargetHandled={() => setTargetEvent(null)}
-            refreshKey={feedRefreshKey}
-            initialFeedFilter={initialFeedFilter}
-            onClearInitialFeedFilter={() => setInitialFeedFilter(null)}
-            onNavigateToServices={handleNavigateToServices}
-            onNavigateToMap={(ev) => {
-              if (ev) setTargetEvent(ev);
-              handleTabChange('map');
-            }}
-            onNavigateToReels={(reelId) => {
-              if (reelId) setTargetReel(reelId);
-              handleTabChange('reels');
-            }}
-            onNavigateToTab={handleTabChange}
-          />
-        );
-      case 'reels':
-        return (
-          <ReelsScreen
-            onAuthRequired={handleAuthRequired}
-            onNavigateToEvent={handleNavigateToEvent}
-            initialReelId={targetReel}
-            onInitialReelHandled={() => setTargetReel(null)}
-            onExitToDrop={() => handleTabChange('feed')}
-            tabActive={currentTab === 'reels'}
-          />
-        );
-      case 'explore':
-        return <ExplorePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
-      case 'map':
-        return (
-          <MapScreen
-            onAuthRequired={handleAuthRequired}
-            onNavigateToEvent={handleNavigateToEvent}
-            initialEvent={targetEvent}
-            onInitialEventHandled={() => setTargetEvent(null)}
-          />
-        );
-      case 'calendar':
-        return <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
-      case 'chats':
-        return <ChatsScreen onAuthRequired={handleAuthRequired} />;
-      case 'notifications':
-        return <NotificationsScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />;
-      case 'profile':
-        return (
-          <ProfilePage
-            onAuthRequired={handleAuthRequired}
-            onNavigateToEvent={handleNavigateToEvent}
-            onNavigateToTab={handleTabChange}
-          />
-        );
-      default:
-        return null;
-    }
+  // Each screen element is memoized on ONLY the data it uses. Switching tabs
+  // changes currentTab, which re-renders this navigator; with a stable element
+  // React skips the hidden, already-mounted screens entirely instead of
+  // re-rendering all of them (the source of the ~850 ms tap delay).
+  const reelsActive = currentTab === 'reels';
+  const screens = {
+    feed: useMemo(() => (
+      <LandingPage
+        mode="drop"
+        onAuthRequired={handleAuthRequired}
+        targetEvent={targetEvent}
+        onTargetHandled={clearTargetEvent}
+        refreshKey={feedRefreshKey}
+        initialFeedFilter={initialFeedFilter}
+        onClearInitialFeedFilter={clearInitialFeedFilter}
+        onNavigateToServices={handleNavigateToServices}
+        onNavigateToMap={navigateToMap}
+        onNavigateToReels={navigateToReels}
+        onNavigateToTab={handleTabChange}
+      />
+    ), [handleAuthRequired, targetEvent, clearTargetEvent, feedRefreshKey, initialFeedFilter,
+      clearInitialFeedFilter, handleNavigateToServices, navigateToMap, navigateToReels, handleTabChange]),
+    reels: useMemo(() => (
+      <ReelsScreen
+        onAuthRequired={handleAuthRequired}
+        onNavigateToEvent={handleNavigateToEvent}
+        initialReelId={targetReel}
+        onInitialReelHandled={clearTargetReel}
+        onExitToDrop={exitReelsToDrop}
+        tabActive={reelsActive}
+      />
+    ), [handleAuthRequired, handleNavigateToEvent, targetReel, clearTargetReel, exitReelsToDrop, reelsActive]),
+    explore: useMemo(() => (
+      <ExplorePage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />
+    ), [handleAuthRequired, handleNavigateToEvent]),
+    map: useMemo(() => (
+      <MapScreen
+        onAuthRequired={handleAuthRequired}
+        onNavigateToEvent={handleNavigateToEvent}
+        initialEvent={targetEvent}
+        onInitialEventHandled={clearTargetEvent}
+      />
+    ), [handleAuthRequired, handleNavigateToEvent, targetEvent, clearTargetEvent]),
+    calendar: useMemo(() => (
+      <CalendarPage onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />
+    ), [handleAuthRequired, handleNavigateToEvent]),
+    chats: useMemo(() => <ChatsScreen onAuthRequired={handleAuthRequired} />, [handleAuthRequired]),
+    notifications: useMemo(() => (
+      <NotificationsScreen onAuthRequired={handleAuthRequired} onNavigateToEvent={handleNavigateToEvent} />
+    ), [handleAuthRequired, handleNavigateToEvent]),
+    profile: useMemo(() => (
+      <ProfilePage
+        onAuthRequired={handleAuthRequired}
+        onNavigateToEvent={handleNavigateToEvent}
+        onNavigateToTab={handleTabChange}
+      />
+    ), [handleAuthRequired, handleNavigateToEvent, handleTabChange]),
   };
+  const screenFor = (tabKey) => screens[tabKey] || null;
 
   const renderScreen = () => (
     <View style={styles.screenHost}>

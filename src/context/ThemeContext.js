@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { THEMES, GENDERS, findThemeById } from '../constants/Themes';
 import { supabase } from '../services/supabase';
 
@@ -45,8 +45,11 @@ export const ThemeProvider = ({ children }) => {
       }
 
       // Profile sync — overrides local if the signed-in user has a saved theme.
+      // getSession() reads the locally stored login; getUser() made a network
+      // round-trip (queued behind the login restore) just to learn our own id.
       try {
-        const { data: { user } = {} } = await supabase.auth.getUser();
+        const { data: { session } = {} } = await supabase.auth.getSession();
+        const user = session?.user;
         if (user?.id) {
           const { data: prof } = await supabase
             .from('profiles')
@@ -131,9 +134,19 @@ export const ThemeProvider = ({ children }) => {
     [currentTheme, gender, themeIndex, changeTheme, applyNeuralTheme, ready],
   );
 
+  // Don't paint the app until the SAVED theme is known: rendering first drew
+  // the default teal and repainted in the user's theme seconds later. The
+  // local read is ~tens of ms; the cap guarantees storage can never hang
+  // launch (worst case = the old behaviour).
+  const [gateOpen, setGateOpen] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setGateOpen(true), 400);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <ThemeContext.Provider value={value}>
-      {children}
+      {ready || gateOpen ? children : <View style={{ flex: 1, backgroundColor: '#0d1112' }} />}
     </ThemeContext.Provider>
   );
 };

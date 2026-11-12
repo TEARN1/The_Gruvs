@@ -87,7 +87,13 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
     setPlayer(p => p ? { ...p, follower_count: Math.max(0, (p.follower_count || 0) + (next ? 1 : -1)) } : p);
     next ? haptics.success() : haptics.light();
     const result = await TalentEngine.toggleFollow(playerId, user.id, following);
-    setFollowing(result);
+    if (result == null) {
+      // Failed (resilient fallback is null): undo the optimistic button AND count.
+      setFollowing(following);
+      setPlayer(p => p ? { ...p, follower_count: Math.max(0, (p.follower_count || 0) + (next ? -1 : 1)) } : p);
+    } else {
+      setFollowing(result);
+    }
     setFollowBusy(false);
   };
 
