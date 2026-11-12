@@ -66,7 +66,8 @@ with c as (
   from public.profiles p
   join auth.users u on u.id = p.id
   where u.raw_user_meta_data ? 'username'
-    and position('@' in u.raw_user_meta_data->>'username') = 0
+    -- skip real email addresses ("x@y"), but not a leading "@handle"
+    and (u.raw_user_meta_data->>'username') !~ '.@'
 )
 update public.profiles p
 set username = c.fixed
