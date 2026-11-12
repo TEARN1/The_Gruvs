@@ -732,7 +732,9 @@ export const FeedManager = {
     // (flaky onEndReached), don't hit the network: PostgREST answers an offset
     // past the last row with 416 Range Not Satisfiable, which spammed an error
     // on every load. There is nothing after page 0 here, so return empty.
-    if (singlePage && page > 0) return [];
+    // Same shape as every other page result: callers destructure { events },
+    // and a bare [] made that undefined ("Failed to load gruvs" on scroll).
+    if (singlePage && page > 0) return { events: [], total: 0, page, hasMore: false };
 
     // ── Tier helpers ──────────────────────────────────────────────────────────
     const buildBaseQuery = (select, opts = {}) => {
@@ -928,7 +930,9 @@ export const FeedManager = {
         throw new Error('cache miss');
       },
       // ── Last resort: nothing loaded and nothing cached → an empty feed ────
-      async () => ({ events: [], total: 0, page, hasMore: false }),
+      // `failed` marks this as "couldn't load", not "there are no events", so the
+      // screen keeps what it already shows instead of "Nothing Upcoming Yet".
+      async () => ({ events: [], total: 0, page, hasMore: false, failed: true }),
       `FeedManager.fetchPage:${mode}`
     );
   },

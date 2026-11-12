@@ -1275,6 +1275,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
   const followedIdsRef = useRef([]); // stable ref so fetchPage can use it without re-render
   const pageRef = useRef(0);
+  const loadSeqRef = useRef(0); // newest feed refresh; older ones are ignored
   // Just-posted events: a fresh feed fetch (read-replica lag / ranking) can omit
   // an event you just created, so a refresh would clobber the optimistic prepend
   // and the post seems to "disappear / take long". Hold them briefly and merge
@@ -1471,6 +1472,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     } catch { /* trending load is best-effort — feed still works without it */ }
   }, []);
 
+  const interestsKey = (feedMode === 'upcoming' || feedMode === 'mine')
+    ? ''
+    : JSON.stringify(profile?.interests || []);
+
   const loadData = useCallback(async (isRefreshing = false) => {
     if (loadingMore || (!hasMore && !isRefreshing)) {
       if (isRefreshing) setLoading(false);
@@ -1487,6 +1492,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
 
     const currentPage = isRefreshing ? 0 : pageRef.current;
+    // Only the NEWEST refresh may touch the screen. Several refreshes start
+    // together on open (mount, profile, age); an older one finishing last used
+    // to overwrite the feed — sometimes with an empty "Nothing Upcoming Yet".
+    const seq = isRefreshing ? ++loadSeqRef.current : loadSeqRef.current;
+    const isCurrent = () => seq === loadSeqRef.current;
     const fetchOpts = {
       page: currentPage,
       category: selectedCat,
@@ -1500,7 +1510,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     };
 
     try {
-      const { events: fetchedEvents, hasMore: moreAvailable } = await FeedManager.fetchPage(fetchOpts);
+      const { events: fetchedEvents, hasMore: moreAvailable, failed } = await FeedManager.fetchPage(fetchOpts);
+      if (!isCurrent()) return; // a newer load owns the screen now
+      if (failed) {
+        // Couldn't load (timeout / offline). Keep whatever is already showing
+        // rather than replacing it with an empty feed.
+        if (events.length === 0) toast.show('Failed to load gruvs. Check your connection.', 'error');
+        return;
+      }
       // Logged-out visitors get the "happening soon + buzzing" ordering for an
       // exciting first impression; signed-in users keep their personalized feed.
       const orderedEvents = user?.id ? fetchedEvents : orderForGuest(fetchedEvents);
@@ -1564,15 +1581,21 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         FeedManager.prefetchPage({ ...fetchOpts, page: currentPage + 1 });
       }
     } catch (err) {
+      if (!isCurrent()) return;
       logError('Feed.load', err, { mode: feedMode, page: currentPage });
       toast.show('Failed to load gruvs. Check your connection.', 'error');
     } finally {
-      setLoading(false);
       setLoadingMore(false);
-      setRefreshing(false);
+      if (isCurrent()) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  // page/hasMore intentionally excluded — use pageRef to read page without recreating on every scroll
-  }, [selectedCat, debouncedQuery, feedMode, user?.id, profile?.interests, dateRange]);
+  // page/hasMore intentionally excluded — use pageRef to read page without recreating on every scroll.
+  // Interests only shape ranking in the personalised modes, and are keyed by
+  // VALUE: a profile re-fetch with the same interests no longer reloads the feed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCat, debouncedQuery, feedMode, user?.id, interestsKey, dateRange]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -1787,10 +1810,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // would leave an adult viewer over-filtered until their next load, so when a
   // real age lands late we re-run the filter. That second pass reads the feed
   // cache populated moments earlier, so it costs no additional network trip.
+  // The main feed effect above already loads on mount and on user change; this
+  // one only re-runs the age filter if the viewer's age arrives late. (It used
+  // to ALSO call loadData(true) here, doubling every cold-start load.)
   useEffect(() => {
     let alive = true;
     const ageWasKnown = viewerAgeSync() != null;
-    loadData(true);
     loadViewerAge(user?.id)
       .then((age) => { if (alive && age != null && !ageWasKnown) loadData(true); })
       .catch(() => {});
