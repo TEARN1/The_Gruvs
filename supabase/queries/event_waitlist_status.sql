@@ -1,4 +1,5 @@
 -- Waitlist status columns read by src/components/WaitlistButton.js.
+-- APPLIED to live (feevvddvrjmfbhffccbf) 2026-11-12.
 -- Subset of supabase/migrations/20261107000100_payfast_payments_integration.sql
 -- (which is NOT applied live), plus a guard that migration lacks:
 -- the live policy waitlist_manage (FOR ALL, user_id = auth.uid()) lets a user
