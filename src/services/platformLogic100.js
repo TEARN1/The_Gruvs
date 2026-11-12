@@ -847,7 +847,7 @@ export const PLATFORM_LOGIC_100 = [
     title: 'Search SQL Injection Sanitization',
     rule: 'Search strings strip punctuation characters and pass through parameterized query.',
     invariant: 'sanitize(input) has no raw single quotes or semicolons',
-    evaluate: ({ cleanInput }) => !cleanInput.includes("'") && !cleanInput.includes(';'),
+    evaluate: ({ cleanInput = '' } = {}) => !cleanInput.includes("'") && !cleanInput.includes(';'),
   },
   {
     id: 'LOGIC_097',
