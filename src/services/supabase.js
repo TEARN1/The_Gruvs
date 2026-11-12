@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { markStartup } from '../utils/startupTrace';
 
 const supabaseUrl    = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -19,18 +20,31 @@ if (!isSupabaseEnabled) {
 // secure keychain / keystore via expo-secure-store, which provides AES-256 encryption
 // at rest.  On Web, AsyncStorage (localStorage) is used as a safe fallback because
 // SecureStore is not available in browser environments.
+// Temporary measurement: how long each native SecureStore call takes on a cold
+// start (the login restore was taking ~6.5 s with no network involved).
+let storageCalls = 0;
+const timed = async (op, key, fn) => {
+  const t = Date.now();
+  const out = await fn();
+  if (storageCalls++ < 12) {
+    const size = typeof out === 'string' ? out.length : '-';
+    markStartup(`SecureStore.${op}#${storageCalls} ${Date.now() - t}ms (${String(key).slice(-12)}, ${size} chars)`);
+  }
+  return out;
+};
+
 const secureStorage = {
   getItem: async (key) => {
     if (Platform.OS === 'web') {
       return AsyncStorage.getItem(key);
     }
-    return SecureStore.getItemAsync(key);
+    return timed('get', key, () => SecureStore.getItemAsync(key));
   },
   setItem: async (key, value) => {
     if (Platform.OS === 'web') {
       return AsyncStorage.setItem(key, value);
     }
-    return SecureStore.setItemAsync(key, value);
+    return timed('set', key, () => SecureStore.setItemAsync(key, value));
   },
   removeItem: async (key) => {
     if (Platform.OS === 'web') {
