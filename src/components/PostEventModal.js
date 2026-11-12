@@ -2619,6 +2619,10 @@ const pm = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 22,
     paddingBottom: 10,
+    // A real height, not only maxHeight: the form inside is a flex:1
+    // ScrollView, and flex:1 in a content-sized parent resolves to 0 on
+    // Android — the sheet showed only its header and nobody could post.
+    height: '94%',
     maxHeight: '94%',
     overflow: 'hidden',
   },
