@@ -99,6 +99,18 @@ function renderHtmlShell({ title, description, canonicalUrl, ogImage, jsonLd = [
     });
   }
 
+  allJsonLd.push({
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    'name': APP_NAME,
+    'url': SITE,
+    'potentialAction': {
+      '@type': 'SearchAction',
+      'target': `${SITE}/?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  });
+
   return `<!DOCTYPE html>
 <html lang="en-ZA">
 <head>
@@ -108,6 +120,21 @@ function renderHtmlShell({ title, description, canonicalUrl, ogImage, jsonLd = [
   <meta name="description" content="${escDesc}" />
   <meta name="robots" content="${noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}" />
   <link rel="canonical" href="${escUrl}" />
+  <link rel="alternate" hreflang="en-ZA" href="${escUrl}" />
+  <link rel="alternate" hreflang="x-default" href="${escUrl}" />
+
+  <!-- App Deep Linking & Google Play Store -->
+  <meta property="al:android:url" content="thegruvs://web?url=${encodeURIComponent(canonicalUrl)}" />
+  <meta property="al:android:package" content="com.thegruvs_tearn" />
+  <meta property="al:android:app_name" content="${APP_NAME}" />
+  <meta property="al:web:url" content="${escUrl}" />
+  <meta name="google-play-app" content="app-id=com.thegruvs_tearn" />
+  <meta name="twitter:app:name:googleplay" content="${APP_NAME}" />
+  <meta name="twitter:app:id:googleplay" content="com.thegruvs_tearn" />
+
+  <!-- Regional Geo Meta -->
+  <meta name="geo.region" content="ZA" />
+  <meta name="geo.placename" content="South Africa" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
@@ -431,6 +458,12 @@ function emptyHubNote(what) {
     { slug: 'kimberley', name: 'Kimberley', desc: 'Diamond pavilion soundstages, Northern Cape heritage festivals, and local music.' },
     { slug: 'pietermaritzburg', name: 'Pietermaritzburg', desc: 'Midlands music festivals, Golden Horse lounges, and KZN capital events.' },
     { slug: 'stellenbosch', name: 'Stellenbosch', desc: 'Wineland open-air amphitheatre gigs, student weekend bashes, and wine estate chillas.' },
+    { slug: 'maboneng', name: 'Maboneng', desc: 'Rooftop parties, street art markets, and creative community nightlife in Maboneng Precinct.' },
+    { slug: 'braamfontein', name: 'Braamfontein', desc: 'Student nightlife, open mic nights, indie showcases, and Saturday market vibes in Braamfontein.' },
+    { slug: 'menlyn', name: 'Menlyn', desc: 'SunBet Arena mega-concerts, Time Square casino nightlife, and luxury weekend chillas in Menlyn.' },
+    { slug: 'hatfield', name: 'Hatfield', desc: 'Youth nightlife, live bands, student festivals, and pub crawls in Hatfield, Pretoria.' },
+    { slug: 'umlazi', name: 'Umlazi', desc: 'Eyadini and Max’s Lifestyle shisanyama, outdoor Sunday car spins, and KZN groove sessions in Umlazi.' },
+    { slug: 'camps-bay', name: 'Camps Bay', desc: 'Sunset oceanfront lounges, VIP beach parties, and summer cocktail terraces in Camps Bay.' },
   ];
 
   // 2. Genre Definitions (Expanded across all South African Music & Event Subcultures)
@@ -775,6 +808,249 @@ function emptyHubNote(what) {
   writePage('events/nye-2027/index.html', nyeHtml);
   if (activeNye.length) generatedPages.push({ loc: `${SITE}/events/nye-2027`, priority: '0.95', changefreq: 'daily' });
 
+  // ── 28-Category Event Business & Hustler Directory Hubs ───────────────────
+  const SERVICES = [
+    // Food & Refreshments
+    { slug: 'shisanyama-braai', name: 'Shisanyama & Spit Braai', cluster: 'Food & Refreshments', desc: 'On-site meat grilling, master braaiers, spit braai setups, and authentic township side dishes.', rate: 'From R2,500 / event', keywords: ['braai', 'shisanyama', 'caterer', 'meat grill', 'spit braai'] },
+    { slug: 'food-trucks', name: 'Gourmet Food Trucks & Stalls', cluster: 'Food & Refreshments', desc: 'Mobile food trailers, street food pop-ups, artisanal burgers, tacos, and loaded fries.', rate: 'From R1,800 stall fee', keywords: ['food truck', 'street food', 'burgers', 'halal', 'vegan'] },
+    { slug: 'mobile-cocktail-bar', name: 'Mobile Cocktail & Gin Bars', cluster: 'Food & Refreshments', desc: 'Pop-up cocktail stations, flair mixologists, mocktails, and mobile craft draught taps.', rate: 'From R3,000 / night', keywords: ['cocktail bar', 'gin bar', 'mixologist', 'bartender', 'drinks'] },
+    { slug: 'coffee-juice-vans', name: 'Coffee & Juice Vans', cluster: 'Food & Refreshments', desc: 'Artisan espresso bars, smoothie & fresh cold-pressed juice carts for day & night events.', rate: 'From R1,200 / day', keywords: ['coffee van', 'espresso bar', 'smoothies', 'cold-pressed juice'] },
+    { slug: 'event-bakers', name: 'Event Bakers & Pastry Chefs', cluster: 'Food & Refreshments', desc: 'Custom celebration cakes, dessert platters, artisanal pastries, and sweet buffet tables.', rate: 'From R800 / order', keywords: ['event cake', 'baker', 'pastry chef', 'dessert table'] },
+    { slug: 'ice-cooler-hire', name: 'Ice, Gas & Cooler Hire', cluster: 'Food & Refreshments', desc: 'Bulk block/tube ice delivery, industrial cooler boxes, gas cylinders, and refrigeration.', rate: 'From R450 / delivery', keywords: ['ice delivery', 'cooler boxes', 'gas cylinders', 'dry ice'] },
+
+    // Logistics & Transport
+    { slug: 'bakkie-haulers', name: 'Bakkie & Van Logistics', cluster: 'Logistics & Transport', desc: 'Short-haul bakkie hire, gear transport, cargo moving, and reliable event runners.', rate: 'From R600 / trip', keywords: ['bakkie hire', 'gear transport', 'van haulage', 'event runner'] },
+    { slug: 'stage-trucks', name: 'Heavy Gear & Stage Trucks', cluster: 'Logistics & Transport', desc: '4-ton and 8-ton closed body trucks with tail-lifts for stage, truss, and concert PA gear.', rate: 'From R3,500 / day', keywords: ['stage truck', '4 ton truck', '8 ton truck', 'rigging mover'] },
+    { slug: 'shuttle-fleets', name: 'Shuttle & Minibus Transport', cluster: 'Logistics & Transport', desc: 'Toyota Quantum and Mercedes Sprinter passenger shuttles for attendees, artists, and crew.', rate: 'From R1,500 / route', keywords: ['event shuttle', 'minibus transport', 'quantum shuttle', 'sprinter'] },
+    { slug: 'vip-chauffeur', name: 'VIP Chauffeur & Escort', cluster: 'Logistics & Transport', desc: 'Luxury sedans, tinted SUVs, driver-on-demand for headline artists, DJs, and VIP guests.', rate: 'From R2,000 / night', keywords: ['vip chauffeur', 'luxury car hire', 'artist transport', 'executive driver'] },
+
+    // Sound, Gear & Live Acts
+    { slug: 'drum-percussion-rentals', name: 'Drums & Acoustic Percussion Hire', cluster: 'Sound, Gear & Live Acts', desc: 'Acoustic and electronic drum kits, congas, djembe, cymbals, hardware rental for live bands.', rate: 'From R1,200 / gig', keywords: ['drum hire', 'percussion rental', 'djembe', 'congas', 'cymbal pack'] },
+    { slug: 'pa-line-array', name: 'PA & Concert Sound Systems Hire', cluster: 'Sound, Gear & Live Acts', desc: 'Active tops, subwoofers, line-arrays, audio crossovers for 100 to 5,000 guests.', rate: 'From R3,500 / rig', keywords: ['pa sound system', 'line array hire', 'subwoofers', 'bass bins', 'concert audio'] },
+    { slug: 'dj-gear-cdjs', name: 'DJ Decks & Pioneer CDJ Hire', cluster: 'Sound, Gear & Live Acts', desc: 'Pioneer CDJ-3000s, DJM-900NXS2 mixers, all-in-one XDJ controllers for headline DJs.', rate: 'From R1,800 / set', keywords: ['cdj hire', 'pioneer dj decks', 'djm 900', 'xdj controller'] },
+    { slug: 'backline-amps', name: 'Backline, Guitars & Keys Hire', cluster: 'Sound, Gear & Live Acts', desc: 'Bass and guitar amplifier heads, 4x10 cabs, digital stage pianos and synthesizers.', rate: 'From R950 / unit', keywords: ['backline rental', 'bass amp', 'guitar amp', 'stage keyboard'] },
+    { slug: 'sound-engineers', name: 'Live Sound & Lighting Engineers', cluster: 'Sound, Gear & Live Acts', desc: 'FOH sound engineers, stage techs, DMX lighting operators, and microphone managers.', rate: 'From R1,500 / gig', keywords: ['sound engineer', 'audio tech', 'lighting technician', 'foh mixer'] },
+    { slug: 'session-musicians-mcs', name: 'Local DJs, Vocalists & MCs for Hire', cluster: 'Sound, Gear & Live Acts', desc: 'Amapiano, Afro-house, Hip-hop DJs, hype MCs, live saxophonists, and session vocalists.', rate: 'From R2,000 / set', keywords: ['hire dj', 'event mc', 'saxophonist', 'live vocalist', 'performer'] },
+
+    // Fashion & Grooming
+    { slug: 'fashion-designers', name: 'Custom Event Designers & Stylists', cluster: 'Fashion & Grooming', desc: 'Bespoke event outfits, dress code tailoring, modern African prints, and styling consultations.', rate: 'From R1,200 / outfit', keywords: ['fashion designer', 'event stylist', 'african print dress', 'custom suit'] },
+    { slug: 'streetwear-popups', name: 'Streetwear Pop-Up Brands', cluster: 'Fashion & Grooming', desc: 'Local streetwear labels, graphic tees, hoodies, headwear, and festival merchandise pop-ups.', rate: 'From R350 / item', keywords: ['streetwear popup', 'graphic hoodies', 'festival merch', 'caps'] },
+    { slug: 'mobile-barbers', name: 'Mobile Barbers & Edge-Ups', cluster: 'Fashion & Grooming', desc: 'On-demand fade, beard grooming, edge-ups, and lineup cuts before events.', rate: 'From R200 / cut', keywords: ['mobile barber', 'haircut fade', 'beard grooming', 'event barber'] },
+    { slug: 'makeup-artists-mua', name: 'Makeup Artists (MUA) & Hair Stylists', cluster: 'Fashion & Grooming', desc: 'Glam event makeup, braiding, wig installations, nail technicians, and lash artists.', rate: 'From R450 / session', keywords: ['mua', 'event makeup', 'braids', 'wig installation', 'lashes'] },
+
+    // Venue, Staging & Comfort
+    { slug: 'bedouin-stretch-tents', name: 'Bedouin & Stretch Tents Hire', cluster: 'Venue, Staging & Comfort', desc: 'Waterproof stretch marquees, peg & pole tents, gazebos with rigging crews.', rate: 'From R3,000 / tent', keywords: ['stretch tent hire', 'bedouin tent', 'event marquee', 'gazebo rental'] },
+    { slug: 'staging-truss-rigging', name: 'Staging & Truss Rigging Hire', cluster: 'Venue, Staging & Comfort', desc: 'Modular stage decks, crowd barriers, aluminum box truss, and roof covers.', rate: 'From R4,000 / setup', keywords: ['stage hire', 'truss rigging', 'crowd barriers', 'stage roof'] },
+    { slug: 'mobile-toilets', name: 'Mobile Toilets & Sanitation Hire', cluster: 'Venue, Staging & Comfort', desc: 'Standard chemical toilets, VIP luxury trailer toilets, janitor attendants.', rate: 'From R850 / toilet', keywords: ['mobile toilets', 'portaloo hire', 'vip toilet trailer', 'event sanitation'] },
+    { slug: 'event-furniture', name: 'Lounge Pods & Event Furniture Hire', cluster: 'Venue, Staging & Comfort', desc: 'Pallet seating, VIP couches, cocktail high-tables, barstools, and ottomans.', rate: 'From R1,500 / lounge set', keywords: ['event furniture hire', 'vip couches', 'cocktail tables', 'pallet lounge'] },
+
+    // Safety, Media & Sports
+    { slug: 'bouncers-security', name: 'Bouncers & Crowd Security Marshals', cluster: 'Safety, Media & Sports', desc: 'PSIRA-registered event security, entrance search marshals, and VIP protection.', rate: 'From R650 / guard / shift', keywords: ['event security', 'bouncers hire', 'crowd marshals', 'psira security'] },
+    { slug: 'paramedics-first-aid', name: 'Certified Medics & Event First Aid', cluster: 'Safety, Media & Sports', desc: 'Event medical officers, mobile first-aid station, and standby ambulance support.', rate: 'From R2,200 / event', keywords: ['event medics', 'first aid standby', 'private ambulance', 'paramedic'] },
+    { slug: 'photographers-360', name: '360 Spinners & Event Photographers', cluster: 'Safety, Media & Sports', desc: '360 video booth platform, DSLR roamers, photo backdrops, and instant digital drops.', rate: 'From R2,500 / 3 hours', keywords: ['360 photo booth', 'event photographer', 'video booth hire'] },
+    { slug: 'drone-videography', name: 'Drone Videographers & Media Crews', cluster: 'Safety, Media & Sports', desc: 'FPV and 4K aerial drone operators, recap after-movie production, and live multi-cam.', rate: 'From R3,000 / recap video', keywords: ['drone video', 'event videographer', 'aftermovie', 'fpv drone'] },
+  ];
+
+  console.log(`[build-seo-hubs] Generating ${SERVICES.length} Programmatic Event Business & Hustler Directory Hubs...`);
+
+  // Master Services Directory Index Page (/services/index.html)
+  const masterServicesJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    'name': 'Event Business & Hustler Services Directory South Africa',
+    'description': 'Browse verified event service providers: caterers, sound system rentals, trucks, stage rigging, fashion designers, security, and photographers.',
+    'itemListElement': SERVICES.map((s, idx) => ({
+      '@type': 'ListItem',
+      'position': idx + 1,
+      'name': s.name,
+      'url': `${SITE}/services/${s.slug}`,
+    })),
+  };
+
+  const masterServicesBody = `
+    <div class="breadcrumbs">
+      <a href="${SITE}/">Home</a> <span>›</span>
+      <span style="color:#fff;">Event Services Directory</span>
+    </div>
+
+    <h1 class="hero-title">Event Services & <span class="brand-accent">Hustler Marketplace</span></h1>
+    <p class="hero-lead">Connect with certified local service providers for your upcoming festival, concert, wedding, or bash. From spit braai catering and stage sound hire to bakkie logistics and fashion styling — protected with PayFast escrow.</p>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 48px;">
+      ${SERVICES.map(s => `
+        <a href="${SITE}/services/${s.slug}" class="event-card" style="padding: 20px;">
+          <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: var(--primary); margin-bottom: 6px;">${escapeHtml(s.cluster)}</div>
+          <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 8px;">${escapeHtml(s.name)}</h3>
+          <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5;">${escapeHtml(s.desc)}</p>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; margin-top: auto;">
+            <span style="font-weight: 800; color: #fff; font-size: 13px;">${escapeHtml(s.rate)}</span>
+            <span class="btn-view">Browse Providers →</span>
+          </div>
+        </a>
+      `).join('')}
+    </div>
+
+    <div class="resident-banner">
+      <div class="resident-banner-text">
+        <h3>Are you an Event Service Provider or Gear Owner?</h3>
+        <p>List your bakkie, sound rig, braai catering, or photography business on The Gruvs to receive booking leads from upcoming events 30–90 days in advance.</p>
+      </div>
+      <a href="${SITE}/?provider_signup=true" class="resident-btn">Join Provider Network →</a>
+    </div>
+  `;
+
+  const masterServicesHtml = renderHtmlShell({
+    title: 'Event Services & Equipment Hire Directory South Africa — The Gruvs',
+    description: 'Find, compare, and book event caterers, sound systems, stage rigging, bakkie haulers, fashion designers, and DJs in South Africa. PayFast escrow protected.',
+    canonicalUrl: `${SITE}/services`,
+    jsonLd: [masterServicesJsonLd],
+    bodyContent: masterServicesBody,
+    breadcrumbs: [{ name: 'Home', url: `${SITE}/` }, { name: 'Services', url: `${SITE}/services` }],
+  });
+  writePage('services/index.html', masterServicesHtml);
+  generatedPages.push({ loc: `${SITE}/services`, priority: '0.90', changefreq: 'weekly' });
+
+  // Generate individual Service Category Hubs (/services/[category-slug]/index.html)
+  for (const s of SERVICES) {
+    const serviceJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      'name': s.name,
+      'description': s.desc,
+      'serviceType': s.name,
+      'provider': {
+        '@type': 'LocalBusiness',
+        'name': `${s.name} Network on The Gruvs`,
+        'image': `${SITE}/og-default.jpg`,
+        'priceRange': s.rate,
+        'address': {
+          '@type': 'PostalAddress',
+          'addressLocality': 'Johannesburg',
+          'addressCountry': 'ZA',
+        },
+      },
+      'areaServed': {
+        '@type': 'Country',
+        'name': 'South Africa',
+      },
+      'offers': {
+        '@type': 'Offer',
+        'price': s.rate.replace(/[^0-9]/g, '') || '500',
+        'priceCurrency': 'ZAR',
+        'availability': 'https://schema.org/InStock',
+        'url': `${SITE}/services/${s.slug}`,
+      },
+    };
+
+    const serviceFaqJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': [
+        {
+          '@type': 'Question',
+          'name': `How do I book ${s.name.toLowerCase()} on The Gruvs?`,
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': `Browse verified local providers on The Gruvs app, review their past event ratings, and book with PayFast escrow protection. Payment is only released to the provider after service completion.`,
+          },
+        },
+        {
+          '@type': 'Question',
+          'name': `What are the average rates for ${s.name.toLowerCase()}?`,
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': `Rates typically start ${s.rate.toLowerCase()}, depending on duration, crowd size, and distance. Quotes can be requested directly in-app.`,
+          },
+        },
+        {
+          '@type': 'Question',
+          'name': `Can I list my own ${s.name.toLowerCase()} business?`,
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': `Yes! Event service providers, gear owners, and freelancers can register their profile for free on The Gruvs to receive automated leads for events scheduled 30–90 days ahead.`,
+          },
+        },
+      ],
+    };
+
+    const serviceBody = `
+      <div class="breadcrumbs">
+        <a href="${SITE}/">Home</a> <span>›</span>
+        <a href="${SITE}/services">Services</a> <span>›</span>
+        <span style="color:#fff;">${escapeHtml(s.name)}</span>
+      </div>
+
+      <div style="background: linear-gradient(135deg, rgba(0, 242, 255, 0.08), rgba(0,0,0,0.4)); border: 1px solid var(--surface-border); border-radius: 18px; padding: 32px 24px; margin-bottom: 32px;">
+        <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: var(--primary); display: inline-block; margin-bottom: 8px;">${escapeHtml(s.cluster)}</span>
+        <h1 class="hero-title" style="margin-bottom: 12px;">${escapeHtml(s.name)} for Events in South Africa</h1>
+        <p class="hero-lead" style="margin-bottom: 20px;">${escapeHtml(s.desc)}</p>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+          <div style="background: rgba(255,255,255,0.06); padding: 8px 16px; border-radius: 10px; font-size: 14px; font-weight: 800;">
+            💰 Standard Pricing: <span style="color: var(--primary);">${escapeHtml(s.rate)}</span>
+          </div>
+          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; color: #10b981;">
+            🔒 PayFast Escrow Protected
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 40px;">
+        <div style="background: var(--surface); border: 1px solid var(--surface-border); border-radius: 16px; padding: 24px;">
+          <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 12px; color: #fff;">Need ${escapeHtml(s.name)} for Your Event?</h2>
+          <p style="font-size: 14px; color: var(--muted); margin-bottom: 20px; line-height: 1.6;">
+            Event organizers can browse vetted service providers, check social integrity ratings, and submit booking requests with instant quotes. Funds are locked securely in PayFast escrow until you verify delivery at the venue.
+          </p>
+          <a href="${SITE}/?search_service=${s.slug}" class="nav-cta" style="display: block; text-align: center;">Book Verified Providers in App →</a>
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--surface-border); border-radius: 16px; padding: 24px;">
+          <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 12px; color: #fff;">Are You a Hustler or Equipment Owner?</h2>
+          <p style="font-size: 14px; color: var(--muted); margin-bottom: 20px; line-height: 1.6;">
+            Get matched with upcoming concerts, parties, and festivals in your radius. Our proactive 90-day lead engine alerts you whenever an event is announced so you can pitch your service first.
+          </p>
+          <a href="${SITE}/?provider_signup=${s.slug}" class="resident-btn" style="display: block; text-align: center;">List Your ${escapeHtml(s.name)} Business →</a>
+        </div>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--surface-border); border-radius: 16px; padding: 24px; margin-bottom: 40px;">
+        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">Frequently Asked Questions</h3>
+        <div style="margin-bottom: 16px;">
+          <strong style="color: #fff; font-size: 15px; display: block; margin-bottom: 4px;">How does escrow payment work?</strong>
+          <p style="color: var(--muted); font-size: 14px; line-height: 1.5;">When an organizer books you, the money is safely captured and held by PayFast. Once the event concludes and service delivery is confirmed, funds are automatically transferred to your verified South African bank account.</p>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <strong style="color: #fff; font-size: 15px; display: block; margin-bottom: 4px;">What areas are covered?</strong>
+          <p style="color: var(--muted); font-size: 14px; line-height: 1.5;">The Gruvs services directory operates nationwide across Johannesburg, Pretoria, Midrand, Soweto, Tembisa, Cape Town, Durban, Bloemfontein, and surrounding townships.</p>
+        </div>
+      </div>
+
+      <div class="resident-banner">
+        <div class="resident-banner-text">
+          <h3>Crew & Vendor Accommodation Near Venues</h3>
+          <p>Traveling for a weekend setup or gig? Find affordable crew lodging and rooms near South African event venues on The Resident Crew.</p>
+        </div>
+        <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Crew Stays →</a>
+      </div>
+    `;
+
+    const serviceHtml = renderHtmlShell({
+      title: `${s.name} for Events & Festivals in South Africa | The Gruvs`,
+      description: `Hire certified ${s.name.toLowerCase()} for upcoming concerts, weddings, and parties across South Africa. ${s.rate}. PayFast escrow guaranteed.`,
+      canonicalUrl: `${SITE}/services/${s.slug}`,
+      jsonLd: [serviceJsonLd, serviceFaqJsonLd],
+      bodyContent: serviceBody,
+      breadcrumbs: [
+        { name: 'Home', url: `${SITE}/` },
+        { name: 'Services', url: `${SITE}/services` },
+        { name: s.name, url: `${SITE}/services/${s.slug}` },
+      ],
+    });
+
+    writePage(`services/${s.slug}/index.html`, serviceHtml);
+    generatedPages.push({ loc: `${SITE}/services/${s.slug}`, priority: '0.88', changefreq: 'weekly' });
+  }
+
   // ── Extract & Generate Dedicated Venue Hubs ──────────────────────────────
   const venueMap = new Map();
   for (const e of events) {
@@ -932,6 +1208,37 @@ function emptyHubNote(what) {
       },
     };
 
+    const eventFaqJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': [
+        {
+          '@type': 'Question',
+          'name': `When and where is ${e.title}?`,
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': `${e.title} takes place on ${dateStr} at ${venue}. Directions and ticket booking are available on The Gruvs.`,
+          },
+        },
+        {
+          '@type': 'Question',
+          'name': `How much are tickets for ${e.title}?`,
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': price === 'Free entry' ? `${e.title} is free entry with RSVP on The Gruvs.` : `Tickets are ${price}. You can secure your tickets directly through The Gruvs.`,
+          },
+        },
+        {
+          '@type': 'Question',
+          'name': `Is there accommodation near ${e.venue_name || 'the venue'}?`,
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': `Yes, verified local guest houses, apartments, and rooms near ${venue} can be booked through The Resident Crew partner network.`,
+          },
+        },
+      ],
+    };
+
     const breadcrumbs = [
       { name: 'Home', url: `${SITE}/` },
       { name: 'Events', url: `${SITE}/events` },
@@ -1017,7 +1324,7 @@ function emptyHubNote(what) {
       description: `${e.title} taking place on ${dateStr} at ${venue}. Book tickets and connect on The Gruvs.`,
       canonicalUrl: `${SITE}/events/${slug}`,
       ogImage: cover,
-      jsonLd: [eventJsonLd],
+      jsonLd: [eventJsonLd, eventFaqJsonLd],
       bodyContent: body,
       breadcrumbs,
     });

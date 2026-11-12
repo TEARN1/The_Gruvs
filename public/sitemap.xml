@@ -4,247 +4,427 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://thegruvs.com/</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/get.html</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/get.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/get.html" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/privacy.html</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/privacy.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/privacy.html" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/terms.html</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/terms.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/terms.html" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/account-deletion.html</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/account-deletion.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/account-deletion.html" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/ke-dezemba</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/ke-dezemba" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/ke-dezemba" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/johannesburg</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/johannesburg" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/johannesburg" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/pretoria</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/pretoria" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/pretoria" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/midrand</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/midrand" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/midrand" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/centurion</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/centurion" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/centurion" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sandton</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sandton" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sandton" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/cape-town</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/cape-town" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/cape-town" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/durban</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/durban" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/durban" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/bloemfontein</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/bloemfontein" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/bloemfontein" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/gqeberha</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/gqeberha" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/gqeberha" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/kimberley</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/kimberley" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/kimberley" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/lifestyle</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/lifestyle" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/lifestyle" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/comedy</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/comedy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/comedy" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/this-weekend</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/this-weekend" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/this-weekend" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/steve-hofmeyr-live-fairtree-atterbury-teater-pretoria-6b6446c9-5c72-4ce1-af05-97a5f664f4fe</loc>
-    <lastmod>2026-09-27</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.90</priority>
-    <image:image>
-      <image:loc>https://cdn-az.allevents.in/events10/banners/86e15a54fe940503878d4910fcf6d4fea0e6ef409489012e870972f5def3299b-rimg-w1200-h628-dcf8f8f8-gmir?v=1789694008</image:loc>
-      <image:title>Steve Hofmeyr Live</image:title>
-      <image:caption>Fairtree Atterbury Teater · Pretoria · music</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/share/event/6b6446c9-5c72-4ce1-af05-97a5f664f4fe</loc>
-    <lastmod>2026-09-27</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.90</priority>
-    <image:image>
-      <image:loc>https://cdn-az.allevents.in/events10/banners/86e15a54fe940503878d4910fcf6d4fea0e6ef409489012e870972f5def3299b-rimg-w1200-h628-dcf8f8f8-gmir?v=1789694008</image:loc>
-      <image:title>Steve Hofmeyr Live</image:title>
-      <image:caption>Fairtree Atterbury Teater · Pretoria · music</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/mr-and-miss-pretoria-gay-pride-2026-finale-barnyard-theatre-menlyn-910b5e6b-fa5b-464b-acc2-5090f2611d85</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>daily</changefreq>
+    <loc>https://thegruvs.com/services</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/910b5e6b-fa5b-464b-acc2-5090f2611d85</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.90</priority>
+    <loc>https://thegruvs.com/services/shisanyama-braai</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/shisanyama-braai" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/shisanyama-braai" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/kunye-jozi-xi-huddle-park-golf-and-recreation-johannesburg-7f8ee4de-ef9b-4ea1-a320-7a2415bc2724</loc>
-    <lastmod>2026-09-27</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.90</priority>
-    <image:image>
-      <image:loc>https://cdn-az.allevents.in/events4/banners/fcd1261b22a09143e6c039229ed05317d22270d38ff9f4e8775dc3812fd622bb-rimg-w1200-h675-dcd84838-gmir?v=1787300830</image:loc>
-      <image:title>Kunye | Jozi XI</image:title>
-      <image:caption>Huddle Park Golf &amp; Recreation · Johannesburg · lifestyle</image:caption>
-    </image:image>
+    <loc>https://thegruvs.com/services/food-trucks</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/food-trucks" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/food-trucks" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/7f8ee4de-ef9b-4ea1-a320-7a2415bc2724</loc>
-    <lastmod>2026-09-27</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.90</priority>
-    <image:image>
-      <image:loc>https://cdn-az.allevents.in/events4/banners/fcd1261b22a09143e6c039229ed05317d22270d38ff9f4e8775dc3812fd622bb-rimg-w1200-h675-dcd84838-gmir?v=1787300830</image:loc>
-      <image:title>Kunye | Jozi XI</image:title>
-      <image:caption>Huddle Park Golf &amp; Recreation · Johannesburg · lifestyle</image:caption>
-    </image:image>
+    <loc>https://thegruvs.com/services/mobile-cocktail-bar</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/mobile-cocktail-bar" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/mobile-cocktail-bar" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/jill-scott-to-whom-this-may-concern-tour-sunbet-arena-pretoria-ed996129-089b-4f99-80a6-dd32d1bd3e43</loc>
-    <lastmod>2026-09-27</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.90</priority>
-    <image:image>
-      <image:loc>https://cdn-az.allevents.in/events5/banners/1c18bfb8a1145075c73bc352b3f66fd69f14d2b5a6ec739d5cbc2f7fa6a461bc-rimg-w1200-h328-dc604634-gmir?v=1784706898</image:loc>
-      <image:title>Jill Scott — To Whom This May Concern Tour</image:title>
-      <image:caption>SunBet Arena · Pretoria · rnb</image:caption>
-    </image:image>
+    <loc>https://thegruvs.com/services/coffee-juice-vans</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/coffee-juice-vans" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/coffee-juice-vans" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/ed996129-089b-4f99-80a6-dd32d1bd3e43</loc>
-    <lastmod>2026-09-27</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.90</priority>
-    <image:image>
-      <image:loc>https://cdn-az.allevents.in/events5/banners/1c18bfb8a1145075c73bc352b3f66fd69f14d2b5a6ec739d5cbc2f7fa6a461bc-rimg-w1200-h328-dc604634-gmir?v=1784706898</image:loc>
-      <image:title>Jill Scott — To Whom This May Concern Tour</image:title>
-      <image:caption>SunBet Arena · Pretoria · rnb</image:caption>
-    </image:image>
+    <loc>https://thegruvs.com/services/event-bakers</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/event-bakers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/event-bakers" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/king-of-the-whip-2026-montecasino-johannesburg-1f8ca678-4be2-484d-a90d-63b5e26254ce</loc>
-    <lastmod>2026-09-27</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.90</priority>
-    <image:image>
-      <image:loc>https://cdn-az.allevents.in/events3/banners/29a07ddf8bc60fee14ec6d11c59cc4c5ca05be32da12ee45af9e45c9fbe422ea-rimg-w1200-h628-dc080808-gmir?v=1790133727</image:loc>
-      <image:title>King of the Whip 2026</image:title>
-      <image:caption>Montecasino · Johannesburg · sport</image:caption>
-    </image:image>
+    <loc>https://thegruvs.com/services/ice-cooler-hire</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/ice-cooler-hire" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/ice-cooler-hire" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/1f8ca678-4be2-484d-a90d-63b5e26254ce</loc>
-    <lastmod>2026-09-27</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.90</priority>
-    <image:image>
-      <image:loc>https://cdn-az.allevents.in/events3/banners/29a07ddf8bc60fee14ec6d11c59cc4c5ca05be32da12ee45af9e45c9fbe422ea-rimg-w1200-h628-dc080808-gmir?v=1790133727</image:loc>
-      <image:title>King of the Whip 2026</image:title>
-      <image:caption>Montecasino · Johannesburg · sport</image:caption>
-    </image:image>
+    <loc>https://thegruvs.com/services/bakkie-haulers</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/bakkie-haulers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/bakkie-haulers" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/stage-trucks</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/stage-trucks" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/stage-trucks" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/shuttle-fleets</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/shuttle-fleets" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/shuttle-fleets" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/vip-chauffeur</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/vip-chauffeur" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/vip-chauffeur" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/drum-percussion-rentals</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/drum-percussion-rentals" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/drum-percussion-rentals" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/pa-line-array</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/pa-line-array" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/pa-line-array" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/dj-gear-cdjs</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/dj-gear-cdjs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/dj-gear-cdjs" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/backline-amps</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/backline-amps" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/backline-amps" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/sound-engineers</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/sound-engineers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/sound-engineers" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/session-musicians-mcs</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/session-musicians-mcs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/session-musicians-mcs" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/fashion-designers</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/fashion-designers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/fashion-designers" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/streetwear-popups</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/streetwear-popups" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/streetwear-popups" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/mobile-barbers</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/mobile-barbers" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/mobile-barbers" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/makeup-artists-mua</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/makeup-artists-mua" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/makeup-artists-mua" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/bedouin-stretch-tents</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/bedouin-stretch-tents" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/bedouin-stretch-tents" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/staging-truss-rigging</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/staging-truss-rigging" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/staging-truss-rigging" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/mobile-toilets</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/mobile-toilets" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/mobile-toilets" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/event-furniture</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/event-furniture" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/event-furniture" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/bouncers-security</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/bouncers-security" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/bouncers-security" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/paramedics-first-aid</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/paramedics-first-aid" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/paramedics-first-aid" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/photographers-360</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/photographers-360" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/photographers-360" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/services/drone-videography</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/drone-videography" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/drone-videography" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/nine-hours-of-kyalami-kyalami-grand-prix-circuit-midrand-644b39f7-a623-43b8-b318-220ea4a7bbad</loc>
-    <lastmod>2026-10-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/nine-hours-of-kyalami-kyalami-grand-prix-circuit-midrand-644b39f7-a623-43b8-b318-220ea4a7bbad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/nine-hours-of-kyalami-kyalami-grand-prix-circuit-midrand-644b39f7-a623-43b8-b318-220ea4a7bbad" />
+    <lastmod>2026-11-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/644b39f7-a623-43b8-b318-220ea4a7bbad</loc>
-    <lastmod>2026-10-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/644b39f7-a623-43b8-b318-220ea4a7bbad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/644b39f7-a623-43b8-b318-220ea4a7bbad" />
+    <lastmod>2026-11-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-bangladesh-1st-test-dp-world-wanderers-stadium-johannesburg-d0bc2c04-ea6d-4b59-a3b5-f57ecac1b8c0</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-bangladesh-1st-test-dp-world-wanderers-stadium-johannesburg-d0bc2c04-ea6d-4b59-a3b5-f57ecac1b8c0" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-bangladesh-1st-test-dp-world-wanderers-stadium-johannesburg-d0bc2c04-ea6d-4b59-a3b5-f57ecac1b8c0" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/d0bc2c04-ea6d-4b59-a3b5-f57ecac1b8c0</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/d0bc2c04-ea6d-4b59-a3b5-f57ecac1b8c0" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/d0bc2c04-ea6d-4b59-a3b5-f57ecac1b8c0" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-1-time-square-casino-pretoria-5cfcdb06-0fd2-4022-be16-fbc8ef91398e</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-1-time-square-casino-pretoria-5cfcdb06-0fd2-4022-be16-fbc8ef91398e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-1-time-square-casino-pretoria-5cfcdb06-0fd2-4022-be16-fbc8ef91398e" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
       <image:title>Afrikaans is Groot 2026: Konsert 1</image:title>
@@ -253,9 +433,11 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/5cfcdb06-0fd2-4022-be16-fbc8ef91398e</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/5cfcdb06-0fd2-4022-be16-fbc8ef91398e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/5cfcdb06-0fd2-4022-be16-fbc8ef91398e" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
       <image:title>Afrikaans is Groot 2026: Konsert 1</image:title>
@@ -264,9 +446,11 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/ingrid-n-vlam-in-die-sneeu-die-centurion-teater-centurion-bd82d9a2-48a1-41af-8429-a5cca33a44ae</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/ingrid-n-vlam-in-die-sneeu-die-centurion-teater-centurion-bd82d9a2-48a1-41af-8429-a5cca33a44ae" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/ingrid-n-vlam-in-die-sneeu-die-centurion-teater-centurion-bd82d9a2-48a1-41af-8429-a5cca33a44ae" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events1/banners/58caf8e949976fa70a6552f017790f19835959f2e1c6e022b16eb5586ee33b3c-rimg-w1200-h628-dc080808-gmir?v=1788323782</image:loc>
       <image:title>INGRID: &apos;n Vlam in die Sneeu</image:title>
@@ -275,9 +459,11 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/bd82d9a2-48a1-41af-8429-a5cca33a44ae</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/bd82d9a2-48a1-41af-8429-a5cca33a44ae" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/bd82d9a2-48a1-41af-8429-a5cca33a44ae" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events1/banners/58caf8e949976fa70a6552f017790f19835959f2e1c6e022b16eb5586ee33b3c-rimg-w1200-h628-dc080808-gmir?v=1788323782</image:loc>
       <image:title>INGRID: &apos;n Vlam in die Sneeu</image:title>
@@ -286,33 +472,43 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/nu-metal-era-meteora-linkin-park-tribute-atterbury-rd-and-lois-ave-9cec770d-aded-4c5c-9fd1-0667ef1acbe6</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/nu-metal-era-meteora-linkin-park-tribute-atterbury-rd-and-lois-ave-9cec770d-aded-4c5c-9fd1-0667ef1acbe6" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/nu-metal-era-meteora-linkin-park-tribute-atterbury-rd-and-lois-ave-9cec770d-aded-4c5c-9fd1-0667ef1acbe6" />
     <lastmod>2026-08-19</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/9cec770d-aded-4c5c-9fd1-0667ef1acbe6</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/9cec770d-aded-4c5c-9fd1-0667ef1acbe6" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/9cec770d-aded-4c5c-9fd1-0667ef1acbe6" />
     <lastmod>2026-08-19</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/christmas-carols-lights-and-market-sandton-central-square-sandton-d1ac7833-29e7-4bd1-b8ef-906cf13a80ad</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/christmas-carols-lights-and-market-sandton-central-square-sandton-d1ac7833-29e7-4bd1-b8ef-906cf13a80ad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/christmas-carols-lights-and-market-sandton-central-square-sandton-d1ac7833-29e7-4bd1-b8ef-906cf13a80ad" />
     <lastmod>2026-08-19</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/d1ac7833-29e7-4bd1-b8ef-906cf13a80ad</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/d1ac7833-29e7-4bd1-b8ef-906cf13a80ad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/d1ac7833-29e7-4bd1-b8ef-906cf13a80ad" />
     <lastmod>2026-08-19</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
       <image:title>Afrikaans is Groot 2026: Konsert 2</image:title>
@@ -321,9 +517,11 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/532511cc-d017-4923-b5c6-5b81436370e3</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/532511cc-d017-4923-b5c6-5b81436370e3" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/532511cc-d017-4923-b5c6-5b81436370e3" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
       <image:title>Afrikaans is Groot 2026: Konsert 2</image:title>
@@ -332,9 +530,11 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
       <image:title>Afrikaans is Groot 2026: Konsert 3</image:title>
@@ -343,9 +543,11 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
       <image:title>Afrikaans is Groot 2026: Konsert 3</image:title>
@@ -354,55 +556,43 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/parkview-christmas-market-george-hay-park-johannesburg-59cedb3a-9191-49dd-8021-43518738a514</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/parkview-christmas-market-george-hay-park-johannesburg-59cedb3a-9191-49dd-8021-43518738a514" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/parkview-christmas-market-george-hay-park-johannesburg-59cedb3a-9191-49dd-8021-43518738a514" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/59cedb3a-9191-49dd-8021-43518738a514</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/59cedb3a-9191-49dd-8021-43518738a514" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/59cedb3a-9191-49dd-8021-43518738a514" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/christmas-village-at-emperors-palace-emperors-palace-kempton-park-8f13255e-8ccb-461b-bf71-e4dfe73ff7b6</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/christmas-village-at-emperors-palace-emperors-palace-kempton-park-8f13255e-8ccb-461b-bf71-e4dfe73ff7b6" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/christmas-village-at-emperors-palace-emperors-palace-kempton-park-8f13255e-8ccb-461b-bf71-e4dfe73ff7b6" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/8f13255e-8ccb-461b-bf71-e4dfe73ff7b6</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/8f13255e-8ccb-461b-bf71-e4dfe73ff7b6" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/8f13255e-8ccb-461b-bf71-e4dfe73ff7b6" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23</loc>
-    <lastmod>2026-09-27</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-    <image:image>
-      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
-      <image:title>Afrikaans is Groot 2026: Konsert 4</image:title>
-      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/share/event/d735ae8a-269a-46e8-a08a-c2c2b24d3c23</loc>
-    <lastmod>2026-09-27</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-    <image:image>
-      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
-      <image:title>Afrikaans is Groot 2026: Konsert 4</image:title>
-      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
-    </image:image>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e</loc>
-    <lastmod>2026-09-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e" />
+    <lastmod>2026-11-09</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998</image:loc>
       <image:title>Ride Joburg</image:title>
@@ -411,9 +601,11 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/2b451f9c-3e0b-4c18-8b32-738e7df14a5e</loc>
-    <lastmod>2026-09-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/2b451f9c-3e0b-4c18-8b32-738e7df14a5e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/2b451f9c-3e0b-4c18-8b32-738e7df14a5e" />
+    <lastmod>2026-11-09</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998</image:loc>
       <image:title>Ride Joburg</image:title>
@@ -421,34 +613,70 @@
     </image:image>
   </url>
   <url>
+    <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23" />
+    <lastmod>2026-09-27</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 4</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/d735ae8a-269a-46e8-a08a-c2c2b24d3c23</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/d735ae8a-269a-46e8-a08a-c2c2b24d3c23" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/d735ae8a-269a-46e8-a08a-c2c2b24d3c23" />
+    <lastmod>2026-09-27</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 4</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
     <loc>https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/369f9e90-c4be-4a23-8f99-51f44f77b9b8</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/369f9e90-c4be-4a23-8f99-51f44f77b9b8" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/369f9e90-c4be-4a23-8f99-51f44f77b9b8" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/german-country-club-christmas-market-german-country-club-johannesburg-605def80-af38-4450-891e-a40f22223e76</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/german-country-club-christmas-market-german-country-club-johannesburg-605def80-af38-4450-891e-a40f22223e76" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/german-country-club-christmas-market-german-country-club-johannesburg-605def80-af38-4450-891e-a40f22223e76" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/605def80-af38-4450-891e-a40f22223e76</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/605def80-af38-4450-891e-a40f22223e76" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/605def80-af38-4450-891e-a40f22223e76" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/kasi-restaurants-expo-and-summit-letsheng-mall-sebokeng-9e52dc78-6815-4b50-8710-95abf8e46e6c</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/kasi-restaurants-expo-and-summit-letsheng-mall-sebokeng-9e52dc78-6815-4b50-8710-95abf8e46e6c" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/kasi-restaurants-expo-and-summit-letsheng-mall-sebokeng-9e52dc78-6815-4b50-8710-95abf8e46e6c" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn2.allevents.in/thumbs/thumb6906facc52d55.jpg</image:loc>
       <image:title>Kasi Restaurants Expo &amp; Summit</image:title>
@@ -457,9 +685,11 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/9e52dc78-6815-4b50-8710-95abf8e46e6c</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/9e52dc78-6815-4b50-8710-95abf8e46e6c" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/9e52dc78-6815-4b50-8710-95abf8e46e6c" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn2.allevents.in/thumbs/thumb6906facc52d55.jpg</image:loc>
       <image:title>Kasi Restaurants Expo &amp; Summit</image:title>
@@ -468,18 +698,24 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/nickel-christmas-market-nickel-market-pretoria-58a16b85-15a0-467d-a498-51db278f53c2</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/nickel-christmas-market-nickel-market-pretoria-58a16b85-15a0-467d-a498-51db278f53c2" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/nickel-christmas-market-nickel-market-pretoria-58a16b85-15a0-467d-a498-51db278f53c2" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/58a16b85-15a0-467d-a498-51db278f53c2</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/58a16b85-15a0-467d-a498-51db278f53c2" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/58a16b85-15a0-467d-a498-51db278f53c2" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -491,6 +727,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/f6005dd7-bded-4782-b56a-34ba12737383</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/f6005dd7-bded-4782-b56a-34ba12737383" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/f6005dd7-bded-4782-b56a-34ba12737383" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -502,18 +740,24 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/betway-summer-cup-2026-turffontein-racecourse-johannesburg-4c234abb-5ce8-4c48-9a13-150862763311</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/betway-summer-cup-2026-turffontein-racecourse-johannesburg-4c234abb-5ce8-4c48-9a13-150862763311" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/betway-summer-cup-2026-turffontein-racecourse-johannesburg-4c234abb-5ce8-4c48-9a13-150862763311" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/4c234abb-5ce8-4c48-9a13-150862763311</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/4c234abb-5ce8-4c48-9a13-150862763311" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/4c234abb-5ce8-4c48-9a13-150862763311" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/piano-people-johannesburg-2026-old-park-station-johannesburg-bc30f1bf-b377-4212-bf05-f0054e63f32e</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/piano-people-johannesburg-2026-old-park-station-johannesburg-bc30f1bf-b377-4212-bf05-f0054e63f32e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/piano-people-johannesburg-2026-old-park-station-johannesburg-bc30f1bf-b377-4212-bf05-f0054e63f32e" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -525,6 +769,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/bc30f1bf-b377-4212-bf05-f0054e63f32e</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/bc30f1bf-b377-4212-bf05-f0054e63f32e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/bc30f1bf-b377-4212-bf05-f0054e63f32e" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -536,6 +782,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -547,6 +795,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/b14232e7-de9e-43e2-8ff0-d6e186647c6a</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/b14232e7-de9e-43e2-8ff0-d6e186647c6a" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/b14232e7-de9e-43e2-8ff0-d6e186647c6a" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -558,6 +808,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -569,6 +821,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/f71400fa-4612-4705-8ee9-b5e0df5f2fb5</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/f71400fa-4612-4705-8ee9-b5e0df5f2fb5" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/f71400fa-4612-4705-8ee9-b5e0df5f2fb5" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -580,6 +834,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/prime-circle-at-railways-cafe-railways-cafe-centurion-cbc848aa-a8e7-4038-aa6e-38077ef5205d</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/prime-circle-at-railways-cafe-railways-cafe-centurion-cbc848aa-a8e7-4038-aa6e-38077ef5205d" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/prime-circle-at-railways-cafe-railways-cafe-centurion-cbc848aa-a8e7-4038-aa6e-38077ef5205d" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -591,6 +847,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/cbc848aa-a8e7-4038-aa6e-38077ef5205d</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/cbc848aa-a8e7-4038-aa6e-38077ef5205d" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/cbc848aa-a8e7-4038-aa6e-38077ef5205d" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -602,18 +860,24 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/bedfordview-holiday-night-market-bedfordview-night-market-bedfordview-a69231f6-e770-485e-8d25-7ea2bf2d29c3</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/bedfordview-holiday-night-market-bedfordview-night-market-bedfordview-a69231f6-e770-485e-8d25-7ea2bf2d29c3" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/bedfordview-holiday-night-market-bedfordview-night-market-bedfordview-a69231f6-e770-485e-8d25-7ea2bf2d29c3" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/a69231f6-e770-485e-8d25-7ea2bf2d29c3</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/a69231f6-e770-485e-8d25-7ea2bf2d29c3" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/a69231f6-e770-485e-8d25-7ea2bf2d29c3" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -625,6 +889,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/4e5bfa12-7c2e-4033-a447-dc5f26846c0e</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/4e5bfa12-7c2e-4033-a447-dc5f26846c0e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/4e5bfa12-7c2e-4033-a447-dc5f26846c0e" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -636,6 +902,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -647,6 +915,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/769e24ee-453b-4995-9f0a-143c34aac891</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/769e24ee-453b-4995-9f0a-143c34aac891" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/769e24ee-453b-4995-9f0a-143c34aac891" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -658,42 +928,56 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-bangladesh-1st-odi-buffalo-park-east-london-2295df42-b988-4169-a79b-809c9662a8f7</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-bangladesh-1st-odi-buffalo-park-east-london-2295df42-b988-4169-a79b-809c9662a8f7" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-bangladesh-1st-odi-buffalo-park-east-london-2295df42-b988-4169-a79b-809c9662a8f7" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/2295df42-b988-4169-a79b-809c9662a8f7</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/2295df42-b988-4169-a79b-809c9662a8f7" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/2295df42-b988-4169-a79b-809c9662a8f7" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/the-wanderers-christmas-market-the-wanderers-club-johannesburg-92ef1643-dbe6-4777-af12-ec47c6ecf55b</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/the-wanderers-christmas-market-the-wanderers-club-johannesburg-92ef1643-dbe6-4777-af12-ec47c6ecf55b" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/the-wanderers-christmas-market-the-wanderers-club-johannesburg-92ef1643-dbe6-4777-af12-ec47c6ecf55b" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/92ef1643-dbe6-4777-af12-ec47c6ecf55b</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/92ef1643-dbe6-4777-af12-ec47c6ecf55b" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/92ef1643-dbe6-4777-af12-ec47c6ecf55b" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/nedbank-golf-challenge-2026-gary-player-country-club-sun-city-02a2cee5-7ad4-4d0f-8b8d-ead43ecc0cd5</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/nedbank-golf-challenge-2026-gary-player-country-club-sun-city-02a2cee5-7ad4-4d0f-8b8d-ead43ecc0cd5" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/nedbank-golf-challenge-2026-gary-player-country-club-sun-city-02a2cee5-7ad4-4d0f-8b8d-ead43ecc0cd5" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/02a2cee5-7ad4-4d0f-8b8d-ead43ecc0cd5</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/02a2cee5-7ad4-4d0f-8b8d-ead43ecc0cd5" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/02a2cee5-7ad4-4d0f-8b8d-ead43ecc0cd5" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/amfihart-26-5-jaar-van-amfihart-f9ebe47a-8398-4f60-a190-d04cda9977b9</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/amfihart-26-5-jaar-van-amfihart-f9ebe47a-8398-4f60-a190-d04cda9977b9" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/amfihart-26-5-jaar-van-amfihart-f9ebe47a-8398-4f60-a190-d04cda9977b9" />
     <lastmod>2026-07-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -705,6 +989,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/f9ebe47a-8398-4f60-a190-d04cda9977b9</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/f9ebe47a-8398-4f60-a190-d04cda9977b9" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/f9ebe47a-8398-4f60-a190-d04cda9977b9" />
     <lastmod>2026-07-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -716,18 +1002,24 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-bangladesh-2nd-odi-st-george-s-park-gqeberha-06a308c9-a26f-43c9-a18e-9e5645a74c66</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-bangladesh-2nd-odi-st-george-s-park-gqeberha-06a308c9-a26f-43c9-a18e-9e5645a74c66" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-bangladesh-2nd-odi-st-george-s-park-gqeberha-06a308c9-a26f-43c9-a18e-9e5645a74c66" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/06a308c9-a26f-43c9-a18e-9e5645a74c66</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/06a308c9-a26f-43c9-a18e-9e5645a74c66" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/06a308c9-a26f-43c9-a18e-9e5645a74c66" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -739,6 +1031,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/d23accfd-4d96-4dee-91a0-597b0db0a7ee</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/d23accfd-4d96-4dee-91a0-597b0db0a7ee" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/d23accfd-4d96-4dee-91a0-597b0db0a7ee" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -750,42 +1044,56 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/hsbc-svns-cape-town-dhl-stadium-cape-town-3919dbce-f970-4065-a9e3-988198e603f6</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/hsbc-svns-cape-town-dhl-stadium-cape-town-3919dbce-f970-4065-a9e3-988198e603f6" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/hsbc-svns-cape-town-dhl-stadium-cape-town-3919dbce-f970-4065-a9e3-988198e603f6" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/3919dbce-f970-4065-a9e3-988198e603f6</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/3919dbce-f970-4065-a9e3-988198e603f6" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/3919dbce-f970-4065-a9e3-988198e603f6" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/urc-lions-v-bulls-ellis-park-stadium-johannesburg-3bef2b2b-391f-443e-94b8-ac1d6d6dfe03</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/urc-lions-v-bulls-ellis-park-stadium-johannesburg-3bef2b2b-391f-443e-94b8-ac1d6d6dfe03" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/urc-lions-v-bulls-ellis-park-stadium-johannesburg-3bef2b2b-391f-443e-94b8-ac1d6d6dfe03" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/3bef2b2b-391f-443e-94b8-ac1d6d6dfe03</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/3bef2b2b-391f-443e-94b8-ac1d6d6dfe03" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/3bef2b2b-391f-443e-94b8-ac1d6d6dfe03" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/urc-sharks-v-stormers-hollywoodbets-kings-park-durban-8a2432e2-bed6-4fcf-b3b5-e33b75ab6fd7</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/urc-sharks-v-stormers-hollywoodbets-kings-park-durban-8a2432e2-bed6-4fcf-b3b5-e33b75ab6fd7" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/urc-sharks-v-stormers-hollywoodbets-kings-park-durban-8a2432e2-bed6-4fcf-b3b5-e33b75ab6fd7" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/8a2432e2-bed6-4fcf-b3b5-e33b75ab6fd7</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/8a2432e2-bed6-4fcf-b3b5-e33b75ab6fd7" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/8a2432e2-bed6-4fcf-b3b5-e33b75ab6fd7" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -797,6 +1105,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/8e9673ab-314d-4403-9076-e1490bd1d8cb</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/8e9673ab-314d-4403-9076-e1490bd1d8cb" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/8e9673ab-314d-4403-9076-e1490bd1d8cb" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -808,6 +1118,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -819,6 +1131,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/8d367874-6159-45dd-b93e-0db56788ddd1</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/8d367874-6159-45dd-b93e-0db56788ddd1" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/8d367874-6159-45dd-b93e-0db56788ddd1" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -830,30 +1144,40 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-bangladesh-3rd-odi-newlands-cricket-ground-cape-town-8ce10fc2-c7cc-4c50-bdcc-a9473ad13194</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-bangladesh-3rd-odi-newlands-cricket-ground-cape-town-8ce10fc2-c7cc-4c50-bdcc-a9473ad13194" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-bangladesh-3rd-odi-newlands-cricket-ground-cape-town-8ce10fc2-c7cc-4c50-bdcc-a9473ad13194" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/8ce10fc2-c7cc-4c50-bdcc-a9473ad13194</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/8ce10fc2-c7cc-4c50-bdcc-a9473ad13194" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/8ce10fc2-c7cc-4c50-bdcc-a9473ad13194" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/benoni-monkey-and-bird-park-christmas-market-benoni-monkey-and-bird-108752f4-87cf-4fd1-96b5-4bad9b0c4f1d</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/benoni-monkey-and-bird-park-christmas-market-benoni-monkey-and-bird-108752f4-87cf-4fd1-96b5-4bad9b0c4f1d" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/benoni-monkey-and-bird-park-christmas-market-benoni-monkey-and-bird-108752f4-87cf-4fd1-96b5-4bad9b0c4f1d" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/108752f4-87cf-4fd1-96b5-4bad9b0c4f1d</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/108752f4-87cf-4fd1-96b5-4bad9b0c4f1d" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/108752f4-87cf-4fd1-96b5-4bad9b0c4f1d" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/the-gruvs-ivory-park-johannesburg-27d1e69c-0053-4cd6-a073-3f23436da830</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/the-gruvs-ivory-park-johannesburg-27d1e69c-0053-4cd6-a073-3f23436da830" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/the-gruvs-ivory-park-johannesburg-27d1e69c-0053-4cd6-a073-3f23436da830" />
     <lastmod>2026-07-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -865,6 +1189,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/27d1e69c-0053-4cd6-a073-3f23436da830</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/27d1e69c-0053-4cd6-a073-3f23436da830" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/27d1e69c-0053-4cd6-a073-3f23436da830" />
     <lastmod>2026-07-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -876,18 +1202,24 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-bangladesh-1st-t20i-diamond-oval-kimberley-f7324bdc-7980-4d67-b6a8-9284b0e69bc3</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-bangladesh-1st-t20i-diamond-oval-kimberley-f7324bdc-7980-4d67-b6a8-9284b0e69bc3" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-bangladesh-1st-t20i-diamond-oval-kimberley-f7324bdc-7980-4d67-b6a8-9284b0e69bc3" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/f7324bdc-7980-4d67-b6a8-9284b0e69bc3</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/f7324bdc-7980-4d67-b6a8-9284b0e69bc3" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/f7324bdc-7980-4d67-b6a8-9284b0e69bc3" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -899,6 +1231,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/c25d5c0c-f951-4615-8d63-704238fcd6d2</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/c25d5c0c-f951-4615-8d63-704238fcd6d2" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/c25d5c0c-f951-4615-8d63-704238fcd6d2" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -910,18 +1244,24 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-bangladesh-2nd-t20i-willowmoore-park-benoni-f0770794-aa10-4b63-9ec6-40d0a481b8c9</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-bangladesh-2nd-t20i-willowmoore-park-benoni-f0770794-aa10-4b63-9ec6-40d0a481b8c9" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-bangladesh-2nd-t20i-willowmoore-park-benoni-f0770794-aa10-4b63-9ec6-40d0a481b8c9" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/f0770794-aa10-4b63-9ec6-40d0a481b8c9</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/f0770794-aa10-4b63-9ec6-40d0a481b8c9" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/f0770794-aa10-4b63-9ec6-40d0a481b8c9" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -933,6 +1273,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/da7223eb-7fc7-4b1d-b69e-d040478a10a3</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/da7223eb-7fc7-4b1d-b69e-d040478a10a3" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/da7223eb-7fc7-4b1d-b69e-d040478a10a3" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -944,18 +1286,24 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/challenge-cup-sharks-v-scarlets-hollywoodbets-kings-park-durban-ce984bd0-2a68-47c6-b82a-73412506416e</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/challenge-cup-sharks-v-scarlets-hollywoodbets-kings-park-durban-ce984bd0-2a68-47c6-b82a-73412506416e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/challenge-cup-sharks-v-scarlets-hollywoodbets-kings-park-durban-ce984bd0-2a68-47c6-b82a-73412506416e" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/ce984bd0-2a68-47c6-b82a-73412506416e</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/ce984bd0-2a68-47c6-b82a-73412506416e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/ce984bd0-2a68-47c6-b82a-73412506416e" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -967,6 +1315,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/1e808dca-b6b8-4154-b7bd-930d00c34659</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/1e808dca-b6b8-4154-b7bd-930d00c34659" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/1e808dca-b6b8-4154-b7bd-930d00c34659" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -978,6 +1328,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -989,6 +1341,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/f70c2b14-633a-445e-9304-b527958a1843</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/f70c2b14-633a-445e-9304-b527958a1843" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/f70c2b14-633a-445e-9304-b527958a1843" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1000,6 +1354,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/candlelight-christmas-classics-sandton-nh-johannesburg-sandton-sandton-71babd28-4ed8-457a-9b57-f2b669d39dd9</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/candlelight-christmas-classics-sandton-nh-johannesburg-sandton-sandton-71babd28-4ed8-457a-9b57-f2b669d39dd9" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/candlelight-christmas-classics-sandton-nh-johannesburg-sandton-sandton-71babd28-4ed8-457a-9b57-f2b669d39dd9" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1011,6 +1367,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/71babd28-4ed8-457a-9b57-f2b669d39dd9</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/71babd28-4ed8-457a-9b57-f2b669d39dd9" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/71babd28-4ed8-457a-9b57-f2b669d39dd9" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1022,18 +1380,24 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-bangladesh-3rd-t20i-supersport-park-centurion-3721c6ac-6f33-40c5-abae-f4adcfdda8fb</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-bangladesh-3rd-t20i-supersport-park-centurion-3721c6ac-6f33-40c5-abae-f4adcfdda8fb" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-bangladesh-3rd-t20i-supersport-park-centurion-3721c6ac-6f33-40c5-abae-f4adcfdda8fb" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/3721c6ac-6f33-40c5-abae-f4adcfdda8fb</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/3721c6ac-6f33-40c5-abae-f4adcfdda8fb" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/3721c6ac-6f33-40c5-abae-f4adcfdda8fb" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1045,6 +1409,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/3b6c30d1-b400-4f93-ab4d-607622446298</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/3b6c30d1-b400-4f93-ab4d-607622446298" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/3b6c30d1-b400-4f93-ab4d-607622446298" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1056,6 +1422,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1067,6 +1435,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/5382354a-cf3c-45f5-9725-f0075b3ed9ee</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/5382354a-cf3c-45f5-9725-f0075b3ed9ee" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/5382354a-cf3c-45f5-9725-f0075b3ed9ee" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1078,42 +1448,56 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/chartwell-castle-christmas-market-chartwell-castle-johannesburg-01d59c21-715b-4c43-9d00-af2f720fc95f</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/chartwell-castle-christmas-market-chartwell-castle-johannesburg-01d59c21-715b-4c43-9d00-af2f720fc95f" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/chartwell-castle-christmas-market-chartwell-castle-johannesburg-01d59c21-715b-4c43-9d00-af2f720fc95f" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/01d59c21-715b-4c43-9d00-af2f720fc95f</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/01d59c21-715b-4c43-9d00-af2f720fc95f" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/01d59c21-715b-4c43-9d00-af2f720fc95f" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/jolly-jamboree-edenvale-the-edenvale-german-club-edenvale-507ca512-7062-4794-a530-a5adb3b74d8c</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/jolly-jamboree-edenvale-the-edenvale-german-club-edenvale-507ca512-7062-4794-a530-a5adb3b74d8c" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/jolly-jamboree-edenvale-the-edenvale-german-club-edenvale-507ca512-7062-4794-a530-a5adb3b74d8c" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/507ca512-7062-4794-a530-a5adb3b74d8c</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/507ca512-7062-4794-a530-a5adb3b74d8c" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/507ca512-7062-4794-a530-a5adb3b74d8c" />
     <lastmod>2026-08-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-england-1st-test-dp-world-wanderers-stadium-johannesburg-aaab8b61-2c5f-41b4-a24f-a23242cd1855</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-england-1st-test-dp-world-wanderers-stadium-johannesburg-aaab8b61-2c5f-41b4-a24f-a23242cd1855" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-england-1st-test-dp-world-wanderers-stadium-johannesburg-aaab8b61-2c5f-41b4-a24f-a23242cd1855" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/aaab8b61-2c5f-41b4-a24f-a23242cd1855</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/aaab8b61-2c5f-41b4-a24f-a23242cd1855" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/aaab8b61-2c5f-41b4-a24f-a23242cd1855" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1125,6 +1509,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1136,30 +1522,40 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/urc-sharks-v-bulls-hollywoodbets-kings-park-durban-676fe550-8f96-4794-9334-275631f85859</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/urc-sharks-v-bulls-hollywoodbets-kings-park-durban-676fe550-8f96-4794-9334-275631f85859" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/urc-sharks-v-bulls-hollywoodbets-kings-park-durban-676fe550-8f96-4794-9334-275631f85859" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/676fe550-8f96-4794-9334-275631f85859</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/676fe550-8f96-4794-9334-275631f85859" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/676fe550-8f96-4794-9334-275631f85859" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/urc-stormers-v-lions-dhl-stadium-cape-town-a134247f-ded7-42be-9e20-3e00c0ac0fe0</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/urc-stormers-v-lions-dhl-stadium-cape-town-a134247f-ded7-42be-9e20-3e00c0ac0fe0" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/urc-stormers-v-lions-dhl-stadium-cape-town-a134247f-ded7-42be-9e20-3e00c0ac0fe0" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/a134247f-ded7-42be-9e20-3e00c0ac0fe0</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/a134247f-ded7-42be-9e20-3e00c0ac0fe0" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/a134247f-ded7-42be-9e20-3e00c0ac0fe0" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/candlelight-christmas-classics-voortrekker-monument-pretoria-bc1981e6-9222-4ed7-a273-4178eb2700d9</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/candlelight-christmas-classics-voortrekker-monument-pretoria-bc1981e6-9222-4ed7-a273-4178eb2700d9" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/candlelight-christmas-classics-voortrekker-monument-pretoria-bc1981e6-9222-4ed7-a273-4178eb2700d9" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1171,6 +1567,8 @@
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/bc1981e6-9222-4ed7-a273-4178eb2700d9</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/bc1981e6-9222-4ed7-a273-4178eb2700d9" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/bc1981e6-9222-4ed7-a273-4178eb2700d9" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -1182,583 +1580,745 @@
   </url>
   <url>
     <loc>https://thegruvs.com/events/christmas-on-an-ultra-luxury-train-rovos-rail-pretoria-628f4b39-73bb-4138-8b95-26e71da6a097</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/christmas-on-an-ultra-luxury-train-rovos-rail-pretoria-628f4b39-73bb-4138-8b95-26e71da6a097" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/christmas-on-an-ultra-luxury-train-rovos-rail-pretoria-628f4b39-73bb-4138-8b95-26e71da6a097" />
     <lastmod>2026-08-19</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/628f4b39-73bb-4138-8b95-26e71da6a097</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/628f4b39-73bb-4138-8b95-26e71da6a097" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/628f4b39-73bb-4138-8b95-26e71da6a097" />
     <lastmod>2026-08-19</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-england-boxing-day-test-supersport-park-centurion-8ba8845b-0853-4424-b455-a81a7d239d7d</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-england-boxing-day-test-supersport-park-centurion-8ba8845b-0853-4424-b455-a81a7d239d7d" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-england-boxing-day-test-supersport-park-centurion-8ba8845b-0853-4424-b455-a81a7d239d7d" />
     <lastmod>2026-10-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/8ba8845b-0853-4424-b455-a81a7d239d7d</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/8ba8845b-0853-4424-b455-a81a7d239d7d" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/8ba8845b-0853-4424-b455-a81a7d239d7d" />
     <lastmod>2026-10-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/urc-sharks-v-lions-hollywoodbets-kings-park-durban-49200417-d150-467c-961c-fed658f63b1c</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/urc-sharks-v-lions-hollywoodbets-kings-park-durban-49200417-d150-467c-961c-fed658f63b1c" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/urc-sharks-v-lions-hollywoodbets-kings-park-durban-49200417-d150-467c-961c-fed658f63b1c" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/49200417-d150-467c-961c-fed658f63b1c</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/49200417-d150-467c-961c-fed658f63b1c" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/49200417-d150-467c-961c-fed658f63b1c" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/urc-stormers-v-bulls-dhl-stadium-cape-town-2210e9f9-c556-4240-bc30-830b839f5517</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/urc-stormers-v-bulls-dhl-stadium-cape-town-2210e9f9-c556-4240-bc30-830b839f5517" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/urc-stormers-v-bulls-dhl-stadium-cape-town-2210e9f9-c556-4240-bc30-830b839f5517" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/2210e9f9-c556-4240-bc30-830b839f5517</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/2210e9f9-c556-4240-bc30-830b839f5517" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/2210e9f9-c556-4240-bc30-830b839f5517" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-england-new-year-s-test-newlands-cricket-ground-cape-town-a8b87e6c-ae49-49fa-b371-5c52931b3ba2</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-england-new-year-s-test-newlands-cricket-ground-cape-town-a8b87e6c-ae49-49fa-b371-5c52931b3ba2" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-england-new-year-s-test-newlands-cricket-ground-cape-town-a8b87e6c-ae49-49fa-b371-5c52931b3ba2" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/a8b87e6c-ae49-49fa-b371-5c52931b3ba2</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/a8b87e6c-ae49-49fa-b371-5c52931b3ba2" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/a8b87e6c-ae49-49fa-b371-5c52931b3ba2" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/champions-cup-bulls-v-bath-loftus-versfeld-pretoria-dae53448-dc68-414a-ba44-9504df6ae2bb</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/champions-cup-bulls-v-bath-loftus-versfeld-pretoria-dae53448-dc68-414a-ba44-9504df6ae2bb" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/champions-cup-bulls-v-bath-loftus-versfeld-pretoria-dae53448-dc68-414a-ba44-9504df6ae2bb" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/dae53448-dc68-414a-ba44-9504df6ae2bb</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/dae53448-dc68-414a-ba44-9504df6ae2bb" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/dae53448-dc68-414a-ba44-9504df6ae2bb" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/l-ormarins-king-s-plate-2027-hollywoodbets-kenilworth-racecourse-cape-556c9fab-a133-4e2b-8a27-a2d417c14dc8</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/l-ormarins-king-s-plate-2027-hollywoodbets-kenilworth-racecourse-cape-556c9fab-a133-4e2b-8a27-a2d417c14dc8" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/l-ormarins-king-s-plate-2027-hollywoodbets-kenilworth-racecourse-cape-556c9fab-a133-4e2b-8a27-a2d417c14dc8" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/556c9fab-a133-4e2b-8a27-a2d417c14dc8</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/556c9fab-a133-4e2b-8a27-a2d417c14dc8" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/556c9fab-a133-4e2b-8a27-a2d417c14dc8" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-england-1st-odi-boland-park-paarl-4bef8a92-47fb-42ea-a063-171bc184e91a</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-england-1st-odi-boland-park-paarl-4bef8a92-47fb-42ea-a063-171bc184e91a" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-england-1st-odi-boland-park-paarl-4bef8a92-47fb-42ea-a063-171bc184e91a" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/4bef8a92-47fb-42ea-a063-171bc184e91a</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/4bef8a92-47fb-42ea-a063-171bc184e91a" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/4bef8a92-47fb-42ea-a063-171bc184e91a" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/proteas-v-england-3rd-odi-mangaung-oval-bloemfontein-b2338563-1338-4aaf-bdbc-833bd218cf82</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/proteas-v-england-3rd-odi-mangaung-oval-bloemfontein-b2338563-1338-4aaf-bdbc-833bd218cf82" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/proteas-v-england-3rd-odi-mangaung-oval-bloemfontein-b2338563-1338-4aaf-bdbc-833bd218cf82" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/b2338563-1338-4aaf-bdbc-833bd218cf82</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/b2338563-1338-4aaf-bdbc-833bd218cf82" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/b2338563-1338-4aaf-bdbc-833bd218cf82" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-pretoria-capitals-st-george-s-park-f0a982fb-3264-402e-a47e-ee4375c258e2</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-pretoria-capitals-st-george-s-park-f0a982fb-3264-402e-a47e-ee4375c258e2" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-pretoria-capitals-st-george-s-park-f0a982fb-3264-402e-a47e-ee4375c258e2" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/f0a982fb-3264-402e-a47e-ee4375c258e2</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/f0a982fb-3264-402e-a47e-ee4375c258e2" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/f0a982fb-3264-402e-a47e-ee4375c258e2" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-paarl-royals-v-joburg-super-kings-boland-park-paarl-9a407873-e9fd-4545-ad42-c25d215a0b96</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-paarl-royals-v-joburg-super-kings-boland-park-paarl-9a407873-e9fd-4545-ad42-c25d215a0b96" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-paarl-royals-v-joburg-super-kings-boland-park-paarl-9a407873-e9fd-4545-ad42-c25d215a0b96" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/9a407873-e9fd-4545-ad42-c25d215a0b96</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/9a407873-e9fd-4545-ad42-c25d215a0b96" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/9a407873-e9fd-4545-ad42-c25d215a0b96" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-pretoria-capitals-v-durban-s-super-giants-supersport-park-ceed7cf2-58eb-48df-8e4d-6373711c8829</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-durban-s-super-giants-supersport-park-ceed7cf2-58eb-48df-8e4d-6373711c8829" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-durban-s-super-giants-supersport-park-ceed7cf2-58eb-48df-8e4d-6373711c8829" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/ceed7cf2-58eb-48df-8e4d-6373711c8829</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/ceed7cf2-58eb-48df-8e4d-6373711c8829" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/ceed7cf2-58eb-48df-8e4d-6373711c8829" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-durban-s-super-giants-v-sunrisers-eastern-cape-kingsmead-durban-5e452465-1505-4189-8dfb-61950603f09a</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-durban-s-super-giants-v-sunrisers-eastern-cape-kingsmead-durban-5e452465-1505-4189-8dfb-61950603f09a" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-durban-s-super-giants-v-sunrisers-eastern-cape-kingsmead-durban-5e452465-1505-4189-8dfb-61950603f09a" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/5e452465-1505-4189-8dfb-61950603f09a</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/5e452465-1505-4189-8dfb-61950603f09a" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/5e452465-1505-4189-8dfb-61950603f09a" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-joburg-super-kings-v-sunrisers-eastern-cape-dp-world-wanderers-487d1a3a-5842-4e9a-a737-1203ec214de2</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-joburg-super-kings-v-sunrisers-eastern-cape-dp-world-wanderers-487d1a3a-5842-4e9a-a737-1203ec214de2" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-joburg-super-kings-v-sunrisers-eastern-cape-dp-world-wanderers-487d1a3a-5842-4e9a-a737-1203ec214de2" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/487d1a3a-5842-4e9a-a737-1203ec214de2</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/487d1a3a-5842-4e9a-a737-1203ec214de2" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/487d1a3a-5842-4e9a-a737-1203ec214de2" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-durban-s-super-giants-v-pretoria-capitals-kingsmead-durban-dc5dd9fd-61ba-42f8-9812-5eccfa378cc0</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-durban-s-super-giants-v-pretoria-capitals-kingsmead-durban-dc5dd9fd-61ba-42f8-9812-5eccfa378cc0" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-durban-s-super-giants-v-pretoria-capitals-kingsmead-durban-dc5dd9fd-61ba-42f8-9812-5eccfa378cc0" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/dc5dd9fd-61ba-42f8-9812-5eccfa378cc0</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/dc5dd9fd-61ba-42f8-9812-5eccfa378cc0" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/dc5dd9fd-61ba-42f8-9812-5eccfa378cc0" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-paarl-royals-v-mi-cape-town-boland-park-paarl-566979a3-9cf6-436e-b8cb-00378af82aa8</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-paarl-royals-v-mi-cape-town-boland-park-paarl-566979a3-9cf6-436e-b8cb-00378af82aa8" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-paarl-royals-v-mi-cape-town-boland-park-paarl-566979a3-9cf6-436e-b8cb-00378af82aa8" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/566979a3-9cf6-436e-b8cb-00378af82aa8</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/566979a3-9cf6-436e-b8cb-00378af82aa8" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/566979a3-9cf6-436e-b8cb-00378af82aa8" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-pretoria-capitals-v-sunrisers-eastern-cape-supersport-park-6e09bb1c-2139-4cb4-bc9d-c032c4bf7077</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-sunrisers-eastern-cape-supersport-park-6e09bb1c-2139-4cb4-bc9d-c032c4bf7077" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-sunrisers-eastern-cape-supersport-park-6e09bb1c-2139-4cb4-bc9d-c032c4bf7077" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/6e09bb1c-2139-4cb4-bc9d-c032c4bf7077</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/6e09bb1c-2139-4cb4-bc9d-c032c4bf7077" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/6e09bb1c-2139-4cb4-bc9d-c032c4bf7077" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-durban-s-super-giants-v-paarl-royals-kingsmead-durban-852a1203-4ae3-4dfa-b43e-833c702e6bc0</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-durban-s-super-giants-v-paarl-royals-kingsmead-durban-852a1203-4ae3-4dfa-b43e-833c702e6bc0" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-durban-s-super-giants-v-paarl-royals-kingsmead-durban-852a1203-4ae3-4dfa-b43e-833c702e6bc0" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/852a1203-4ae3-4dfa-b43e-833c702e6bc0</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/852a1203-4ae3-4dfa-b43e-833c702e6bc0" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/852a1203-4ae3-4dfa-b43e-833c702e6bc0" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-joburg-super-kings-st-george-s-park-b360184c-fcd7-452a-beb1-530878885b39</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-joburg-super-kings-st-george-s-park-b360184c-fcd7-452a-beb1-530878885b39" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-joburg-super-kings-st-george-s-park-b360184c-fcd7-452a-beb1-530878885b39" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/b360184c-fcd7-452a-beb1-530878885b39</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/b360184c-fcd7-452a-beb1-530878885b39" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/b360184c-fcd7-452a-beb1-530878885b39" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-paarl-royals-v-pretoria-capitals-boland-park-paarl-4bcff4bc-1c90-42f9-9059-67791c47c665</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-paarl-royals-v-pretoria-capitals-boland-park-paarl-4bcff4bc-1c90-42f9-9059-67791c47c665" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-paarl-royals-v-pretoria-capitals-boland-park-paarl-4bcff4bc-1c90-42f9-9059-67791c47c665" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/4bcff4bc-1c90-42f9-9059-67791c47c665</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/4bcff4bc-1c90-42f9-9059-67791c47c665" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/4bcff4bc-1c90-42f9-9059-67791c47c665" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-mi-cape-town-st-george-s-park-gqeberha-529f26af-d861-4ee5-8b14-8174799eb84e</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-mi-cape-town-st-george-s-park-gqeberha-529f26af-d861-4ee5-8b14-8174799eb84e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-mi-cape-town-st-george-s-park-gqeberha-529f26af-d861-4ee5-8b14-8174799eb84e" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/529f26af-d861-4ee5-8b14-8174799eb84e</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/529f26af-d861-4ee5-8b14-8174799eb84e" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/529f26af-d861-4ee5-8b14-8174799eb84e" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-joburg-super-kings-v-durban-s-super-giants-dp-world-wanderers-be0b7c89-73d2-4ba3-b50d-502d6c946b79</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-joburg-super-kings-v-durban-s-super-giants-dp-world-wanderers-be0b7c89-73d2-4ba3-b50d-502d6c946b79" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-joburg-super-kings-v-durban-s-super-giants-dp-world-wanderers-be0b7c89-73d2-4ba3-b50d-502d6c946b79" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/be0b7c89-73d2-4ba3-b50d-502d6c946b79</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/be0b7c89-73d2-4ba3-b50d-502d6c946b79" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/be0b7c89-73d2-4ba3-b50d-502d6c946b79" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/events/sa20-pretoria-capitals-v-paarl-royals-supersport-park-centurion-f8c05c66-60f0-41d7-8e8a-6a89fde69732</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-paarl-royals-supersport-park-centurion-f8c05c66-60f0-41d7-8e8a-6a89fde69732" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-paarl-royals-supersport-park-centurion-f8c05c66-60f0-41d7-8e8a-6a89fde69732" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/share/event/f8c05c66-60f0-41d7-8e8a-6a89fde69732</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/share/event/f8c05c66-60f0-41d7-8e8a-6a89fde69732" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/f8c05c66-60f0-41d7-8e8a-6a89fde69732" />
     <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://thegruvs.com/venues/fairtree-atterbury-teater</loc>
-    <lastmod>2026-11-04</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.88</priority>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/venues/barnyard-theatre-menlyn-park</loc>
-    <lastmod>2026-11-04</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.88</priority>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/venues/huddle-park-golf-and-recreation</loc>
-    <lastmod>2026-11-04</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.88</priority>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/venues/sunbet-arena</loc>
-    <lastmod>2026-11-04</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.88</priority>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/venues/montecasino</loc>
-    <lastmod>2026-11-04</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.88</priority>
-  </url>
-  <url>
     <loc>https://thegruvs.com/venues/kyalami-grand-prix-circuit</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/kyalami-grand-prix-circuit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/kyalami-grand-prix-circuit" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/dp-world-wanderers-stadium</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/dp-world-wanderers-stadium" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/dp-world-wanderers-stadium" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/time-square-casino</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/time-square-casino" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/time-square-casino" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/die-centurion-teater</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/die-centurion-teater" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/die-centurion-teater" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/atterbury-rd-and-lois-ave</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/atterbury-rd-and-lois-ave" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/atterbury-rd-and-lois-ave" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/central-square-sandton</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/central-square-sandton" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/central-square-sandton" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/time-square-south-africa</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/time-square-south-africa" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/time-square-south-africa" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/george-hay-park</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/george-hay-park" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/george-hay-park" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/emperors-palace</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/emperors-palace" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/emperors-palace" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/supersport-park</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/supersport-park" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/supersport-park" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/german-country-club</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/german-country-club" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/german-country-club" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/letsheng-mall</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/letsheng-mall" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/letsheng-mall" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/nickel-market</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/nickel-market" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/nickel-market" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/turffontein-racecourse</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/turffontein-racecourse" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/turffontein-racecourse" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/old-park-station</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/old-park-station" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/old-park-station" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/railways-cafe</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/railways-cafe" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/railways-cafe" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/bedfordview-night-market</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/bedfordview-night-market" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/bedfordview-night-market" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/prime-view-adventure-and-leisure</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/prime-view-adventure-and-leisure" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/prime-view-adventure-and-leisure" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/buffalo-park</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/buffalo-park" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/buffalo-park" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/the-wanderers-club</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/the-wanderers-club" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/the-wanderers-club" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/gary-player-country-club</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/gary-player-country-club" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/gary-player-country-club" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/st-george-s-park</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/st-george-s-park" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/st-george-s-park" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/die-windpomp-male-resort</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/die-windpomp-male-resort" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/die-windpomp-male-resort" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/dhl-stadium</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/dhl-stadium" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/dhl-stadium" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/ellis-park-stadium</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/ellis-park-stadium" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/ellis-park-stadium" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/hollywoodbets-kings-park</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/hollywoodbets-kings-park" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/hollywoodbets-kings-park" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/irene-village-mall</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/irene-village-mall" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/irene-village-mall" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/the-campus</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/the-campus" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/the-campus" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/newlands-cricket-ground</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/newlands-cricket-ground" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/newlands-cricket-ground" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/benoni-monkey-and-bird-park</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/benoni-monkey-and-bird-park" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/benoni-monkey-and-bird-park" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/ivory-park</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/ivory-park" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/ivory-park" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/diamond-oval</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/diamond-oval" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/diamond-oval" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/willowmoore-park</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/willowmoore-park" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/willowmoore-park" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/james-and-ethel-gray-park</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/james-and-ethel-gray-park" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/james-and-ethel-gray-park" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/fnb-stadium</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/fnb-stadium" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/fnb-stadium" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/nh-johannesburg-sandton</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/nh-johannesburg-sandton" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/nh-johannesburg-sandton" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/sunbet-arena-time-square</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/sunbet-arena-time-square" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/sunbet-arena-time-square" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/chartwell-castle</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/chartwell-castle" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/chartwell-castle" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/the-edenvale-german-club</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/the-edenvale-german-club" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/the-edenvale-german-club" />
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/venues/sunbet-arena</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/sunbet-arena" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/sunbet-arena" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/voortrekker-monument</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/voortrekker-monument" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/voortrekker-monument" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/rovos-rail</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/rovos-rail" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/rovos-rail" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/loftus-versfeld</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/loftus-versfeld" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/loftus-versfeld" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/hollywoodbets-kenilworth-racecourse</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/hollywoodbets-kenilworth-racecourse" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/hollywoodbets-kenilworth-racecourse" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/boland-park</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/boland-park" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/boland-park" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/mangaung-oval</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/mangaung-oval" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/mangaung-oval" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/venues/kingsmead</loc>
-    <lastmod>2026-11-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/kingsmead" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/kingsmead" />
+    <lastmod>2026-11-12</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>

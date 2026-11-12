@@ -51,6 +51,12 @@ const HUBS = [
   { loc: '/events/kimberley', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/pietermaritzburg', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/stellenbosch', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/maboneng', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/braamfontein', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/menlyn', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/hatfield', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/umlazi', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/camps-bay', changefreq: 'daily', priority: '0.90' },
 
   // Genre & Vibe Hubs (Major Music & Lifestyle Subcultures)
   { loc: '/events/amapiano', changefreq: 'daily', priority: '0.90' },
@@ -69,6 +75,37 @@ const HUBS = [
   // Date Horizons
   { loc: '/events/this-weekend', changefreq: 'daily', priority: '0.95' },
   { loc: '/events/nye-2027', changefreq: 'daily', priority: '0.95' },
+
+  // 28-Category Event Business & Hustler Directory Hubs
+  { loc: '/services', changefreq: 'weekly', priority: '0.90' },
+  { loc: '/services/shisanyama-braai', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/food-trucks', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/mobile-cocktail-bar', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/coffee-juice-vans', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/event-bakers', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/ice-cooler-hire', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/bakkie-haulers', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/stage-trucks', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/shuttle-fleets', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/vip-chauffeur', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/drum-percussion-rentals', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/pa-line-array', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/dj-gear-cdjs', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/backline-amps', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/sound-engineers', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/session-musicians-mcs', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/fashion-designers', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/streetwear-popups', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/mobile-barbers', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/makeup-artists-mua', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/bedouin-stretch-tents', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/staging-truss-rigging', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/mobile-toilets', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/event-furniture', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/bouncers-security', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/paramedics-first-aid', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/photographers-360', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/drone-videography', changefreq: 'weekly', priority: '0.88' },
 ];
 
 // A hub with no events of its own is built with noindex
@@ -138,6 +175,8 @@ function buildXml(entries) {
   for (const entry of entries) {
     lines.push('  <url>');
     lines.push(`    <loc>${escapeXml(entry.loc)}</loc>`);
+    lines.push(`    <xhtml:link rel="alternate" hreflang="en-ZA" href="${escapeXml(entry.loc)}" />`);
+    lines.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(entry.loc)}" />`);
     if (entry.lastmod) {
       lines.push(`    <lastmod>${entry.lastmod}</lastmod>`);
     }
