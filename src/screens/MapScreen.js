@@ -95,6 +95,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [dayFilter, setDayFilter] = useState(null); // 'YYYY-MM-DD' | null(all) — the time-scrubber
   const [hourFilter, setHourFilter] = useState(null); // 20 (8PM) to 4 (4AM) | null (all hours)
   const [showTimeDial, setShowTimeDial] = useState(false);
+  const [deckState, setDeckState] = useState('peek'); // mirrors MapVenueDeck so floating controls never collide with it
   const [stealthMode, setStealthMode] = useState('public');
   const [whoHereModal, setWhoHereModal] = useState({ visible: false, eventId: null, attendees: [], loading: false });
 
@@ -724,29 +725,6 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Futuristic Cyber Telemetry HUD Bar (cleanly integrated under search, never overlapping filters) */}
-          {!drawing && (
-            <View pointerEvents="none" style={[cs.cyberTelemetryBar, { backgroundColor: 'rgba(8,12,14,0.85)', borderColor: `${primary}30` }]}>
-              <View style={cs.cyberHudItem}>
-                <View style={[cs.cyberHudDot, { backgroundColor: '#10b981' }]} />
-                <Text style={[cs.cyberHudText, { color: primary }]}>
-                  {center?.lat != null ? `${center.lat.toFixed(3)}°S, ${center.lng.toFixed(3)}°E` : 'GPS SYNCING'}
-                </Text>
-              </View>
-              <Text style={[cs.cyberHudDivider, { color: `${muted}40` }]}>|</Text>
-              <View style={cs.cyberHudItem}>
-                <Feather name="shield" size={10} color="#10b981" />
-                <Text style={[cs.cyberHudText, { color: textColor }]}>LOCAL GRID</Text>
-              </View>
-              <Text style={[cs.cyberHudDivider, { color: `${muted}40` }]}>|</Text>
-              <View style={cs.cyberHudItem}>
-                <Feather name="zap" size={10} color="#f59e0b" />
-                <Text style={[cs.cyberHudText, { color: textColor }]}>
-                  {shownEvents.length} {shownEvents.length === 1 ? 'NODE' : 'NODES'}
-                </Text>
-              </View>
-            </View>
-          )}
 
           {/* Quick Filter Pill Strip */}
           {isMapSupported() && !drawing && (
@@ -803,36 +781,20 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                 </Text>
               </TouchableOpacity>
 
-              {/* Day filter pills */}
-              <TouchableOpacity onPress={() => setDayFilter(null)}
-                style={[cs.quickPill, { borderColor: !dayFilter ? primary : 'rgba(255,255,255,0.12)', backgroundColor: !dayFilter ? `${primary}20` : 'rgba(12,16,18,0.88)' }]}>
-                <Text style={[cs.quickPillText, { color: !dayFilter ? primary : muted }]}>All Nights</Text>
-              </TouchableOpacity>
-              {/* Nightlife 8 PM - 4 AM Time-Scrubber Pills */}
-              {[
-                { hour: null, label: 'Anytime' },
-                { hour: 20, label: '8 PM (Warmup)' },
-                { hour: 23, label: '11 PM (Peak)' },
-                { hour: 2, label: '2 AM (Afters)' },
-              ].map((slot, i) => {
-                const active = hourFilter === slot.hour;
-                return (
-                  <TouchableOpacity
-                    key={i}
-                    onPress={() => setHourFilter(active ? null : slot.hour)}
-                    style={[
-                      cs.quickPill,
-                      {
-                        borderColor: active ? '#00f2ff' : 'rgba(255,255,255,0.12)',
-                        backgroundColor: active ? 'rgba(0,242,255,0.20)' : 'rgba(12,16,18,0.88)',
-                      }
-                    ]}
-                  >
-                    <Feather name="clock" size={11} color={active ? '#00f2ff' : muted} />
-                    <Text style={[cs.quickPillText, { color: active ? '#00f2ff' : textColor }]}>{slot.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {/* Active time filter chip — only visible when a time window is set (clear with one tap) */}
+              {hourFilter != null && (
+                <TouchableOpacity
+                  onPress={() => setHourFilter(null)}
+                  style={[cs.quickPill, { borderColor: '#00f2ff', backgroundColor: 'rgba(0,242,255,0.20)' }]}
+                  accessibilityLabel="Clear time filter"
+                >
+                  <Feather name="clock" size={11} color="#00f2ff" />
+                  <Text style={[cs.quickPillText, { color: '#00f2ff' }]}>
+                    {hourFilter === 20 ? '8 PM' : hourFilter === 23 ? '11 PM' : hourFilter === 2 ? '2 AM' : `${hourFilter}:00`}
+                  </Text>
+                  <Feather name="x" size={11} color="#00f2ff" />
+                </TouchableOpacity>
+              )}
             </ScrollView>
           )}
         </View>
@@ -883,26 +845,10 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             />
           </ErrorBoundary>
 
-          {/* Futuristic Cyber Reticle Brackets */}
-          <View pointerEvents="none" style={cs.reticleContainer}>
-            <View style={[cs.reticleCorner, cs.reticleTL, { borderColor: `${primary}55` }]} />
-            <View style={[cs.reticleCorner, cs.reticleTR, { borderColor: `${primary}55` }]} />
-            <View style={[cs.reticleCorner, cs.reticleBL, { borderColor: `${primary}55` }]} />
-            <View style={[cs.reticleCorner, cs.reticleBR, { borderColor: `${primary}55` }]} />
-          </View>
 
           {/* Luminous Thumb Control Pod */}
           {isMapSupported() && !drawing && !activeZone && (
-            <View style={[cs.thumbPod, { bottom: (!drawing && !activeZone && shownEvents.length > 0) ? 315 : 95 }]} pointerEvents="box-none">
-              {/* Recenter GPS */}
-              <TouchableOpacity
-                {...fx('glass rise', 0)}
-                onPress={recenter}
-                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.6)', borderColor: 'rgba(255,255,255,0.15)' }]}
-                accessibilityLabel="Recenter GPS"
-              >
-                <Feather name="crosshair" size={17} color={primary} />
-              </TouchableOpacity>
+            <View style={[cs.thumbPod, { bottom: shownEvents.length === 0 ? 95 : deckState === 'expanded' ? 510 : deckState === 'carousel' ? 310 : 138 }]} pointerEvents="box-none">
 
               {/* Nightlife Timeline Dial Trigger */}
               <TouchableOpacity
@@ -920,15 +866,6 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
                 <Feather name="clock" size={17} color={showTimeDial ? primary : '#fff'} />
               </TouchableOpacity>
 
-              {/* Layers Drawer Trigger */}
-              <TouchableOpacity
-                {...fx('glass rise', 2)}
-                onPress={() => setLayersModalVisible(true)}
-                style={[cs.thumbBtn, { backgroundColor: 'rgba(12,16,18,0.6)', borderColor: 'rgba(255,255,255,0.15)' }]}
-                accessibilityLabel="Open map layers and visual modes"
-              >
-                <Feather name="layers" size={17} color={primary} />
-              </TouchableOpacity>
 
               {/* Vibe Roulette */}
               <TouchableOpacity
@@ -989,7 +926,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
           {/* Nightlife Timeline Scrubber Dial (when active) */}
           {showTimeDial && !drawing && !activeZone && (
-            <View style={cs.timeDialWrap}>
+            <View style={[cs.timeDialWrap, { bottom: deckState === 'carousel' ? 300 : deckState === 'expanded' ? 500 : 128 }]}>
               <NightlifeTimeDial
                 selectedHour={hourFilter}
                 onSelectHour={(h) => setHourFilter(h)}
@@ -1004,6 +941,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           {/* Unified 3-State Interactive Venue Deck */}
           {!drawing && !activeZone && shownEvents.length > 0 && (
             <MapVenueDeck
+              onStateChange={setDeckState}
               events={shownEvents}
               activeEventId={previewId}
               userCoords={userLoc || center}
