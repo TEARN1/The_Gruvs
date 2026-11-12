@@ -2913,9 +2913,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         // matter how far you scroll — "I only see 5 events"). Browsers handle a
         // few hundred cards fine, so render everything and let the DOM scroll.
         disableVirtualization={Platform.OS === 'web'}
-        maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 8}
+        maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 4}
         windowSize={Platform.OS === 'web' ? 25 : 14}
-        initialNumToRender={Platform.OS === 'web' ? 16 : 7}
+        // Native: the hero card fills most of the screen, so 3 covers what's visible;
+        // 7 heavy EventCards (~800-line component) cost ~1.5 s before first paint.
+        initialNumToRender={Platform.OS === 'web' ? 16 : 3}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>
