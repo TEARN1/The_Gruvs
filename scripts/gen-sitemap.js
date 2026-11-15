@@ -21,7 +21,35 @@ const path = require('path');
 const SITE = 'https://thegruvs.com';
 
 const STATIC = [
-  { loc: '/', changefreq: 'daily', priority: '1.0' },
+  {
+    loc: '/',
+    changefreq: 'daily',
+    priority: '1.0',
+    images: [
+      { loc: `${SITE}/icon-512.png`, title: 'The Gruvs App Icon', caption: 'Official App Icon' },
+      { loc: `${SITE}/logo.png`, title: 'The Gruvs Brand Logo', caption: 'Official Logo' },
+    ],
+  },
+  {
+    loc: '/founder',
+    changefreq: 'weekly',
+    priority: '0.95',
+    images: [
+      { loc: `${SITE}/images/asemahle-nkwali-ceo-the-gruvs.jpg`, title: 'Asemahle "TEARN" Nkwali Founder & CEO', caption: 'Official Executive Portrait' },
+      { loc: `${SITE}/images/asemahle-nkwali-founder-keynote.jpg`, title: 'Asemahle "TEARN" Nkwali Keynote', caption: 'South African Event Technology Address' },
+      { loc: `${SITE}/images/the-gruvs-app-launch-preview.jpg`, title: 'The Gruvs Mobile Platform', caption: 'Live Vibe Mapping and Discovery' },
+    ],
+  },
+  {
+    loc: '/press',
+    changefreq: 'weekly',
+    priority: '0.90',
+    images: [
+      { loc: `${SITE}/logo.png`, title: 'The Gruvs Press Logo', caption: 'Primary Brand Emblem' },
+      { loc: `${SITE}/images/asemahle-nkwali-ceo-the-gruvs.jpg`, title: 'Asemahle "TEARN" Nkwali Press Portrait', caption: 'Executive Media Kit' },
+      { loc: `${SITE}/images/the-gruvs-app-launch-preview.jpg`, title: 'The Gruvs Platform Interface', caption: 'Nightlife Intelligence Telemetry' },
+    ],
+  },
   { loc: '/get.html', changefreq: 'weekly', priority: '0.7' },
   { loc: '/privacy.html', changefreq: 'yearly', priority: '0.2' },
   { loc: '/terms.html', changefreq: 'yearly', priority: '0.2' },
@@ -164,6 +192,24 @@ function escapeXml(str) {
     .replace(/'/g, '&apos;');
 }
 
+function renderImageTags(imgs) {
+  const list = Array.isArray(imgs) ? imgs : (imgs ? [imgs] : []);
+  const lines = [];
+  for (const img of list) {
+    if (!img || !img.loc) continue;
+    lines.push('    <image:image>');
+    lines.push(`      <image:loc>${escapeXml(img.loc)}</image:loc>`);
+    if (img.title) {
+      lines.push(`      <image:title>${escapeXml(img.title)}</image:title>`);
+    }
+    if (img.caption) {
+      lines.push(`      <image:caption>${escapeXml(img.caption)}</image:caption>`);
+    }
+    lines.push('    </image:image>');
+  }
+  return lines;
+}
+
 function buildXml(entries) {
   const lines = [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -183,18 +229,33 @@ function buildXml(entries) {
     lines.push(`    <changefreq>${entry.changefreq}</changefreq>`);
     lines.push(`    <priority>${entry.priority}</priority>`);
 
-    if (entry.image) {
-      lines.push('    <image:image>');
-      lines.push(`      <image:loc>${escapeXml(entry.image.loc)}</image:loc>`);
-      if (entry.image.title) {
-        lines.push(`      <image:title>${escapeXml(entry.image.title)}</image:title>`);
-      }
-      if (entry.image.caption) {
-        lines.push(`      <image:caption>${escapeXml(entry.image.caption)}</image:caption>`);
-      }
-      lines.push('    </image:image>');
+    const imgTags = renderImageTags(entry.images || entry.image);
+    if (imgTags.length > 0) {
+      lines.push(...imgTags);
     }
     lines.push('  </url>');
+  }
+
+  lines.push('</urlset>');
+  lines.push('');
+  return lines.join('\n');
+}
+
+function buildImageSitemapXml(entries) {
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+    '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">',
+  ];
+
+  for (const entry of entries) {
+    const imgTags = renderImageTags(entry.images || entry.image);
+    if (imgTags.length > 0) {
+      lines.push('  <url>');
+      lines.push(`    <loc>${escapeXml(entry.loc)}</loc>`);
+      lines.push(...imgTags);
+      lines.push('  </url>');
+    }
   }
 
   lines.push('</urlset>');
@@ -305,14 +366,17 @@ function buildXml(entries) {
   }
 
   const sitemapXml = buildXml(urls);
+  const imageSitemapXml = buildImageSitemapXml(urls);
 
   if (fs.existsSync(publicDir)) {
     fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapXml, 'utf8');
-    console.log(`[gen-sitemap] Wrote public/sitemap.xml with ${urls.length} URLs.`);
+    fs.writeFileSync(path.join(publicDir, 'image-sitemap.xml'), imageSitemapXml, 'utf8');
+    console.log(`[gen-sitemap] Wrote public/sitemap.xml and public/image-sitemap.xml with ${urls.length} URLs.`);
   }
 
   if (fs.existsSync(distDir)) {
     fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemapXml, 'utf8');
-    console.log(`[gen-sitemap] Wrote dist/sitemap.xml with ${urls.length} URLs.`);
+    fs.writeFileSync(path.join(distDir, 'image-sitemap.xml'), imageSitemapXml, 'utf8');
+    console.log(`[gen-sitemap] Wrote dist/sitemap.xml and dist/image-sitemap.xml with ${urls.length} URLs.`);
   }
 })();

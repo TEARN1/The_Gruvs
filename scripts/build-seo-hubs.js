@@ -361,14 +361,17 @@ function renderHtmlShell({ title, description, canonicalUrl, ogImage, jsonLd = [
   </div>
 
   <footer class="site-footer">
-    <p>© ${new Date().getFullYear()} The Gruvs · South Africa's Live Event & Vibe Discovery Platform.</p>
+    <p>© ${new Date().getFullYear()} The Gruvs · Founded by Asemahle "TEARN" Nkwali · TEARN Ventures · South Africa's Live Event & Vibe Discovery Platform.</p>
     <p style="margin-top: 8px;">
       <a href="${SITE}/">Home</a> · 
+      <a href="${SITE}/founder">Founder</a> · 
+      <a href="${SITE}/press">Press Kit</a> · 
       <a href="${SITE}/events/ke-dezemba">Ke Dezemba</a> · 
       <a href="${SITE}/events/johannesburg">Johannesburg</a> · 
       <a href="${SITE}/events/pretoria">Pretoria</a> · 
       <a href="${SITE}/events/midrand">Midrand</a> · 
-      <a href="https://theresidentcrew.com" target="_blank" rel="noopener">Find Stays on The Resident</a>
+      <a href="https://theresidentcrew.com" target="_blank" rel="noopener">Stays via The Resident Crew</a> · 
+      <a href="https://excellencyacs.com" target="_blank" rel="noopener">Excellency Academy</a>
     </p>
   </footer>
 </body>

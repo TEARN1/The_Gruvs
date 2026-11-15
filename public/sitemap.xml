@@ -6,15 +6,71 @@
     <loc>https://thegruvs.com/</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://thegruvs.com/icon-512.png</image:loc>
+      <image:title>The Gruvs App Icon</image:title>
+      <image:caption>Official App Icon</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://thegruvs.com/logo.png</image:loc>
+      <image:title>The Gruvs Brand Logo</image:title>
+      <image:caption>Official Logo</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/founder</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/founder" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/founder" />
+    <lastmod>2026-11-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://thegruvs.com/images/asemahle-nkwali-ceo-the-gruvs.jpg</image:loc>
+      <image:title>Asemahle &quot;TEARN&quot; Nkwali Founder &amp; CEO</image:title>
+      <image:caption>Official Executive Portrait</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://thegruvs.com/images/asemahle-nkwali-founder-keynote.jpg</image:loc>
+      <image:title>Asemahle &quot;TEARN&quot; Nkwali Keynote</image:title>
+      <image:caption>South African Event Technology Address</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://thegruvs.com/images/the-gruvs-app-launch-preview.jpg</image:loc>
+      <image:title>The Gruvs Mobile Platform</image:title>
+      <image:caption>Live Vibe Mapping and Discovery</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/press</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/press" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/press" />
+    <lastmod>2026-11-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+    <image:image>
+      <image:loc>https://thegruvs.com/logo.png</image:loc>
+      <image:title>The Gruvs Press Logo</image:title>
+      <image:caption>Primary Brand Emblem</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://thegruvs.com/images/asemahle-nkwali-ceo-the-gruvs.jpg</image:loc>
+      <image:title>Asemahle &quot;TEARN&quot; Nkwali Press Portrait</image:title>
+      <image:caption>Executive Media Kit</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://thegruvs.com/images/the-gruvs-app-launch-preview.jpg</image:loc>
+      <image:title>The Gruvs Platform Interface</image:title>
+      <image:caption>Nightlife Intelligence Telemetry</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://thegruvs.com/get.html</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/get.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/get.html" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -22,7 +78,7 @@
     <loc>https://thegruvs.com/privacy.html</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/privacy.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/privacy.html" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
@@ -30,7 +86,7 @@
     <loc>https://thegruvs.com/terms.html</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/terms.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/terms.html" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
@@ -38,7 +94,7 @@
     <loc>https://thegruvs.com/account-deletion.html</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/account-deletion.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/account-deletion.html" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
@@ -46,7 +102,7 @@
     <loc>https://thegruvs.com/events/ke-dezemba</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/ke-dezemba" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/ke-dezemba" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
   </url>
@@ -54,7 +110,7 @@
     <loc>https://thegruvs.com/events/johannesburg</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/johannesburg" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/johannesburg" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
@@ -62,7 +118,7 @@
     <loc>https://thegruvs.com/events/pretoria</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/pretoria" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/pretoria" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
@@ -70,7 +126,7 @@
     <loc>https://thegruvs.com/events/midrand</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/midrand" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/midrand" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
@@ -78,7 +134,7 @@
     <loc>https://thegruvs.com/events/centurion</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/centurion" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/centurion" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
@@ -86,7 +142,7 @@
     <loc>https://thegruvs.com/events/sandton</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sandton" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sandton" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
@@ -94,7 +150,7 @@
     <loc>https://thegruvs.com/events/lifestyle</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/lifestyle" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/lifestyle" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
   </url>
@@ -102,15 +158,23 @@
     <loc>https://thegruvs.com/events/comedy</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/comedy" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/comedy" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/this-weekend</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/this-weekend" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/this-weekend" />
+    <lastmod>2026-11-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/services</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
@@ -118,7 +182,7 @@
     <loc>https://thegruvs.com/services/shisanyama-braai</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/shisanyama-braai" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/shisanyama-braai" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -126,7 +190,7 @@
     <loc>https://thegruvs.com/services/food-trucks</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/food-trucks" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/food-trucks" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -134,7 +198,7 @@
     <loc>https://thegruvs.com/services/mobile-cocktail-bar</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/mobile-cocktail-bar" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/mobile-cocktail-bar" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -142,7 +206,7 @@
     <loc>https://thegruvs.com/services/coffee-juice-vans</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/coffee-juice-vans" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/coffee-juice-vans" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -150,7 +214,7 @@
     <loc>https://thegruvs.com/services/event-bakers</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/event-bakers" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/event-bakers" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -158,7 +222,7 @@
     <loc>https://thegruvs.com/services/ice-cooler-hire</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/ice-cooler-hire" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/ice-cooler-hire" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -166,7 +230,7 @@
     <loc>https://thegruvs.com/services/bakkie-haulers</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/bakkie-haulers" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/bakkie-haulers" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -174,7 +238,7 @@
     <loc>https://thegruvs.com/services/stage-trucks</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/stage-trucks" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/stage-trucks" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -182,7 +246,7 @@
     <loc>https://thegruvs.com/services/shuttle-fleets</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/shuttle-fleets" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/shuttle-fleets" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -190,7 +254,7 @@
     <loc>https://thegruvs.com/services/vip-chauffeur</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/vip-chauffeur" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/vip-chauffeur" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -198,7 +262,7 @@
     <loc>https://thegruvs.com/services/drum-percussion-rentals</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/drum-percussion-rentals" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/drum-percussion-rentals" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -206,7 +270,7 @@
     <loc>https://thegruvs.com/services/pa-line-array</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/pa-line-array" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/pa-line-array" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -214,7 +278,7 @@
     <loc>https://thegruvs.com/services/dj-gear-cdjs</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/dj-gear-cdjs" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/dj-gear-cdjs" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -222,7 +286,7 @@
     <loc>https://thegruvs.com/services/backline-amps</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/backline-amps" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/backline-amps" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -230,7 +294,7 @@
     <loc>https://thegruvs.com/services/sound-engineers</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/sound-engineers" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/sound-engineers" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -238,7 +302,7 @@
     <loc>https://thegruvs.com/services/session-musicians-mcs</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/session-musicians-mcs" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/session-musicians-mcs" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -246,7 +310,7 @@
     <loc>https://thegruvs.com/services/fashion-designers</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/fashion-designers" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/fashion-designers" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -254,7 +318,7 @@
     <loc>https://thegruvs.com/services/streetwear-popups</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/streetwear-popups" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/streetwear-popups" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -262,7 +326,7 @@
     <loc>https://thegruvs.com/services/mobile-barbers</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/mobile-barbers" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/mobile-barbers" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -270,7 +334,7 @@
     <loc>https://thegruvs.com/services/makeup-artists-mua</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/makeup-artists-mua" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/makeup-artists-mua" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -278,7 +342,7 @@
     <loc>https://thegruvs.com/services/bedouin-stretch-tents</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/bedouin-stretch-tents" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/bedouin-stretch-tents" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -286,7 +350,7 @@
     <loc>https://thegruvs.com/services/staging-truss-rigging</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/staging-truss-rigging" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/staging-truss-rigging" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -294,7 +358,7 @@
     <loc>https://thegruvs.com/services/mobile-toilets</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/mobile-toilets" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/mobile-toilets" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -302,7 +366,7 @@
     <loc>https://thegruvs.com/services/event-furniture</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/event-furniture" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/event-furniture" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -310,7 +374,7 @@
     <loc>https://thegruvs.com/services/bouncers-security</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/bouncers-security" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/bouncers-security" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -318,7 +382,7 @@
     <loc>https://thegruvs.com/services/paramedics-first-aid</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/paramedics-first-aid" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/paramedics-first-aid" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -326,7 +390,7 @@
     <loc>https://thegruvs.com/services/photographers-360</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/photographers-360" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/photographers-360" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -334,7 +398,7 @@
     <loc>https://thegruvs.com/services/drone-videography</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/services/drone-videography" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/services/drone-videography" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
@@ -552,7 +616,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/piano-people-johannesburg-2026-old-park-station-johannesburg-bc30f1bf-b377-4212-bf05-f0054e63f32e" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn2.allevents.in/thumbs/thumb6a854e0810ec4.jpg</image:loc>
       <image:title>Piano People Johannesburg 2026</image:title>
@@ -565,7 +629,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/bc30f1bf-b377-4212-bf05-f0054e63f32e" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn2.allevents.in/thumbs/thumb6a854e0810ec4.jpg</image:loc>
       <image:title>Piano People Johannesburg 2026</image:title>
@@ -578,7 +642,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
       <image:title>Afrikaans is Groot 2026: Konsert 8</image:title>
@@ -591,7 +655,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/b14232e7-de9e-43e2-8ff0-d6e186647c6a" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
       <image:title>Afrikaans is Groot 2026: Konsert 8</image:title>
@@ -604,7 +668,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events2/banners/2cb6fcc397bd636f2f64715c4110a47068a82a7e931c8f6f90df2377e79c5312-rimg-w1200-h628-dc080808-gmir?v=1788259661</image:loc>
       <image:title>HOORT met Stephanie Baartman</image:title>
@@ -617,7 +681,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/f71400fa-4612-4705-8ee9-b5e0df5f2fb5" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events2/banners/2cb6fcc397bd636f2f64715c4110a47068a82a7e931c8f6f90df2377e79c5312-rimg-w1200-h628-dc080808-gmir?v=1788259661</image:loc>
       <image:title>HOORT met Stephanie Baartman</image:title>
@@ -630,7 +694,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/prime-circle-at-railways-cafe-railways-cafe-centurion-cbc848aa-a8e7-4038-aa6e-38077ef5205d" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events8/banners/e69674e92a898ee5ca10fbae234e7f117bfc4842d5ec8fd46ed2157d9bc0c6c1-rimg-w800-h400-dc282828-gmir?v=1788188881</image:loc>
       <image:title>Prime Circle at Railways Cafe</image:title>
@@ -643,7 +707,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/cbc848aa-a8e7-4038-aa6e-38077ef5205d" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events8/banners/e69674e92a898ee5ca10fbae234e7f117bfc4842d5ec8fd46ed2157d9bc0c6c1-rimg-w800-h400-dc282828-gmir?v=1788188881</image:loc>
       <image:title>Prime Circle at Railways Cafe</image:title>
@@ -656,7 +720,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events8/banners/9e0a02757503c6feaa7f95823c5435585768ab532ee52f8bb78426a001d53310-rimg-w1200-h566-dc083848-gmir?v=1788206754</image:loc>
       <image:title>Afrikaans is Groot 2026: Konsert 10</image:title>
@@ -669,7 +733,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/4e5bfa12-7c2e-4033-a447-dc5f26846c0e" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events8/banners/9e0a02757503c6feaa7f95823c5435585768ab532ee52f8bb78426a001d53310-rimg-w1200-h566-dc083848-gmir?v=1788206754</image:loc>
       <image:title>Afrikaans is Groot 2026: Konsert 10</image:title>
@@ -682,7 +746,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703</image:loc>
       <image:title>TinMan Joburg #5</image:title>
@@ -695,7 +759,7 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/share/event/769e24ee-453b-4995-9f0a-143c34aac891" />
     <lastmod>2026-09-27</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.85</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703</image:loc>
       <image:title>TinMan Joburg #5</image:title>
@@ -1070,7 +1134,7 @@
     <loc>https://thegruvs.com/venues/time-square-casino</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/time-square-casino" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/time-square-casino" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1078,7 +1142,7 @@
     <loc>https://thegruvs.com/venues/die-centurion-teater</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/die-centurion-teater" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/die-centurion-teater" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1086,7 +1150,7 @@
     <loc>https://thegruvs.com/venues/time-square-south-africa</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/time-square-south-africa" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/time-square-south-africa" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1094,7 +1158,7 @@
     <loc>https://thegruvs.com/venues/kyalami-grand-prix-circuit</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/kyalami-grand-prix-circuit" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/kyalami-grand-prix-circuit" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1102,7 +1166,7 @@
     <loc>https://thegruvs.com/venues/letsheng-mall</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/letsheng-mall" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/letsheng-mall" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1110,7 +1174,7 @@
     <loc>https://thegruvs.com/venues/old-park-station</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/old-park-station" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/old-park-station" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1118,7 +1182,7 @@
     <loc>https://thegruvs.com/venues/railways-cafe</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/railways-cafe" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/railways-cafe" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1126,7 +1190,7 @@
     <loc>https://thegruvs.com/venues/prime-view-adventure-and-leisure</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/prime-view-adventure-and-leisure" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/prime-view-adventure-and-leisure" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1134,7 +1198,7 @@
     <loc>https://thegruvs.com/venues/die-windpomp-male-resort</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/die-windpomp-male-resort" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/die-windpomp-male-resort" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1142,7 +1206,7 @@
     <loc>https://thegruvs.com/venues/irene-village-mall</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/irene-village-mall" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/irene-village-mall" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1150,7 +1214,7 @@
     <loc>https://thegruvs.com/venues/the-campus</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/the-campus" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/the-campus" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1158,7 +1222,7 @@
     <loc>https://thegruvs.com/venues/ivory-park</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/ivory-park" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/ivory-park" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1166,7 +1230,7 @@
     <loc>https://thegruvs.com/venues/james-and-ethel-gray-park</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/james-and-ethel-gray-park" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/james-and-ethel-gray-park" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1174,7 +1238,7 @@
     <loc>https://thegruvs.com/venues/fnb-stadium</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/fnb-stadium" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/fnb-stadium" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1182,7 +1246,7 @@
     <loc>https://thegruvs.com/venues/nh-johannesburg-sandton</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/nh-johannesburg-sandton" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/nh-johannesburg-sandton" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1190,7 +1254,7 @@
     <loc>https://thegruvs.com/venues/sunbet-arena-time-square</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/sunbet-arena-time-square" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/sunbet-arena-time-square" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1198,7 +1262,7 @@
     <loc>https://thegruvs.com/venues/sunbet-arena</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/sunbet-arena" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/sunbet-arena" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>
@@ -1206,7 +1270,7 @@
     <loc>https://thegruvs.com/venues/voortrekker-monument</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/venues/voortrekker-monument" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/venues/voortrekker-monument" />
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.88</priority>
   </url>

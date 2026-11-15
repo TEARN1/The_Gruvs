@@ -3,17 +3,22 @@
 
 User-agent: *
 Allow: /
+Allow: /founder
+Allow: /press
 Allow: /events/
 Allow: /venues/
 Allow: /services/
 Allow: /feed.xml
 Allow: /sitemap.xml
+Allow: /image-sitemap.xml
 Disallow: /*?token=*
 Disallow: /*?session=*
 Disallow: /*?code=*
 
 User-agent: Googlebot
 Allow: /
+Allow: /founder
+Allow: /press
 Allow: /events/
 Allow: /venues/
 Allow: /services/
@@ -22,6 +27,7 @@ Allow: /*.css$
 
 User-agent: Googlebot-Image
 Allow: /
+Allow: /images/
 Allow: /*.png$
 Allow: /*.jpg$
 Allow: /*.jpeg$
@@ -37,3 +43,4 @@ User-agent: WhatsApp
 Allow: /
 
 Sitemap: https://thegruvs.com/sitemap.xml
+Sitemap: https://thegruvs.com/image-sitemap.xml

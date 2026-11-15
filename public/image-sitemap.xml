@@ -1,0 +1,501 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://thegruvs.com/</loc>
+    <image:image>
+      <image:loc>https://thegruvs.com/icon-512.png</image:loc>
+      <image:title>The Gruvs App Icon</image:title>
+      <image:caption>Official App Icon</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://thegruvs.com/logo.png</image:loc>
+      <image:title>The Gruvs Brand Logo</image:title>
+      <image:caption>Official Logo</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/founder</loc>
+    <image:image>
+      <image:loc>https://thegruvs.com/images/asemahle-nkwali-ceo-the-gruvs.jpg</image:loc>
+      <image:title>Asemahle &quot;TEARN&quot; Nkwali Founder &amp; CEO</image:title>
+      <image:caption>Official Executive Portrait</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://thegruvs.com/images/asemahle-nkwali-founder-keynote.jpg</image:loc>
+      <image:title>Asemahle &quot;TEARN&quot; Nkwali Keynote</image:title>
+      <image:caption>South African Event Technology Address</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://thegruvs.com/images/the-gruvs-app-launch-preview.jpg</image:loc>
+      <image:title>The Gruvs Mobile Platform</image:title>
+      <image:caption>Live Vibe Mapping and Discovery</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/press</loc>
+    <image:image>
+      <image:loc>https://thegruvs.com/logo.png</image:loc>
+      <image:title>The Gruvs Press Logo</image:title>
+      <image:caption>Primary Brand Emblem</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://thegruvs.com/images/asemahle-nkwali-ceo-the-gruvs.jpg</image:loc>
+      <image:title>Asemahle &quot;TEARN&quot; Nkwali Press Portrait</image:title>
+      <image:caption>Executive Media Kit</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://thegruvs.com/images/the-gruvs-app-launch-preview.jpg</image:loc>
+      <image:title>The Gruvs Platform Interface</image:title>
+      <image:caption>Nightlife Intelligence Telemetry</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-1-time-square-casino-pretoria-5cfcdb06-0fd2-4022-be16-fbc8ef91398e</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 1</image:title>
+      <image:caption>Time Square Casino · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/5cfcdb06-0fd2-4022-be16-fbc8ef91398e</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 1</image:title>
+      <image:caption>Time Square Casino · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/ingrid-n-vlam-in-die-sneeu-die-centurion-teater-centurion-bd82d9a2-48a1-41af-8429-a5cca33a44ae</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events1/banners/58caf8e949976fa70a6552f017790f19835959f2e1c6e022b16eb5586ee33b3c-rimg-w1200-h628-dc080808-gmir?v=1788323782</image:loc>
+      <image:title>INGRID: &apos;n Vlam in die Sneeu</image:title>
+      <image:caption>Die Centurion Teater · Centurion · theatre</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/bd82d9a2-48a1-41af-8429-a5cca33a44ae</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events1/banners/58caf8e949976fa70a6552f017790f19835959f2e1c6e022b16eb5586ee33b3c-rimg-w1200-h628-dc080808-gmir?v=1788323782</image:loc>
+      <image:title>INGRID: &apos;n Vlam in die Sneeu</image:title>
+      <image:caption>Die Centurion Teater · Centurion · theatre</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 2</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/532511cc-d017-4923-b5c6-5b81436370e3</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 2</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 3</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 3</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998</image:loc>
+      <image:title>Ride Joburg</image:title>
+      <image:caption>Kyalami Grand Prix Circuit · Johannesburg · sport</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/2b451f9c-3e0b-4c18-8b32-738e7df14a5e</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998</image:loc>
+      <image:title>Ride Joburg</image:title>
+      <image:caption>Kyalami Grand Prix Circuit · Johannesburg · sport</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 4</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/d735ae8a-269a-46e8-a08a-c2c2b24d3c23</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 4</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/kasi-restaurants-expo-and-summit-letsheng-mall-sebokeng-9e52dc78-6815-4b50-8710-95abf8e46e6c</loc>
+    <image:image>
+      <image:loc>https://cdn2.allevents.in/thumbs/thumb6906facc52d55.jpg</image:loc>
+      <image:title>Kasi Restaurants Expo &amp; Summit</image:title>
+      <image:caption>Letsheng Mall · Sebokeng · food</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/9e52dc78-6815-4b50-8710-95abf8e46e6c</loc>
+    <image:image>
+      <image:loc>https://cdn2.allevents.in/thumbs/thumb6906facc52d55.jpg</image:loc>
+      <image:title>Kasi Restaurants Expo &amp; Summit</image:title>
+      <image:caption>Letsheng Mall · Sebokeng · food</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 6</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/f6005dd7-bded-4782-b56a-34ba12737383</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 6</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/piano-people-johannesburg-2026-old-park-station-johannesburg-bc30f1bf-b377-4212-bf05-f0054e63f32e</loc>
+    <image:image>
+      <image:loc>https://cdn2.allevents.in/thumbs/thumb6a854e0810ec4.jpg</image:loc>
+      <image:title>Piano People Johannesburg 2026</image:title>
+      <image:caption>Old Park Station · Johannesburg · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/bc30f1bf-b377-4212-bf05-f0054e63f32e</loc>
+    <image:image>
+      <image:loc>https://cdn2.allevents.in/thumbs/thumb6a854e0810ec4.jpg</image:loc>
+      <image:title>Piano People Johannesburg 2026</image:title>
+      <image:caption>Old Park Station · Johannesburg · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 8</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/b14232e7-de9e-43e2-8ff0-d6e186647c6a</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 8</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events2/banners/2cb6fcc397bd636f2f64715c4110a47068a82a7e931c8f6f90df2377e79c5312-rimg-w1200-h628-dc080808-gmir?v=1788259661</image:loc>
+      <image:title>HOORT met Stephanie Baartman</image:title>
+      <image:caption>Die Centurion Teater · Centurion · comedy</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/f71400fa-4612-4705-8ee9-b5e0df5f2fb5</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events2/banners/2cb6fcc397bd636f2f64715c4110a47068a82a7e931c8f6f90df2377e79c5312-rimg-w1200-h628-dc080808-gmir?v=1788259661</image:loc>
+      <image:title>HOORT met Stephanie Baartman</image:title>
+      <image:caption>Die Centurion Teater · Centurion · comedy</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/prime-circle-at-railways-cafe-railways-cafe-centurion-cbc848aa-a8e7-4038-aa6e-38077ef5205d</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events8/banners/e69674e92a898ee5ca10fbae234e7f117bfc4842d5ec8fd46ed2157d9bc0c6c1-rimg-w800-h400-dc282828-gmir?v=1788188881</image:loc>
+      <image:title>Prime Circle at Railways Cafe</image:title>
+      <image:caption>Railways Cafe · Centurion · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/cbc848aa-a8e7-4038-aa6e-38077ef5205d</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events8/banners/e69674e92a898ee5ca10fbae234e7f117bfc4842d5ec8fd46ed2157d9bc0c6c1-rimg-w800-h400-dc282828-gmir?v=1788188881</image:loc>
+      <image:title>Prime Circle at Railways Cafe</image:title>
+      <image:caption>Railways Cafe · Centurion · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events8/banners/9e0a02757503c6feaa7f95823c5435585768ab532ee52f8bb78426a001d53310-rimg-w1200-h566-dc083848-gmir?v=1788206754</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 10</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/4e5bfa12-7c2e-4033-a447-dc5f26846c0e</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events8/banners/9e0a02757503c6feaa7f95823c5435585768ab532ee52f8bb78426a001d53310-rimg-w1200-h566-dc083848-gmir?v=1788206754</image:loc>
+      <image:title>Afrikaans is Groot 2026: Konsert 10</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703</image:loc>
+      <image:title>TinMan Joburg #5</image:title>
+      <image:caption>Prime View Adventure and Leisure · Midrand · sport</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/769e24ee-453b-4995-9f0a-143c34aac891</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703</image:loc>
+      <image:title>TinMan Joburg #5</image:title>
+      <image:caption>Prime View Adventure and Leisure · Midrand · sport</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/amfihart-26-5-jaar-van-amfihart-f9ebe47a-8398-4f60-a190-d04cda9977b9</loc>
+    <image:image>
+      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1784615984067_y6dljqt351.jpg</image:loc>
+      <image:title>AmfiHart &apos;26 (5 Jaar van AMFIHART)</image:title>
+      <image:caption>music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/f9ebe47a-8398-4f60-a190-d04cda9977b9</loc>
+    <image:image>
+      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1784615984067_y6dljqt351.jpg</image:loc>
+      <image:title>AmfiHart &apos;26 (5 Jaar van AMFIHART)</image:title>
+      <image:caption>music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events9/banners/3711961c9db20223afe846b6884b652aa1a803af3720cc6b270be1ba7bd44f4c-rimg-w1200-h1698-dce8e8e8-gmir?v=1788283398</image:loc>
+      <image:title>Bearfest SA 2026</image:title>
+      <image:caption>Die Windpomp Male Resort · Pretoria · lifestyle</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/d23accfd-4d96-4dee-91a0-597b0db0a7ee</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events9/banners/3711961c9db20223afe846b6884b652aa1a803af3720cc6b270be1ba7bd44f4c-rimg-w1200-h1698-dce8e8e8-gmir?v=1788283398</image:loc>
+      <image:title>Bearfest SA 2026</image:title>
+      <image:caption>Die Windpomp Male Resort · Pretoria · lifestyle</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events10/banners/6a701facb33f52d20b32f8a7b8d8c87ae2d684b0a7590ba7a4b8710b5ed6f4f8-rimg-w1200-h600-dcf8f8f8-gmir?v=1787823323</image:loc>
+      <image:title>Pretoria&apos;s Vintage &amp; Christmas Gift Market</image:title>
+      <image:caption>Irene Village Mall · Centurion · lifestyle</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/8e9673ab-314d-4403-9076-e1490bd1d8cb</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events10/banners/6a701facb33f52d20b32f8a7b8d8c87ae2d684b0a7590ba7a4b8710b5ed6f4f8-rimg-w1200-h600-dcf8f8f8-gmir?v=1787823323</image:loc>
+      <image:title>Pretoria&apos;s Vintage &amp; Christmas Gift Market</image:title>
+      <image:caption>Irene Village Mall · Centurion · lifestyle</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events8/banners/a11d1e7886e9264767ba00b6bc8f8053175004fe674cf51c77dec47d8b540573-rimg-w1200-h628-dcf8f8f8-gmir?v=1787602769</image:loc>
+      <image:title>Brooks Campus Run: Summer Race</image:title>
+      <image:caption>The Campus · Sandton · sport</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/8d367874-6159-45dd-b93e-0db56788ddd1</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events8/banners/a11d1e7886e9264767ba00b6bc8f8053175004fe674cf51c77dec47d8b540573-rimg-w1200-h628-dcf8f8f8-gmir?v=1787602769</image:loc>
+      <image:title>Brooks Campus Run: Summer Race</image:title>
+      <image:caption>The Campus · Sandton · sport</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/the-gruvs-ivory-park-johannesburg-27d1e69c-0053-4cd6-a073-3f23436da830</loc>
+    <image:image>
+      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1780011368056_tiw7mxa5o0p.jpg</image:loc>
+      <image:title>The gruvs</image:title>
+      <image:caption>Ivory park · Johannesburg · entrepreneurship</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/27d1e69c-0053-4cd6-a073-3f23436da830</loc>
+    <image:image>
+      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1780011368056_tiw7mxa5o0p.jpg</image:loc>
+      <image:title>The gruvs</image:title>
+      <image:caption>Ivory park · Johannesburg · entrepreneurship</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589</image:loc>
+      <image:title>+LIVE+ at Time Square (Night 1)</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/c25d5c0c-f951-4615-8d63-704238fcd6d2</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589</image:loc>
+      <image:title>+LIVE+ at Time Square (Night 1)</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3</loc>
+    <image:image>
+      <image:loc>https://cdn2.allevents.in/thumbs/thumb6a33b7d965639.jpg</image:loc>
+      <image:title>Fatboy Slim - Johannesburg 2026</image:title>
+      <image:caption>James and Ethel Gray Park · Johannesburg · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/da7223eb-7fc7-4b1d-b69e-d040478a10a3</loc>
+    <image:image>
+      <image:loc>https://cdn2.allevents.in/thumbs/thumb6a33b7d965639.jpg</image:loc>
+      <image:title>Fatboy Slim - Johannesburg 2026</image:title>
+      <image:caption>James and Ethel Gray Park · Johannesburg · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659</loc>
+    <image:image>
+      <image:loc>https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png</image:loc>
+      <image:title>J. Cole: The Fall-Off Tour</image:title>
+      <image:caption>FNB Stadium · Johannesburg · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/1e808dca-b6b8-4154-b7bd-930d00c34659</loc>
+    <image:image>
+      <image:loc>https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png</image:loc>
+      <image:title>J. Cole: The Fall-Off Tour</image:title>
+      <image:caption>FNB Stadium · Johannesburg · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589</image:loc>
+      <image:title>+LIVE+ at Time Square (Night 2)</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/f70c2b14-633a-445e-9304-b527958a1843</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589</image:loc>
+      <image:title>+LIVE+ at Time Square (Night 2)</image:title>
+      <image:caption>Time Square South Africa · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/candlelight-christmas-classics-sandton-nh-johannesburg-sandton-sandton-71babd28-4ed8-457a-9b57-f2b669d39dd9</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373</image:loc>
+      <image:title>Candlelight: Christmas Classics (Sandton)</image:title>
+      <image:caption>NH Johannesburg Sandton · Sandton · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/71babd28-4ed8-457a-9b57-f2b669d39dd9</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373</image:loc>
+      <image:title>Candlelight: Christmas Classics (Sandton)</image:title>
+      <image:caption>NH Johannesburg Sandton · Sandton · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298</loc>
+    <image:image>
+      <image:loc>https://dynamicmedia.livenationinternational.com/m/u/n/38f72e26-d769-4675-9001-82c2204da85a.png</image:loc>
+      <image:title>Limp Bizkit in Johannesburg</image:title>
+      <image:caption>FNB Stadium · Johannesburg · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/3b6c30d1-b400-4f93-ab4d-607622446298</loc>
+    <image:image>
+      <image:loc>https://dynamicmedia.livenationinternational.com/m/u/n/38f72e26-d769-4675-9001-82c2204da85a.png</image:loc>
+      <image:title>Limp Bizkit in Johannesburg</image:title>
+      <image:caption>FNB Stadium · Johannesburg · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee</loc>
+    <image:image>
+      <image:loc>https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png</image:loc>
+      <image:title>The Kehlani World Tour: South Africa</image:title>
+      <image:caption>SunBet Arena Time Square · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/5382354a-cf3c-45f5-9725-f0075b3ed9ee</loc>
+    <image:image>
+      <image:loc>https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png</image:loc>
+      <image:title>The Kehlani World Tour: South Africa</image:title>
+      <image:caption>SunBet Arena Time Square · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694</image:loc>
+      <image:title>Brandy Live in South Africa</image:title>
+      <image:caption>SunBet Arena · Pretoria · rnb</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694</image:loc>
+      <image:title>Brandy Live in South Africa</image:title>
+      <image:caption>SunBet Arena · Pretoria · rnb</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/candlelight-christmas-classics-voortrekker-monument-pretoria-bc1981e6-9222-4ed7-a273-4178eb2700d9</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373</image:loc>
+      <image:title>Candlelight: Christmas Classics</image:title>
+      <image:caption>Voortrekker Monument · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/share/event/bc1981e6-9222-4ed7-a273-4178eb2700d9</loc>
+    <image:image>
+      <image:loc>https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373</image:loc>
+      <image:title>Candlelight: Christmas Classics</image:title>
+      <image:caption>Voortrekker Monument · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+</urlset>
