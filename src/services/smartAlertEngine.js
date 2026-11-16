@@ -38,7 +38,7 @@ export const SmartAlertEngine = {
           'service_nodes',
           () => supabase
             .from('service_nodes')
-            .select('id, name, description, category, hourly_rate, currency, rating, cover_image, profile_id')
+            .select('id, name, title, description, category, price, price_min, price_unit, rating, media, user_id, provider_id')
             .in('category', ['fashion_designers', 'streetwear_popups', 'makeup_artists_mua', 'mobile_barbers'])
             .eq('is_active', true)
             .limit(10),
@@ -48,13 +48,13 @@ export const SmartAlertEngine = {
         if (!error && Array.isArray(data) && data.length > 0) {
           return data.map((provider) => ({
             id: provider.id,
-            name: provider.name,
+            name: provider.name || provider.title,
             category: provider.category,
             tagline: provider.description || 'Custom event attire & styling',
-            priceLabel: provider.hourly_rate ? `From R${provider.hourly_rate}` : 'Custom Quote',
-            coverImage: provider.cover_image,
+            priceLabel: (provider.price_min || provider.price) ? `From R${provider.price_min || provider.price}${provider.price_unit ? ` / ${provider.price_unit}` : ''}` : 'Custom Quote',
+            coverImage: Array.isArray(provider.media) ? (provider.media[0]?.url || provider.media[0] || null) : null,
             matchReason: rawDressCode ? `Matches "${rawDressCode}" dress code` : `Fits ${event.category || 'event'} style`,
-            providerId: provider.profile_id,
+            providerId: provider.provider_id || provider.user_id,
           }));
         }
       }
@@ -108,7 +108,7 @@ export const SmartAlertEngine = {
       if (isSupabaseEnabled) {
         let query = supabase
           .from('events')
-          .select('id, title, event_date, date_time, category, location, venue_name, expected_attendance, cover_url')
+          .select('id, title, event_date, date_time, category, location, venue_name, capacity, max_attendees, rsvp_count, cover_url')
           .gte('date_time', minTime)
           .lte('date_time', maxTime)
           .order('date_time', { ascending: true })
@@ -127,7 +127,7 @@ export const SmartAlertEngine = {
               daysAway,
               location: ev.venue_name || ev.location || 'Local Venue',
               category: ev.category,
-              expectedGuests: ev.expected_attendance || '200+',
+              expectedGuests: ev.capacity || ev.max_attendees || ev.rsvp_count || '200+',
               pitchOpportunity: `Organizers actively booking gear & crew for ${daysAway} days ahead`,
               recommendedRole: providerCategory || 'Vendor / Gear Partner',
             };
