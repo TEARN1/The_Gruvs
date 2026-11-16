@@ -11,8 +11,8 @@
  *   - 1-click promo code copy helper
  *   - Distance-aware stay recommendation engine (if event > 25km away)
  */
-import { supabase } from './supabase';
 import { SecurityService } from './securityService';
+import { track } from '../utils/analytics';
 
 export const PartnerService = {
   /**
@@ -21,12 +21,9 @@ export const PartnerService = {
   async logImpression(partnerKey, slot = 'feed', userId = null) {
     if (!partnerKey) return;
     try {
-      await supabase.from('partner_telemetry').insert({
-        partner_key: partnerKey,
-        action: 'impression',
-        slot,
-        user_id: userId || null,
-        created_at: new Date().toISOString(),
+      track('partner_impression', {
+        partnerKey: String(partnerKey).slice(0, 40),
+        slot: String(slot).slice(0, 30),
       });
     } catch (_) {
       // Best-effort telemetry; never interrupt app execution
@@ -39,12 +36,9 @@ export const PartnerService = {
   async logClickAndOpen(partnerKey, url, slot = 'feed', userId = null) {
     if (!url) return;
     try {
-      await supabase.from('partner_telemetry').insert({
-        partner_key: partnerKey,
-        action: 'click',
-        slot,
-        user_id: userId || null,
-        created_at: new Date().toISOString(),
+      track('partner_click', {
+        partnerKey: String(partnerKey).slice(0, 40),
+        slot: String(slot).slice(0, 30),
       });
     } catch (_) {}
 

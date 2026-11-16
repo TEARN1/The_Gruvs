@@ -14,6 +14,7 @@ const OPTIONS = [
   { value: 'weekend', label: 'Weekend' },
   { value: 'week',    label: 'This week' },
   { value: 'month',   label: 'This month' },
+  { value: 'dezemba', label: 'Ke Dezemba' },
   { value: 'year',    label: 'This Year' },
 ];
 
@@ -23,6 +24,10 @@ export const dateFilterToRange = (value) => {
   const toISO = (d) => d.toISOString().split('T')[0];
 
   if (value === 'any' || !value) return null;
+
+  if (value === 'dezemba') {
+    return { from: '2026-12-01', to: '2027-01-05' };
+  }
 
   if (value === 'today') {
     const today = toISO(now);

@@ -16,6 +16,7 @@
  * "both RSVP'd" or "both follow the same page". Intent is not attendance.
  */
 import { supabase } from './supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const cache = new Map(); // "a|b" -> { events, at }
 const TTL_MS = 5 * 60 * 1000;
@@ -83,4 +84,85 @@ export function describeSharedPresence(events) {
     more: rest.length,
     text: `You both Touched Down at ${first.title}${more}${when ? ` · ${when}` : ''}`,
   };
+}
+
+/**
+ * "Find Me / Who's In The Room" — Find people you've crossed paths with or mutuals
+ * who are currently checked in at the same event right now.
+ */
+export async function findNearbyCoPresence(userId, eventId) {
+  if (!eventId) return [];
+  try {
+    let q = supabase
+      .from('live_checkins')
+      .select('user_id, checked_in_at')
+      .eq('event_id', eventId)
+      .order('checked_in_at', { ascending: false })
+      .limit(60);
+
+    if (userId) {
+      q = q.neq('user_id', userId);
+    }
+
+    const { data: checkins, error } = await q;
+    if (error || !checkins?.length) return [];
+
+    const uids = [...new Set(checkins.map(c => c.user_id).filter(Boolean))];
+    if (!uids.length) return [];
+
+    const { data: profs } = await supabase
+      .from('public_profiles')
+      .select('id, username, display_name, avatar_url, vibe_score, verified')
+      .in('id', uids);
+
+    const profMap = new Map((profs || []).map(p => [p.id, p]));
+
+    return checkins
+      .map(c => {
+        const prof = profMap.get(c.user_id);
+        if (!prof) return null;
+        return {
+          id: prof.id,
+          userId: c.user_id,
+          username: prof.username || 'Viber',
+          display_name: prof.display_name || prof.username || 'Viber',
+          avatar_url: prof.avatar_url,
+          vibe_score: prof.vibe_score || 0,
+          is_verified: !!prof.verified,
+          checkedInAt: c.checked_in_at,
+        };
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Radio Proximity Tracking — "Passing-By Radar"
+// Notifies user when a crew member or friend is passing by (~500m) to say hi.
+// Strictly opt-in: only active when user enables it in settings/profile.
+//
+// Only the opt-in preference lives here for now. The old lookup read
+// `user_presence` — a table that never existed (Guardian schema drift) — and
+// selected EVERY recent user's lat/lon, not just friends'. Nothing wrote to that
+// table or called the lookup. Rebuild it server-side (an RPC that returns only
+// mutual follows, coarse distance, never raw coordinates) before wiring it up.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const RADIO_PREF_KEY = '@gruvs_radio_proximity_enabled';
+
+export async function isRadioTrackingEnabled() {
+  try {
+    const val = await AsyncStorage.getItem(RADIO_PREF_KEY);
+    return val === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function setRadioTrackingEnabled(enabled) {
+  try {
+    await AsyncStorage.setItem(RADIO_PREF_KEY, enabled ? 'true' : 'false');
+  } catch {}
 }

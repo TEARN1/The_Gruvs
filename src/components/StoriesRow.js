@@ -21,10 +21,10 @@ const STORY_DURATION = 5000;
 
 // ── Story avatar bubble ───────────────────────────────────────────────────────
 const StoryBubble = ({ story, seen, primary, onPress }) => {
-  const ringColor = seen ? 'rgba(255,255,255,0.2)' : primary;
+  const ringColor = seen ? 'rgba(255,255,255,0.22)' : primary;
   return (
-    <TouchableOpacity style={sb.wrap} onPress={onPress} activeOpacity={0.8}>
-      <View style={[sb.ring, { borderColor: ringColor }]}>
+    <TouchableOpacity style={[sb.wrap, seen && { opacity: 0.65 }]} onPress={onPress} activeOpacity={0.8}>
+      <View style={[sb.ring, { borderColor: ringColor }, !seen && Platform.OS === 'web' && { boxShadow: `0 0 10px ${primary}60` }]}>
         {story.avatar_url
           ? <Image source={{ uri: thumb.avatar(story.avatar_url) }} style={sb.avatar} />
           : <View style={[sb.avatar, { backgroundColor: "#1a2a2c", alignItems: 'center', justifyContent: 'center' }]}>
@@ -34,7 +34,7 @@ const StoryBubble = ({ story, seen, primary, onPress }) => {
             </View>
         }
       </View>
-      <Text style={[sb.name, { color: seen ? 'rgba(255,255,255,0.4)' : '#fff' }]} numberOfLines={1}>
+      <Text style={[sb.name, { color: seen ? 'rgba(255,255,255,0.45)' : '#fff' }]} numberOfLines={1}>
         {story.username}
       </Text>
     </TouchableOpacity>
@@ -249,12 +249,18 @@ export const StoriesRow = ({ onAuthRequired }) => {
       const { data: follows } = await supabase
         .from('follows')
         .select('following_id')
-        .eq('follower_id', user.id);
+        .eq('follower_id', user.id)
+        // Capped: this was unbounded, so a power user pulled their entire
+        // following list to build a filter set. 2000 is the same ceiling
+        // CrewOutCard uses. Someone following more than that may miss a story
+        // from the tail of the list — a far better failure than a multi-MB
+        // response on mobile data.
+        .limit(2000);
       // Hidden = blocked (absolute) ∪ muted (soft hide). A block/mute doesn't
       // unfollow, so filter here so their stories never render (B-sweep 2 + 6).
       const [{ data: blocks }, { data: mutes }] = await Promise.all([
         supabase.from('user_blocks').select('blocked_id').eq('blocker_id', user.id),
-        supabase.from('muted_users').select('muted_id').eq('user_id', user.id),
+        supabase.from('muted_users').select('muted_id').eq('user_id', user?.id),
       ]);
       const hidden = new Set([...(blocks || []).map(b => b.blocked_id), ...(mutes || []).map(m => m.muted_id)]);
       const ids = [user.id, ...(follows || []).map(f => f.following_id).filter(id => !hidden.has(id))];
@@ -303,8 +309,17 @@ export const StoriesRow = ({ onAuthRequired }) => {
 
   useEffect(() => { loadStories(); }, [loadStories]);
 
+  const displayStories = React.useMemo(() => {
+    return [...grouped].sort((a, b) => {
+      const aSeen = a.stories.every(s => seenMap[s.id]);
+      const bSeen = b.stories.every(s => seenMap[s.id]);
+      if (aSeen === bSeen) return 0;
+      return aSeen ? 1 : -1;
+    });
+  }, [grouped, seenMap]);
+
   const openViewer = async (index) => {
-    const group = grouped[index];
+    const group = displayStories[index];
     if (!group) return;
     setViewerStart(index);
     setViewerOpen(true);
@@ -400,11 +415,17 @@ export const StoriesRow = ({ onAuthRequired }) => {
     }
   };
 
+  // A guest can't post a story, and an empty row with only "Your Story" in it
+  // pushed the first event further down The Drop for every new visitor.
+  if (!user && !grouped.length) return null;
+
   return (
     <>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToInterval={78}
         style={{ marginBottom: 16 }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 4 }}
       >
@@ -412,9 +433,9 @@ export const StoriesRow = ({ onAuthRequired }) => {
           ? <View style={[sb.wrap, { justifyContent: 'center' }]}>
               <ActivityIndicator color={primary} />
             </View>
-          : <AddStoryBubble primary={primary} onPress={addStory} avatarUrl={profile?.avatar_url} />
+          : user ? <AddStoryBubble primary={primary} onPress={addStory} avatarUrl={profile?.avatar_url} /> : null
         }
-        {grouped.map((g, i) => {
+        {displayStories.map((g, i) => {
           const allSeen = g.stories.every(s => seenMap[s.id]);
           return (
             <StoryBubble
@@ -430,7 +451,7 @@ export const StoriesRow = ({ onAuthRequired }) => {
 
       <StoryViewerModal
         visible={viewerOpen}
-        stories={grouped}
+        stories={displayStories}
         startIndex={viewerStart}
         onClose={() => setViewerOpen(false)}
         primary={primary}

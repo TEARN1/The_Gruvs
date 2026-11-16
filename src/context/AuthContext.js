@@ -1,5 +1,4 @@
 import { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Platform } from 'react-native';
 import { supabase } from '../services/supabase';
 import { UserManager, clearAllCache, PresenceManager, hydrateCacheFromDisk } from '../services/dataFlow';
 import { SecurityService } from '../services/securityService';
@@ -123,23 +122,10 @@ export const AuthProvider = ({ children }) => {
     };
   }, [fetchProfile]);
 
-  // Password-reset return (web): the recovery link comes back with the tokens
-  // in the URL hash. detectSessionInUrl is false, so establish the session
-  // ourselves, flag recovery, and scrub the tokens from the address bar.
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    const hash = window.location.hash || '';
-    if (!hash.includes('type=recovery')) return;
-    const params = new URLSearchParams(hash.replace(/^#/, ''));
-    const access_token = params.get('access_token');
-    const refresh_token = params.get('refresh_token');
-    if (access_token && refresh_token) {
-      supabase.auth.setSession({ access_token, refresh_token })
-        .then(() => setRecoveryMode(true))
-        .catch(() => {});
-      try { window.history.replaceState(null, '', window.location.pathname + window.location.search); } catch { /* noop */ }
-    }
-  }, []);
+  // Returning from Google/Facebook or a password-reset link (web): the client
+  // (detectSessionInUrl, PKCE in services/supabase.js) exchanges ?code= itself
+  // and reports PASSWORD_RECOVERY above. Never take a session from tokens in
+  // the address: anyone could send a link that signs a user into their account.
 
   // Session monitor — verify token every 10 min and refresh if stale
   useEffect(() => {

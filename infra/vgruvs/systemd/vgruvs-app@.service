@@ -1,0 +1,40 @@
+# One slot of one V-Gruvs app: vgruvs-app@excellency-a.service.
+# `vgruvs` starts, health-checks and stops these; there is no need to
+# enable them by hand.
+[Unit]
+Description=V-Gruvs app %i
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=vgruvs
+Group=vgruvs
+ExecStart=/usr/local/lib/vgruvs/run-app %i
+Restart=on-failure
+RestartSec=3
+# A small droplet: keep one app from starving the rest. Next.js needs the
+# most; raise MemoryMax with a drop-in if a heavier app needs it.
+MemoryHigh=280M
+MemoryMax=360M
+TimeoutStopSec=15
+KillSignal=SIGTERM
+
+# Hardening: the app can read its release and write only its own cache.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+ReadWritePaths=/srv/vgruvs/cache
+Environment=NEXT_TELEMETRY_DISABLED=1
+
+[Install]
+WantedBy=multi-user.target

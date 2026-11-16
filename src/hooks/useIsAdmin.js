@@ -3,15 +3,14 @@
  *
  * Returns: null while checking · true if admin · false if not.
  *
- * Order of trust:
- *   1. profiles.role = 'admin' (server-controlled) — the real boundary. This is
- *      the column the live DB has and the talent + security RLS policies check.
- *   2. If that query fails, fall back to the owner email so the owner is NEVER
- *      locked out mid-rollout.
+ * Trust: profiles.role = 'admin' (server-controlled) — the real boundary, and
+ * the same column the talent + security RLS policies check, so the client and
+ * the DB agree. Anything else (query error, missing column, no session) resolves
+ * to false: this gate fails CLOSED.
  *
- * Once your account is set to role = 'admin', remove OWNER_EMAIL below to fully
- * close the hardcoded-email exposure (SECURITY-AUDIT.md finding #3). Until then
- * the email net keeps the gate working without breaking anything.
+ * The hardcoded-owner-email fallback that used to live here is gone — that was
+ * SECURITY-AUDIT.md finding #3 (the owner's real email shipped in the public web
+ * bundle). Do not reintroduce it; grant access with `profiles.role = 'admin'`.
  *
  * NOTE: this only controls UI visibility. The true protection for admin actions
  * must live in the admin RPCs / RLS (they must re-check role server-side).

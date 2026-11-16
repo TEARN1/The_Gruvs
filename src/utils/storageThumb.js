@@ -45,6 +45,8 @@ export const thumb = {
   cover:     (url) => storageThumb(url, 800, 420),
   coverSm:   (url) => storageThumb(url, 400, 210),
   thumbnail: (url) => storageThumb(url, 300, 200),
+  lowRes:    (url) => storageThumb(url, 200, 140, 50), // lightweight list thumbnail
+  micro:     (url) => storageThumb(url, 120, 120, 50), // ultra-lightweight avatar / icon
   feed:      (url) => storageThumb(url, 900, null, 62), // full-bleed feed image
 };
 

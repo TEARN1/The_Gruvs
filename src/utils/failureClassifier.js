@@ -83,7 +83,16 @@ function isFatalInput(err) {
   const status = err?.status ?? err?.code ?? err?.statusCode;
   if (typeof status === 'number') return status >= 400 && status < 500;
   const msg = (err?.message || '').toLowerCase();
-  return msg.includes('permission denied') || msg.includes('invalid input');
+  // A rejected key or token can't succeed on retry either. supabase-js hands
+  // these back with no numeric status ({ message: 'Invalid API key' } from the
+  // gateway, PGRST301/302 from PostgREST), so they used to fall through as
+  // "unknown → retry": every read waited out ~9 doomed attempts with backoff
+  // before its fallback, and the whole app felt frozen whenever the key was
+  // wrong. Fatal skips straight to the fallback tier.
+  if (err?.code === 'PGRST301' || err?.code === 'PGRST302') return true;
+  return msg.includes('permission denied') || msg.includes('invalid input') ||
+         msg.includes('invalid api key') || msg.includes('no api key found') ||
+         msg.includes('jwt expired') || msg.includes('invalid jwt') || msg.includes('jwserror');
 }
 
 function isTransient(err) {

@@ -29,6 +29,103 @@ export const ZONE_STATUS = {
   official:  { label: 'Official',            dashed: false, weight: 1 },
 };
 
+/**
+ * Extracts structured traffic, detour, pointsman and geometry tags from zone/report notes.
+ */
+export function parseZoneTags(note = '') {
+  if (!note || typeof note !== 'string') {
+    return {
+      traffic: null,
+      detour: null,
+      pointsman: null,
+      routeCoords: null,
+      detourCoords: null,
+      cleanNote: '',
+    };
+  }
+
+  const trafficMatch = note.match(/\[TRAFFIC:\s*([^\]]+)\]/i);
+  const detourMatch = note.match(/\[DETOUR:\s*([^\]]+)\]/i);
+  const pointsmanMatch = note.match(/\[POINTSMAN:\s*(police|volunteer|none)\]/i);
+  const routeMatch = note.match(/\[ROUTE_GEO:\s*([^\]]+)\]/i);
+  const detourGeoMatch = note.match(/\[DETOUR_GEO:\s*([^\]]+)\]/i);
+
+  const parsePairs = (str) => {
+    return str
+      .split(';')
+      .map((p) => {
+        const parts = p.split(',').map(Number);
+        return [parts[0], parts[1]];
+      })
+      .filter(([lon, lat]) => Number.isFinite(lon) && Number.isFinite(lat));
+  };
+
+  const routeCoords = routeMatch ? parsePairs(routeMatch[1]) : null;
+  const detourCoords = detourGeoMatch ? parsePairs(detourGeoMatch[1]) : null;
+
+  const cleanNote = note
+    .replace(/\[TRAFFIC:[^\]]+\]/gi, '')
+    .replace(/\[DETOUR:[^\]]+\]/gi, '')
+    .replace(/\[POINTSMAN:[^\]]+\]/gi, '')
+    .replace(/\[ROUTE_GEO:[^\]]+\]/gi, '')
+    .replace(/\[DETOUR_GEO:[^\]]+\]/gi, '')
+    .trim();
+
+  return {
+    traffic: trafficMatch ? trafficMatch[1].trim() : null,
+    detour: detourMatch ? detourMatch[1].trim() : null,
+    pointsman: pointsmanMatch ? pointsmanMatch[1].toLowerCase() : null,
+    routeCoords: routeCoords && routeCoords.length >= 2 ? routeCoords : null,
+    detourCoords: detourCoords && detourCoords.length >= 2 ? detourCoords : null,
+    cleanNote,
+  };
+}
+
+/**
+ * Formats note string with structured metadata tags.
+ */
+export function formatZoneNote({ note = '', traffic = null, detour = null, pointsman = null, routeCoords = null, detourCoords = null }) {
+  const parts = [];
+  if (traffic) parts.push(`[TRAFFIC: ${traffic}]`);
+  if (detour) parts.push(`[DETOUR: ${detour}]`);
+  if (pointsman) parts.push(`[POINTSMAN: ${pointsman}]`);
+  if (routeCoords && routeCoords.length >= 2) {
+    const geoStr = routeCoords.map(([lon, lat]) => `${lon.toFixed(6)},${lat.toFixed(6)}`).join(';');
+    parts.push(`[ROUTE_GEO: ${geoStr}]`);
+  }
+  if (detourCoords && detourCoords.length >= 2) {
+    const geoStr = detourCoords.map(([lon, lat]) => `${lon.toFixed(6)},${lat.toFixed(6)}`).join(';');
+    parts.push(`[DETOUR_GEO: ${geoStr}]`);
+  }
+  if (note && note.trim()) parts.push(note.trim());
+  return parts.join(' ').trim();
+}
+
+/**
+ * Calculates 1-tap navigation URLs (Google Maps bypass + Waze).
+ */
+export function calculateDetourNavigation({ lat, lon, coordinates = null, detourCoords = null }) {
+  let destLat = lat;
+  let destLng = lon;
+
+  if (coordinates && coordinates.length > 0) {
+    const endCoord = coordinates[coordinates.length - 1];
+    destLng = endCoord[0];
+    destLat = endCoord[1];
+  }
+
+  let waypointsParam = '';
+  if (detourCoords && detourCoords.length > 0) {
+    const wp = detourCoords.slice(0, 3).map(([wLon, wLat]) => `${wLat.toFixed(5)},${wLon.toFixed(5)}`).join('|');
+    waypointsParam = `&waypoints=${encodeURIComponent(wp)}`;
+  }
+
+  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}${waypointsParam}&travelmode=driving`;
+  const wazeUrl = `https://waze.com/ul?ll=${destLat},${destLng}&navigate=yes`;
+
+  return { googleMapsUrl, wazeUrl, destLat, destLng };
+}
+
 export const MapZones = {
   // Fetch zones near a point, active at a given time. Returns GeoJSON-carrying rows.
   async near(lat, lng, { radiusM = 8000, at = null } = {}) {
@@ -39,7 +136,18 @@ export const MapZones = {
         p_at: at ? new Date(at).toISOString() : new Date().toISOString(),
       });
       if (error) throw error;
-      return (data || []).map((z) => ({ ...z, geometry: safeParse(z.geojson) })).filter((z) => z.geometry);
+      return (data || []).map((z) => {
+        let geom = safeParse(z.geojson);
+        if (!geom && z.note) {
+          const tags = parseZoneTags(z.note);
+          if (tags.routeCoords) {
+            geom = { type: 'LineString', coordinates: tags.routeCoords };
+          } else if (tags.detourCoords) {
+            geom = { type: 'LineString', coordinates: tags.detourCoords };
+          }
+        }
+        return { ...z, geometry: geom };
+      }).filter((z) => z.geometry);
     } catch (e) { logError('MapZones.near', e); return []; }
   },
 

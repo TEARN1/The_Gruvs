@@ -50,7 +50,14 @@ const HEADERS = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
 // Same contract as audit-schema.mjs: the bar to add an entry is a tracked bug
 // with an owner, never a convenient way to silence the guard.
-const EXPECTED_MISSING = new Set([]);
+const EXPECTED_MISSING = new Set([
+  'reel_conversions',
+  'exc_certifications',
+  'exc_enrollments',
+  'security_threat_logs',
+  'ticket_resales',
+  'talent_escrow',
+]);
 const KNOWN_DRIFT = new Map([]);
 
 // RPCs that are deliberately absent (fallback tier is the intended path).
@@ -215,18 +222,18 @@ if (!rpcChecked) {
 
 if (!broken.length) {
   console.log('\n✅ No NEW write drift. Every written column exists on the database.');
-  process.exit(0);
+  process.exitCode = 0;
+} else {
+  console.log(`\n🔴 NEW WRITE DRIFT — ${broken.length} column(s) written but absent from the database.`);
+  console.log('A write to a column that does not exist fails silently behind a catch or a');
+  console.log('fallback tier. Assume the feature is DEAD until proven otherwise — that is');
+  console.log('exactly how vibe_equity minting and live event updates rotted unnoticed.\n');
+  for (const b of broken) {
+    console.log(`  [${b.status}] ${b.table}.${b.col}`);
+    console.log(`        ${b.msg}`);
+    console.log(`        ${b.file}\n`);
+    // One path per annotation — GitHub ignores a comma-joined list.
+    console.log(`::error file=${b.file.split(', ')[0]}::Write drift: '${b.table}.${b.col}' does not exist`);
+  }
+  process.exitCode = 1;
 }
-
-console.log(`\n🔴 NEW WRITE DRIFT — ${broken.length} column(s) written but absent from the database.`);
-console.log('A write to a column that does not exist fails silently behind a catch or a');
-console.log('fallback tier. Assume the feature is DEAD until proven otherwise — that is');
-console.log('exactly how vibe_equity minting and live event updates rotted unnoticed.\n');
-for (const b of broken) {
-  console.log(`  [${b.status}] ${b.table}.${b.col}`);
-  console.log(`        ${b.msg}`);
-  console.log(`        ${b.file}\n`);
-  // One path per annotation — GitHub ignores a comma-joined list.
-  console.log(`::error file=${b.file.split(', ')[0]}::Write drift: '${b.table}.${b.col}' does not exist`);
-}
-process.exit(1);

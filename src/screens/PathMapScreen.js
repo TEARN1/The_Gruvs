@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState, useMemo, useCallback, Suspense } fr
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Animated, RefreshControl, Dimensions, Image, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';

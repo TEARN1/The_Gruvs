@@ -9,7 +9,7 @@ import {
   Animated, TextInput, Dimensions, Platform,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { useTutorial, TUTORIALS, TUTORIAL_CATEGORIES } from '../context/TutorialContext';
 import { useTheme } from '../context/ThemeContext';
 import { GlassView } from './GlassView';

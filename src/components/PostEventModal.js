@@ -7,7 +7,7 @@ import {
   KeyboardAvoidingView, Platform, Image, Dimensions, Alert,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 
 import * as Location from 'expo-location';
 import { LocationService } from '../services/locationService';
@@ -39,12 +39,21 @@ import { deviceTimeZone } from '../utils/tz';
 import { checkEvent } from '../utils/eventGuard';
 import { findDuplicate } from '../utils/eventKey';
 
-const SCREEN_W = Dimensions.get('window').width;
-
 const MAX_MEDIA = 30;
 const EVENT_TYPES = ['Social', 'Concert', 'Workshop', 'Festival', 'Meetup', 'Party', 'Conference', 'Pop-Up', 'Rave', 'Market', 'Retreat', 'Competition'];
 const AGE_MIN_OPTIONS = [0, 13, 16, 18, 21, 25, 30, 35];
 const AGE_MAX_OPTIONS = [0, 17, 20, 25, 30, 35, 45, 99]; // 0 = no upper limit
+
+const VIBE_RULES_OPTIONS = [
+  '🧊 No Cooler Box Fee',
+  '💨 Hubbly / Shisha Allowed',
+  '🎹 Strictly Amapiano & Deep House',
+  '🛡️ Heavy Security / Metal Detector at Gate',
+  '🥩 Kasi Kota & Braai Stalls On-Site',
+  '👗 Dress Code: Streetwear / Smart Casual',
+  '🚫 No Under 21s After 10 PM',
+  '🚗 Secured Kasi Car Park Marshals',
+];
 
 export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) => {
   const { currentTheme } = useTheme();
@@ -55,6 +64,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
   // Poster mode: the uploaded poster already carries all the details, so the
   // manual text fields become optional and the event renders as a full poster.
   const [posterMode, setPosterMode] = useState(false);
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState('4:5');
+  const [selectedVibeRules, setSelectedVibeRules] = useState([]);
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
@@ -340,12 +351,15 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       quality: 0.85,
     });
     if (!result.canceled && result.assets) {
-      const newItems = result.assets.map(a => ({
-        uri: a.uri,
-        type: a.type || (a.uri.includes('.mp4') || a.uri.includes('.mov') ? 'video' : 'image'),
-        name: a.fileName || `media_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        mimeType: a.mimeType || undefined,
-      }));
+      const newItems = result.assets.map(a => {
+        const isVid = a.type === 'video' || a.mimeType?.startsWith('video/') || /\.(mp4|mov|m4v|webm|3gp|mkv|avi)/i.test(a.fileName || a.uri || '');
+        return {
+          uri: a.uri,
+          type: isVid ? 'video' : 'image',
+          name: a.fileName || `media_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          mimeType: a.mimeType || (isVid ? 'video/mp4' : undefined),
+        };
+      });
       setMediaItems(prev => [...prev, ...newItems].slice(0, MAX_MEDIA));
     }
   };
@@ -563,8 +577,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
         return;
       }
     }
-    if (posterMode && mediaItems.length === 0) {
-      setError('Upload your poster — in poster mode it carries all the details.');
+    if (mediaItems.length === 0) {
+      setError('A poster or cover image is required for every Gruv listing.');
       setStep(2);
       return;
     }
@@ -755,6 +769,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
     if (ticketUrl.trim()) payload.ticket_url = ticketUrl.trim();
     if (contactPhone.trim()) payload.contact_phone = contactPhone.trim();
     if (contactEmail.trim()) payload.contact_email = contactEmail.trim();
+    if (selectedVibeRules.length > 0) payload.vibe_rules = selectedVibeRules;
+    if (selectedAspectRatio) payload.aspect_ratio = selectedAspectRatio;
 
     // Recurrence
     if (isRecurring) {
@@ -905,7 +921,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       try {
         const cities = new Set(stops.map(s => (s.city || '').trim().toLowerCase()).filter(Boolean));
         const { data: seriesRow, error: seriesErr } = await supabase.from('event_series').insert({
-          creator_id: user.id,
+          creator_id: user?.id,
           name: (tourName.trim() || title.trim()),
           description: description.trim() || null,
           cover_url: mediaUrls[0]?.url || null,
@@ -1489,6 +1505,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     value={contactPhone}
                     onChangeText={setContactPhone}
                     keyboardType="phone-pad"
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
                   />
 
                   <Text style={[pm.label, { color: muted }]}>Contact Email (Optional)</Text>
@@ -1499,6 +1517,8 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                     value={contactEmail}
                     onChangeText={setContactEmail}
                     keyboardType="email-address"
+                    autoComplete="email"
+                    textContentType="emailAddress"
                     autoCapitalize="none"
                   />
 
@@ -1950,6 +1970,73 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                         : `Add more (${MAX_MEDIA - mediaItems.length} left)`}
                     </Text>
                   </TouchableOpacity>
+
+                  {/* Aspect Ratio Guide Framing */}
+                  <Text style={[pm.label, { color: muted, marginTop: 14, marginBottom: 8 }]}>Framing Guide & Canvas Ratio</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                    {[
+                      { id: '4:5', label: '4:5 Portrait Flyer', sub: 'Feed Standard' },
+                      { id: '9:16', label: '9:16 Full Screen', sub: 'Stories / Reels' },
+                      { id: '1:1', label: '1:1 Square', sub: 'Classic Grid' },
+                    ].map((ratio) => {
+                      const isSel = selectedAspectRatio === ratio.id;
+                      return (
+                        <TouchableOpacity
+                          key={ratio.id}
+                          onPress={() => setSelectedAspectRatio(ratio.id)}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            borderWidth: 1,
+                            borderColor: isSel ? primary : 'rgba(255,255,255,0.1)',
+                            backgroundColor: isSel ? `${primary}18` : 'rgba(255,255,255,0.03)',
+                            alignItems: 'center',
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={{ color: isSel ? primary : textColor, fontSize: 11.5, fontWeight: '900' }}>
+                            {ratio.label}
+                          </Text>
+                          <Text style={{ color: muted, fontSize: 9.5, marginTop: 2 }}>{ratio.sub}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Tactical Vibe Rules Pill Bar */}
+                  <Text style={[pm.label, { color: muted, marginTop: 10, marginBottom: 8 }]}>Kasi Vibe & Gate Rules</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {VIBE_RULES_OPTIONS.map((rule) => {
+                        const active = selectedVibeRules.includes(rule);
+                        return (
+                          <TouchableOpacity
+                            key={rule}
+                            onPress={() => {
+                              setSelectedVibeRules(prev =>
+                                prev.includes(rule) ? prev.filter(r => r !== rule) : [...prev, rule]
+                              );
+                            }}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 7,
+                              borderRadius: 20,
+                              borderWidth: 1,
+                              borderColor: active ? primary : 'rgba(255,255,255,0.12)',
+                              backgroundColor: active ? `${primary}20` : 'rgba(255,255,255,0.04)',
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: active ? primary : textColor }}>
+                              {rule}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
 
                   {/* Schedule */}
                   {renderScheduleBuilder()}
@@ -2515,10 +2602,22 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
 };
 
 const pm = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.78)' },
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.78)',
+  },
   sheet: {
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    borderWidth: 1, paddingHorizontal: 22, paddingBottom: 10, maxHeight: '94%',
+    width: '100%',
+    maxWidth: 680,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    paddingHorizontal: 22,
+    paddingBottom: 10,
+    maxHeight: '94%',
+    overflow: 'hidden',
   },
   pill: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 16 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
@@ -2571,7 +2670,7 @@ const pm = StyleSheet.create({
   tag: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginRight: 8 },
   targetChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 14, borderWidth: 1 },
   ageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  ageBtn: { flex: 1, minWidth: SCREEN_W < 375 ? 45 : 60, paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
+  ageBtn: { flex: 1, minWidth: 48, paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
 
   // Summary
   summary: { borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, gap: 6 },
@@ -2610,7 +2709,7 @@ const pm = StyleSheet.create({
   scheduleSub: { fontSize: 11, lineHeight: 16, marginTop: 2 },
   scheduleForm: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10, marginBottom: 10 },
   scheduleFormTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
-  scheduleRow2: { flexDirection: SCREEN_W < 375 ? 'column' : 'row', gap: 8 },
+  scheduleRow2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   scheduleInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, fontSize: 13, backgroundColor: 'rgba(255,255,255,0.05)' },
   scheduleConfirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 30 },
   scheduleEmpty: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 16, paddingVertical: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },

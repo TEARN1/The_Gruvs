@@ -21,9 +21,26 @@ import { heatScore as canonicalHeatScore } from '../utils/heatScore';
 import { getXpLevel } from '../utils/vibeLevel';
 import { rankEventResults, rankUserResults } from '../utils/searchRelevance';
 import { secureCode } from '../utils/secureId';
-import { GLOBAL_EVENTS_CATALOG } from '../constants/globalEventsCatalog';
+import { TicketCache } from './offlineCache';
 
 // ── Database Pre-parsing / Normalization ──────────────────────────────────
+export const hasPosterOrImage = (event) => {
+  if (!event || typeof event !== 'object') return false;
+  if (typeof event.cover_url === 'string' && event.cover_url.trim().length > 5) return true;
+  if (typeof event.cover_image === 'string' && event.cover_image.trim().length > 5) return true;
+  if (typeof event.poster_url === 'string' && event.poster_url.trim().length > 5) return true;
+  if (Array.isArray(event.media_urls) && event.media_urls.length > 0) {
+    const u = event.media_urls[0];
+    if (typeof u === 'string' && u.trim().length > 5) return true;
+  }
+  if (Array.isArray(event.media) && event.media.length > 0) {
+    const m = event.media[0];
+    if (typeof m === 'string' && m.trim().length > 5) return true;
+    if (m && typeof m === 'object' && ((typeof m.uri === 'string' && m.uri.trim().length > 5) || (typeof m.url === 'string' && m.url.trim().length > 5))) return true;
+  }
+  return false;
+};
+
 export const normalizeEvent = (event) => {
   if (!event) return event;
   const parsed = { ...event };
@@ -52,7 +69,7 @@ export const normalizeEvent = (event) => {
 export const normalizeEvents = (events) => {
   if (!events) return [];
   if (Array.isArray(events)) {
-    return events.map(normalizeEvent);
+    return events.map(normalizeEvent).filter(hasPosterOrImage);
   }
   return normalizeEvent(events);
 };
@@ -212,46 +229,6 @@ _extend('dating',     'dating','speed_dating','singles_night','lgbtq','pride','s
                       'meetup','party','birthday','anniversary','wedding','engagement',
                       'babyshower','reunion');
 
-// Helper to filter and paginate the curated Global Events Catalog
-export const filterCatalog = ({ category = 'all', query = '', dateRange = null, mode = 'drop', limit = 30 } = {}) => {
-  let list = Array.isArray(GLOBAL_EVENTS_CATALOG) ? [...GLOBAL_EVENTS_CATALOG] : [];
-  
-  if (category && category !== 'all') {
-    const subCats = CAT_KEY_TO_SUBCATS[category];
-    if (subCats && subCats.size > 0) {
-      list = list.filter(e => subCats.has(e.category) || e.category === category);
-    } else {
-      list = list.filter(e => e.category === category);
-    }
-  }
-
-  if (dateRange?.from) {
-    list = list.filter(e => String(e.event_date) >= String(dateRange.from));
-  }
-  if (dateRange?.to) {
-    list = list.filter(e => String(e.event_date) <= String(dateRange.to));
-  }
-
-  if (query && query.trim()) {
-    const s = query.trim().toLowerCase();
-    list = list.filter(e => 
-      (e.title && e.title.toLowerCase().includes(s)) ||
-      (e.venue_name && e.venue_name.toLowerCase().includes(s)) ||
-      (e.description && e.description.toLowerCase().includes(s)) ||
-      (e.city && e.city.toLowerCase().includes(s)) ||
-      (Array.isArray(e.tags) && e.tags.some(t => t.toLowerCase().includes(s)))
-    );
-  }
-
-  if (mode === 'upcoming') {
-    list.sort((a, b) => String(a.event_date || '').localeCompare(String(b.event_date || '')));
-  } else {
-    // Drop mode: shuffle slightly by vibe_count / date
-    list.sort((a, b) => (b.vibe_count || 0) - (a.vibe_count || 0));
-  }
-
-  return list.slice(0, limit);
-};
 
 // ── INTELLIGENCE MONITORING (Autonomous Training) ──────────────────────────
 export const IntelligenceMonitor = {
@@ -479,6 +456,7 @@ export const ScoreEngine = {
     crossedPathIds = [],
     aiRecommendedIds = new Set(), // kept for API compatibility
   } = {}) {
+    if (!event) return 0;
     const now = Date.now();
     const ageH = Math.max(0.01, (now - new Date(event.created_at).getTime()) / 3600000);
     const vibes = event.vibe_count || 0;
@@ -932,18 +910,9 @@ export const FeedManager = {
           } catch { /* boosted slot is enhancement only */ }
         }
       }
-      // If database returned fewer events (e.g. sparse results, offline, or specific category),
-      // enrich with curated real-world global events from the catalog
-      if (mode !== 'mine' && mode !== 'following' && events.length < 15) {
-        try {
-          const catalogEvents = filterCatalog({ category, query, dateRange, mode, limit: 30 });
-          const existingIds = new Set(events.map(e => String(e.id)));
-          const additions = catalogEvents.filter(ce => !existingIds.has(String(ce.id)));
-          if (additions.length > 0) {
-            events = [...events, ...additions];
-          }
-        } catch { /* catalog fallback best-effort */ }
-      }
+      // A short list stays short. It used to be topped up from a generated
+      // catalogue of events that were not real; the feed shows only events
+      // people posted.
 
       const result = { events, total: Math.max(count || 0, events.length), page, hasMore: data?.length === this.PAGE_SIZE };
       cache.set(cacheKey, result);
@@ -976,13 +945,8 @@ export const FeedManager = {
         if (stale) return stale;
         throw new Error('cache miss');
       },
-      // ── Mother escalation: fallback to curated global events catalog ──────
-      () => {
-        const fallbackList = (mode !== 'mine' && mode !== 'following') 
-          ? filterCatalog({ category, query, dateRange, mode, limit: pageSize })
-          : [];
-        return { events: fallbackList, total: fallbackList.length, page, hasMore: false };
-      },
+      // ── Last resort: nothing loaded and nothing cached → an empty feed ────
+      async () => ({ events: [], total: 0, page, hasMore: false }),
       `FeedManager.fetchPage:${mode}`
     );
   },
@@ -1120,11 +1084,6 @@ export const FeedManager = {
   },
 
   async fetchSingle(eventId) {
-    if (eventId && (String(eventId).startsWith('gp_') || String(eventId).startsWith('global_'))) {
-      const found = (GLOBAL_EVENTS_CATALOG || []).find(e => String(e.id) === String(eventId));
-      if (found) return normalizeEvent(found);
-    }
-
     const cacheKey = `event:${eventId}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
@@ -1348,7 +1307,7 @@ export const TrendingManager = {
       const weekEnd = endOfWeek.toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
-        .select('id, title, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at, profiles(username, avatar_url)')
+        .select('id, title, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at, profiles:author_id(username, avatar_url)')
         .gte('event_date', today)
         .lte('event_date', weekEnd)
         .is('deleted_at', null)
@@ -1386,60 +1345,99 @@ export const TrendingManager = {
 // ─────────────────────────────────────────────────────────────────────────────
 // VIBE MANAGER  (reactions on events)
 // ─────────────────────────────────────────────────────────────────────────────
+// One source of truth for "did I vibe this, and what's the count", shared by
+// every screen. Without it the feed and the event page each kept their own
+// copy: vibe on one, the other still showed "not vibed", and tapping it added a
+// +1 the server (correctly) ignored, so counts drifted. After every successful
+// toggle we broadcast the new state, then the server's real count.
+const _vibeListeners = new Set();
+const _inFlightVibes = new Set();
+const _emitVibe = (change) => _vibeListeners.forEach((fn) => { try { fn(change); } catch { /* listener bug must not break vibing */ } });
+async function _settleVibe(eventId, userId, vibed) {
+  cache.invalidate(`user_vibes:${userId}`);
+  _emitVibe({ eventId, userId, vibed });
+  try {
+    const { data } = await supabase.from('events').select('vibe_count').eq('id', eventId).maybeSingle();
+    if (data && typeof data.vibe_count === 'number') _emitVibe({ eventId, userId, vibed, count: data.vibe_count });
+  } catch { /* the optimistic count stays; realtime will correct it */ }
+}
+
 export const VibeManager = {
+  /** subscribe(fn) → unsubscribe. fn({ eventId, userId, vibed, count? }) */
+  subscribe(fn) { _vibeListeners.add(fn); return () => _vibeListeners.delete(fn); },
+
   // Returns true on success, 'self' if own event, null on failure
   async sendVibe(eventId, userId, authorId = null) {
-    if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return true;
-    if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
+    const opKey = `${userId}:${eventId}`;
+    if (_inFlightVibes.has(opKey)) return 'throttled';
+    _inFlightVibes.add(opKey);
+    try {
+      // Throttled taps did nothing but reported success, so the screen kept a +1
+      // the server never saw. Say so, and let the caller roll back.
+      if (SecurityService.isThrottled(`vibe_${eventId}_${userId}`, 1000)) return 'throttled';
+      if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
 
-    // Self-vibe check — use passed authorId first to avoid extra round-trip
-    const ownerId = authorId ?? (await supabase.from('events').select('author_id').eq('id', eventId).maybeSingle()).data?.author_id;
-    if (ownerId === userId) return 'self';
+      // Self-vibe check — use passed authorId first to avoid extra round-trip
+      const ownerId = authorId ?? (await supabase.from('events').select('author_id').eq('id', eventId).maybeSingle()).data?.author_id;
+      if (ownerId === userId) return 'self';
 
-    const result = await resilient(
-      [
-        // Tier 1: upsert with conflict resolution
-        () => supabase.from('event_vibes').upsert({ event_id: eventId, user_id: userId }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
-        // Tier 2: plain insert (fallback if upsert fails on this DB version)
-        () => supabase.from('event_vibes').insert({ event_id: eventId, user_id: userId }),
-        // Tier 3: RPC increment — bypasses row insert entirely
-        () => supabase.rpc('increment_vibe_count', { p_event_id: eventId, p_user_id: userId }),
-      ],
-      { attemptsPerTier: 3, baseMs: 300, label: 'VibeManager.sendVibe', fallbackValue: null }
-    );
-    if (result !== null) {
-      FeedManager.invalidate(eventId);
-      VibeEquityLedger.mintEquity(userId, 'SOCIAL_RESONANCE').catch(() => {});
-      ScoreEngine.computeVibeScore(userId).catch(() => {});
-      _notifyEventAuthor(eventId, userId, 'vibe').catch(() => {});
-      return true;
+      const result = await resilient(
+        [
+          // Tier 1: upsert with conflict resolution
+          () => supabase.from('event_vibes').upsert({ event_id: eventId, user_id: userId }, { onConflict: 'event_id,user_id', ignoreDuplicates: true }),
+          // Tier 2: plain insert (fallback if upsert fails on this DB version)
+          () => supabase.from('event_vibes').insert({ event_id: eventId, user_id: userId }),
+          // Tier 3: RPC increment — bypasses row insert entirely
+          () => supabase.rpc('increment_vibe_count', { p_event_id: eventId, p_user_id: userId }),
+        ],
+        { attemptsPerTier: 3, baseMs: 300, label: 'VibeManager.sendVibe', fallbackValue: null }
+      );
+      if (result !== null) {
+        FeedManager.invalidate(eventId);
+        _settleVibe(eventId, userId, true);
+        VibeEquityLedger.mintEquity(userId, 'SOCIAL_RESONANCE').catch(() => {});
+        ScoreEngine.computeVibeScore(userId).catch(() => {});
+        _notifyEventAuthor(eventId, userId, 'vibe').catch(() => {});
+        return true;
+      }
+      log.error('VibeManager:sendVibe', 'all tiers exhausted');
+      return null;
+    } finally {
+      _inFlightVibes.delete(opKey);
     }
-    log.error('VibeManager:sendVibe', 'all tiers exhausted');
-    return null;
   },
 
   async removeVibe(eventId, userId) {
-    if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
+    const opKey = `${userId}:${eventId}`;
+    if (_inFlightVibes.has(opKey)) return 'throttled';
+    _inFlightVibes.add(opKey);
+    try {
+      if (!isSupabaseEnabled) { FeedManager.invalidate(eventId); return true; }
 
-    const result = await resilient(
-      [
-        // Tier 1: delete by composite key
-        () => supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId),
-        // Tier 2: retry delete (transient failure)
-        () => supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId),
-        // Tier 3: RPC decrement — skip row delete entirely
-        () => supabase.rpc('decrement_vibe_count', { p_event_id: eventId, p_user_id: userId }),
-      ],
-      { attemptsPerTier: 3, baseMs: 300, label: 'VibeManager.removeVibe', fallbackValue: null }
-    );
-    if (result !== null) { FeedManager.invalidate(eventId); return true; }
-    log.error('VibeManager:removeVibe', 'all tiers exhausted');
-    return null;
+      const result = await resilient(
+        [
+          // Tier 1: delete by composite key
+          () => supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId),
+          // Tier 2: retry delete (transient failure)
+          () => supabase.from('event_vibes').delete().eq('event_id', eventId).eq('user_id', userId),
+          // Tier 3: RPC decrement — skip row delete entirely
+          () => supabase.rpc('decrement_vibe_count', { p_event_id: eventId, p_user_id: userId }),
+        ],
+        { attemptsPerTier: 3, baseMs: 300, label: 'VibeManager.removeVibe', fallbackValue: null }
+      );
+      if (result !== null) { FeedManager.invalidate(eventId); _settleVibe(eventId, userId, false); return true; }
+      log.error('VibeManager:removeVibe', 'all tiers exhausted');
+      return null;
+    } finally {
+      _inFlightVibes.delete(opKey);
+    }
   },
 
   async getUserVibes(eventIds, userId) {
     if (!userId || !eventIds.length) return new Set();
-    const cacheKey = `user_vibes:${userId}:${eventIds.slice(0, 3).join(',')}`;
+    // Key on EVERY id: keying on the first three returned another page's
+    // answer, showing events you'd vibed as un-vibed (and a tap then +1'd them).
+    const cacheKey = `user_vibes:${userId}:${[...eventIds].sort().join(',')}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
     try {
@@ -3174,8 +3172,9 @@ export const BlockManager = {
         // insert -- covers the case where the upsert's onConflict target
         // itself is what's failing (e.g. a constraint-name drift).
         async () => {
-          await supabase.from('user_blocks').delete()
+          const { error } = await supabase.from('user_blocks').delete()
             .eq('blocker_id', blockerId).eq('blocked_id', blockedId);
+          if (error) log.warn('[BlockManager] pre-insert cleanup warning:', error.message);
           return supabase.from('user_blocks').insert({ blocker_id: blockerId, blocked_id: blockedId });
         },
       ],
@@ -4273,13 +4272,23 @@ export const TicketManager = {
   },
 
   async getMyTickets(userId) {
-    const { data, error } = await supabase
-      .from('ticket_tokens')
-      .select('*, events(id, title, event_date, event_time, venue_name, cover_image, cover_url)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data || [];
+    if (!userId) return [];
+    try {
+      const { data, error } = await supabase
+        .from('ticket_tokens')
+        .select('*, events(id, title, event_date, event_time, venue_name, cover_image, cover_url)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const list = data || [];
+      TicketCache.saveAllTickets(list).catch(() => {});
+      return list;
+    } catch (e) {
+      // Offline fallback: load from persistent local TicketCache (zero signal venues)
+      const offline = await TicketCache.getAllTicketsStale();
+      if (offline && offline.length) return offline;
+      return [];
+    }
   },
 
   /**
@@ -4511,3 +4520,8 @@ export const DraftManager = {
     return () => supabase.removeChannel(channel);
   },
 };
+
+// ── Re-export EventLifecycleManager & SmartAlertEngine ──────────────────────
+export { EventLifecycleManager } from './eventLifecycleManager';
+export { SmartAlertEngine } from './smartAlertEngine';
+

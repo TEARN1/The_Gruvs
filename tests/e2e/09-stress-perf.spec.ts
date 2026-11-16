@@ -59,21 +59,44 @@ test.describe('E2E Performance & Heap Stress Tests', () => {
     const initialHeap = await getHeapSize();
     console.log(`Initial Heap Memory: ${Math.round(initialHeap / 1024 / 1024 * 10) / 10} MB`);
 
+    // A drag must start on inert content. On web a drag that begins and ends
+    // inside one wide button IS a tap: once the ecosystem bar pushed the
+    // "Sign in / Join" card under y=400, the first drag opened the AuthModal and
+    // the next one "tapped" its full-width Facebook button, which navigated the
+    // page to the OAuth server and left it blank. So pick, on the screen as it is
+    // right now, the row nearest y=400 where neither drag end touches a control.
+    const inertY = () => page.evaluate(() => {
+      const onControl = (x: number, y: number) => {
+        for (let n = document.elementFromPoint(x, y); n && n !== document.body; n = n.parentElement) {
+          const role = n.getAttribute('role');
+          if (['button', 'link', 'tab', 'switch', 'checkbox', 'textbox', 'slider'].includes(role || '')
+            || ['A', 'BUTTON', 'INPUT', 'TEXTAREA', 'SELECT'].includes(n.tagName)
+            || n.getAttribute('tabindex') === '0'
+            || getComputedStyle(n).cursor === 'pointer') return true;
+        }
+        return false;
+      };
+      const rows = Array.from({ length: 51 }, (_, i) => 400 + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 8);
+      return rows.find((y) => !onControl(50, y) && !onControl(300, y)) ?? 400;
+    });
+
     // 4. Act: Aggressive horizontal tab swiping cycle
     console.log('Performing 10 aggressive tab swiping navigations...');
     for (let i = 0; i < 5; i++) {
       // Swipe Left (Feed -> Reels)
-      await page.mouse.move(300, 400);
+      let y = await inertY();
+      await page.mouse.move(300, y);
       await page.mouse.down();
-      await page.mouse.move(50, 400, { steps: 5 });
+      await page.mouse.move(50, y, { steps: 5 });
       await page.mouse.up();
       await page.waitForTimeout(100);
 
       // Swipe Right (Reels -> Feed)
       // Note: swipe right is allowed from Reels back to Feed
-      await page.mouse.move(50, 400);
+      y = await inertY();
+      await page.mouse.move(50, y);
       await page.mouse.down();
-      await page.mouse.move(300, 400, { steps: 5 });
+      await page.mouse.move(300, y, { steps: 5 });
       await page.mouse.up();
       await page.waitForTimeout(100);
     }

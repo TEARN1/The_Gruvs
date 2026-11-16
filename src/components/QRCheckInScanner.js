@@ -410,6 +410,7 @@ export const QRCheckInScanner = ({ eventId, organizerId, primary, textColor, mut
               style={[qr.launchBtn, { backgroundColor: primary }]}
               onPress={enableCamera}
               activeOpacity={0.85}
+              accessibilityRole="button"
             >
               <Feather name="camera" size={20} color="#000" />
               <Text style={qr.launchBtnText}>Open Camera Scanner</Text>
@@ -433,6 +434,9 @@ const qr = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: 12,
+    maxWidth: 620,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',

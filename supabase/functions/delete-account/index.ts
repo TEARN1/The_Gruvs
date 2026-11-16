@@ -14,7 +14,7 @@
  * Deploy with verify_jwt = true.
  */
 
-import { createClient } from 'npm:@supabase/supabase-js';
+import { createClient } from 'npm:@supabase/supabase-js@2.58.0';
 
 const SUPABASE_URL        = Deno.env.get('SUPABASE_URL')              || '';
 const SERVICE_ROLE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -60,7 +60,12 @@ Deno.serve(async (req: Request) => {
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: { user }, error: userErr } = await userClient.auth.getUser();
+  // Pass the JWT explicitly rather than relying on the global header being picked
+  // up internally — an unparsed/absent token then fails closed instead of
+  // falling through to whatever identity the client was constructed with.
+  const { data: { user }, error: userErr } = await userClient.auth.getUser(
+    authHeader.slice('Bearer '.length).trim(),
+  );
   if (userErr || !user) {
     return new Response(JSON.stringify({ error: 'Invalid session' }), { status: 401, headers: { ...cors, 'Content-Type': 'application/json' } });
   }

@@ -9,12 +9,15 @@
 export const LAUNCH_MINIMAL = true;
 
 // Tabs hidden from the bar/sidebar while in minimal launch mode.
-// Reels is demoted at launch: endless short-form scrolling pulls against the
-// "get people off their phones and into the real world" thesis, and it isn't
-// part of the core discover → verify → Touch Down → coordinate loop. To bring a
-// tab back, remove its key here (or set LAUNCH_MINIMAL = false). You can also
-// add 'notifications' here if you want a tighter 5-tab bar.
-export const HIDDEN_TABS = LAUNCH_MINIMAL ? ['reels'] : [];
+// Gives a clean, high-ergonomics 5-tab floating dock on mobile:
+// 1. The Drop (Home Feed)
+// 2. Explore (Discovery)
+// 3. Map (The Living Map)
+// 4. Linked Up (Chats & Community Pings)
+// 5. Vibe Card (Profile & Passport)
+// Demoted screens (Reels, Calendar, Notifications) still mount via ALL_TABS
+// and stay fully reachable via deep links and Quick Tools.
+export const HIDDEN_TABS = LAUNCH_MINIMAL ? ['reels', 'calendar', 'notifications'] : [];
 
 // ── Feature surfaces (The Focus Cut) ──────────────────────────────────────────
 // Present the core loop (see tonight → go → Touch Down → coordinate) and PARK
@@ -50,6 +53,19 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   // stale; App.js has always kept both the standalone tab (gated on this
   // flag) and the separate Path Map modal (gated on `pathMap`, still off
   // below — that one genuinely does need crowd density to feel alive).
+  // ── Demos parked until they're real (master spec v2.5, section 5) ──────────
+  // These screens save to one phone only, use built-in numbers, or write to
+  // tables that don't exist, and some told users things that weren't true
+  // ("cryptographically vaulted", "VERIFIED"). Flip to true only once the
+  // feature has a migration, a checked server function and a test.
+  ticketVault:  false, // offline vault, resale, kitty, talent escrow, bounties, door queue
+  inPersonVibe: false, // Vibe Handshake, Where's My Crew (local-only)
+  boothStreet:  false, // DJ drops, track ID, kota tracker, car-meet meter (local-only)
+  proofOfSweat: false, // no sensor is read; everyone showed "VERIFIED"
+  safetyExtras: false, // lost & found, shuttles, floor plan (sample data)
+  // Nightlife Sensory Suite: a door scanner with "Simulate valid / Simulate
+  // fake" buttons and a made-up headcount, one tap from The Drop's header.
+  sensorySuite: false,
   liveMap: true,
 } : {
   reelsRail: true, business: true, gifting: true, cashout: false, // still no payout rail — see the comment above
@@ -57,6 +73,9 @@ export const FEATURES = LAUNCH_MINIMAL ? {
   residentAlerts: true, // res_* schema live (2026-07-17)
   accommodation: true,  // res_* schema live (2026-07-17)
   liveMap: true,        // The Living Map — map_zones schema live
+  // Demos stay parked in the full app too: they aren't real yet (see above).
+  ticketVault: false, inPersonVibe: false, boothStreet: false, proofOfSweat: false, safetyExtras: false,
+  sensorySuite: false,
 };
 
 /** feature('business') → true when the surface is live. Unknown keys default on. */

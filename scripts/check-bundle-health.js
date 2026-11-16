@@ -218,12 +218,17 @@ check('Missing cleanup in useEffect with subscriptions');
 c = 0;
 for (const file of allFiles()) {
   const content = readFile(file);
-  // Look for useEffect blocks that have supabase.channel or setInterval/setTimeout but no return cleanup
-  const effectBlocks = [...content.matchAll(/useEffect\s*\(\s*\(\s*\)\s*=>\s*\{([\s\S]*?)\n\s*\},/g)];
-  for (const m of effectBlocks) {
-    const body = m[1];
-    const hasSub = /supabase\.channel|setInterval|addEventListener|subscribe/.test(body);
-    const hasCleanup = /return\s*\(\s*\)|return\s*\(\s*\)\s*=>|\.unsubscribe|clearInterval|removeEventListener/.test(body);
+  // Extract full useEffect body using balanced braces so inner object/callback `},` doesn't truncate early
+  for (const m of content.matchAll(/useEffect\s*\(\s*\(\s*\)\s*=>\s*\{/g)) {
+    const openIdx = m.index + m[0].length - 1;
+    let depth = 0, endIdx = openIdx;
+    for (; endIdx < content.length; endIdx++) {
+      if (content[endIdx] === '{') depth++;
+      else if (content[endIdx] === '}') { depth--; if (depth === 0) break; }
+    }
+    const body = content.slice(openIdx + 1, endIdx);
+    const hasSub = /supabase\.channel|setInterval|addEventListener|\.subscribe\(/.test(body);
+    const hasCleanup = /return\s*\(\s*\)|return\s*\(\s*\)\s*=>|return\s+[a-zA-Z_$][a-zA-Z0-9_$]*\s*;|\.unsubscribe|removeChannel|clearInterval|removeEventListener/.test(body);
     if (hasSub && !hasCleanup)
       warn(`NO CLEANUP: ${short(file)}:${lineOf(content, m.index)} — subscription/timer without cleanup return`), c++;
   }
@@ -345,7 +350,7 @@ for (const file of allFiles(['src/screens', 'src/components'])) {
     const surrounding = content.slice(Math.max(0, m.index - 300), m.index + 20);
     const safe = /user\?\.id|if\s*\(!?\s*user\b|user\s*&&|\buser\b.*return/.test(surrounding);
     if (!safe)
-      console.log(yellow(`  ℹ️  UNSAFE USER ID: ${short(file)}:${lineOf(content, m.index)} — user.id in DB call without null guard`)); c++;
+      console.log(yellow(`  ℹ️  UNSAFE USER ID: ${short(file)}:${lineOf(content, m.index)} — user.id in DB call without null guard`)), c++;
   }
 }
 if (!c) ok('user.id in DB calls look guarded.');

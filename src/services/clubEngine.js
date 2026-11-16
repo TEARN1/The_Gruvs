@@ -7,6 +7,7 @@
  * CareerStatsManager — read player career stats
  */
 import { supabase } from './supabase';
+import { likeContains } from '../utils/sanitize';
 import { pick, CLUB_EDITABLE } from '../utils/safeUpdate';
 
 // ── CLUB MANAGER ──────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ export const ClubManager = {
       .from('clubs')
       .select('id, name, short_name, sport_type, logo_url, city, members_count, is_verified')
       .eq('is_active', true)
-      .ilike('name', `%${query}%`)
+      .ilike('name', likeContains(query))
       .limit(20);
     if (sportType) q = q.eq('sport_type', sportType);
     const { data } = await q;
@@ -229,7 +230,7 @@ export const AwardManager = {
   async listForEvent(eventId, publishedOnly = true) {
     let q = supabase
       .from('event_awards')
-      .select('*, profiles(username, avatar_url), clubs(name, logo_url)')
+      .select('*, profiles:recipient_user_id(username, avatar_url), clubs(name, logo_url)')
       .eq('event_id', eventId)
       .order('created_at');
     if (publishedOnly) q = q.eq('is_published', true);

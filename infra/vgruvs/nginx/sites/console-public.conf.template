@@ -1,0 +1,26 @@
+# The V-Gruvs console on the web, behind a password (vgruvs console publish).
+# Remove with: vgruvs console unpublish
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name __DOMAIN__;
+    server_tokens off;
+    root /srv/vgruvs/_console;
+    index index.html;
+
+    ssl_certificate /etc/letsencrypt/live/__DOMAIN__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__DOMAIN__/privkey.pem;
+    include snippets/vgruvs-tls.conf;
+    include snippets/vgruvs-acme.conf;
+
+    auth_basic "V-Gruvs console";
+    auth_basic_user_file /etc/nginx/vgruvs/auth/console.htpasswd;
+    limit_req zone=vgruvs_auth burst=20 nodelay;
+
+    add_header Cache-Control "no-store" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Robots-Tag "noindex, nofollow" always;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    location / { try_files $uri $uri/ =404; }
+}

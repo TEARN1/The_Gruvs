@@ -152,10 +152,12 @@ clean — see Rule 0.3.)
      silently discarded every user's city, DOB and interests for 35 signups.
   b) APP → DB reads: filters referencing columns that don't exist.
   c) Missing RPCs: which are real gaps vs deliberate fallback tiers?
-  d) REPO → LIVE SERVER: infra/nginx-thegruvs.conf is NOT deployed by anything.
-     web-deploy.yml only ships dist/ and sed-patches the live file. Diff the repo
-     copy against /etc/nginx/sites-available/thegruvs on the droplet and report
-     any drift in EITHER direction.
+  d) REPO → LIVE SERVER: the droplet runs V-Gruvs (infra/vgruvs). Its nginx
+     site for The Gruvs is infra/vgruvs/nginx/sites/thegruvs.conf, installed as
+     /etc/nginx/sites-available/vgruvs-thegruvs.conf by bootstrap.sh or
+     `vgruvs site thegruvs` — deploys do NOT copy it. Diff the two and report
+     drift in EITHER direction. Also run `vgruvs status` (every app healthy,
+     certificates not near expiry, memory and disk headroom).
   e) Feature flags: compare launchConfig.FEATURES against what's actually
      reachable in the UI. A parked feature that still renders, or a live feature
      still gated off, are both findings.
@@ -271,7 +273,7 @@ Institutional memory, so the checks don't get dropped as "probably fine":
 | Verify the *effect*, not the change | `REVOKE UPDATE (tier)` was a total no-op; a font gzip fix would have saved 0 bytes without a mime mapping |
 | A failed tool ≠ a clean result | DB audit scripts hang (exit 124) without credentials |
 | Write-payload drift | One stale column silently discarded **every** signup's city/DOB/interests for 35 users |
-| Repo ↔ live config drift | `infra/nginx-thegruvs.conf` is deployed by nothing; it had silently fallen behind production |
+| Repo ↔ live config drift | The nginx site is installed by `vgruvs site`, not by deploys; the old `infra/nginx-thegruvs.conf` had silently fallen behind production |
 | Fallback tiers differing in *kind* | Tier 1 `upsert` / tier 2 `insert` with the same payload — tier 2 could only fail identically |
 | Unbounded waits | `resilient()` could spin ~153 s before showing an empty state |
 | Silent catches | A bare `catch` is how the signup failure survived 35 users unnoticed |

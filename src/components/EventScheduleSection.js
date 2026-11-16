@@ -215,7 +215,7 @@ export const EventScheduleSection = ({ event, primary, textColor, muted, bg }) =
     setPollsLoading(true);
     const { data, error } = await supabase
       .from('event_polls')
-      .select('*, profiles(username, avatar_url)')
+      .select('*, profiles:author_id(username, avatar_url)') // author_id, not created_by — see the insert above
       .eq('event_id', eventId)
       .order('created_at', { ascending: true });
     setPollsLoading(false);

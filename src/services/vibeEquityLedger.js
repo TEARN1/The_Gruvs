@@ -5,7 +5,7 @@
  * Governed by the 32M-Token Neural Mesh to ensure economic stability.
  *
  * F2 — ONE vibe_score writer: equity now lives in its OWN column
- * (profiles.vibe_equity — see supabase/queries/vibe_equity_column.sql), never
+ * (profiles.vibe_equity — see supabase/migrations/20260927000100_vibe_equity_column.sql), never
  * vibe_score. Before, one check-in fired THREE vibe_score writers (this mint,
  * touchDown's +8, computeVibeScore's recompute) that clobbered each other —
  * the recompute rounded the 8-decimal equity float away every time.

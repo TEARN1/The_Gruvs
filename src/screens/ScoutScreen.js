@@ -7,8 +7,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import * as Haptics from 'expo-haptics';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -28,10 +28,14 @@ let RNMapView = null;
 let RNMarker = null;
 let RNCircle = null;
 if (Platform.OS !== 'web') {
-  const maps = require('react-native-maps');
-  RNMapView = maps.default;
-  RNMarker = maps.Marker;
-  RNCircle = maps.Circle;
+  try {
+    const maps = require('react-native-maps');
+    RNMapView = maps?.default || maps;
+    RNMarker = maps?.Marker;
+    RNCircle = maps?.Circle;
+  } catch {
+    // react-native-maps not linked or missing Google Play Services key — falls back to canvas map
+  }
 }
 
 const { width: SW } = Dimensions.get('window');
@@ -175,7 +179,7 @@ const MiniVibeCard = ({ event, primary, onView, onClose, isPlanned, onTogglePlan
     }).start();
   }, [event?.id]);
 
-  // TODO(v6): remove media_urls/image_url fallbacks after migration
+  // NOTE(v6): retain media_urls/image_url fallbacks for backward compatibility
   const thumb = event?.media_urls?.[0] || event?.image_url;
   const date = event?.event_date
     ? new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -344,7 +348,7 @@ const WebScoutList = ({ events, primary, insets, activeCategory, setActiveCatego
           </View>
         )}
         {events.map(event => {
-          // TODO(v6): remove media_urls/image_url fallbacks after migration
+          // NOTE(v6): retain media_urls/image_url fallbacks for backward compatibility
           const thumb = event.media_urls?.[0] || event.image_url;
           const date = event.event_date
             ? new Date(event.event_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
@@ -496,7 +500,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
           if (coords) return DiscoveryManager.findNearbyEvents(coords.lat, coords.lon, 50);
           const { data, error } = await supabase
             .from('events')
-            .select('id, title, category, lat, lon, venue_name, event_date, cover_url, media, vibe_count, price, capacity, profiles(username, avatar_url)')
+            .select('id, title, category, lat, lon, venue_name, event_date, cover_url, media, vibe_count, price, capacity, profiles:author_id(username, avatar_url)')
             .gte('event_date', today)
             .is('deleted_at', null)
             .neq('status', 'cancelled')

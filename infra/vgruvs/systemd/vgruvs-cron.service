@@ -1,0 +1,6 @@
+[Unit]
+Description=V-Gruvs crons: run the app crons due this minute
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/vgruvs cron-tick

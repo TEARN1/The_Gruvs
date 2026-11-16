@@ -143,7 +143,38 @@ if (/<meta name="description"[^>]*>/.test(html)) {
   html = html.replace('</head>', `    <meta name="description" content="${DESC}" />\n</head>`);
 }
 
+// Dark background from the very first paint. Without it the loading shell was
+// a white page (its body text is white, so it was invisible) until the bundle
+// ran: visitors saw what looked like a blank, broken site.
+// Never let the page get wider than the screen. One stray element past the
+// right edge (it was the nav bar's bubble) made phones zoom the whole app out,
+// leaving a white strip down the side. body alone isn't enough on mobile.
+if (!html.includes('id="gruvs-no-hscroll"')) {
+  html = html.replace('</head>', '    <style id="gruvs-no-hscroll">html,body{overflow-x:hidden;max-width:100%}#root{overflow:hidden}</style>\n</head>');
+}
+if (!html.includes('id="gruvs-boot-bg"')) {
+  html = html.replace('</head>', '    <style id="gruvs-boot-bg">html,body{background:#0d1112;color:#fff}</style>\n</head>');
+}
 html = html.replace('</head>', head + '</head>');
+
+// Preload the Feather icon font (96% of the app's icons) so it downloads in
+// parallel with the JS bundle instead of after it. Path is content-hashed.
+try {
+  const fontRoot = path.join(__dirname, '..', 'dist', 'assets');
+  const findFeather = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) { const hit = findFeather(p); if (hit) return hit; }
+      else if (/^Feather\.[0-9a-f]+\.ttf$/.test(e.name)) return p;
+    }
+    return null;
+  };
+  const feather = fs.existsSync(fontRoot) && findFeather(fontRoot);
+  if (feather && !html.includes('rel="preload" href="/assets/')) {
+    const href = '/' + path.relative(path.join(__dirname, '..', 'dist'), feather).split(path.sep).join('/');
+    html = html.replace('</head>', `    <link rel="preload" href="${href}" as="font" type="font/ttf" crossorigin />\n</head>`);
+  }
+} catch { /* preload is an optimisation only */ }
 
 // ── Crawlable first paint ───────────────────────────────────────────────────
 // Expo ships `<div id="root"></div>` — literally zero text. Googlebot's first
@@ -152,7 +183,15 @@ html = html.replace('</head>', head + '</head>');
 // a working SPA fails to rank. React wipes this the moment it mounts, so it
 // costs real users nothing — and while the 3.8MB bundle parses they now see a
 // branded splash instead of a black screen.
+// The spinner + "Opening The Gruvs" line tells people the app is on its way
+// while the bundle downloads and runs (several seconds on a mid-range phone);
+// without it the text page looked like the whole site. Pure CSS, no JS.
 const SEO_BODY = `<div id="seo-shell" style="margin:auto;padding:40px 24px;max-width:640px;text-align:center;font-family:Inter,system-ui,sans-serif;color:#fff">
+      <style>@keyframes gruvs-spin{to{transform:rotate(360deg)}}</style>
+      <div role="status" aria-live="polite" style="display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 22px;color:#00f2ff;font-size:14px;font-weight:700">
+        <span style="width:18px;height:18px;border:2.5px solid rgba(0,242,255,0.25);border-top-color:#00f2ff;border-radius:50%;display:inline-block;animation:gruvs-spin .8s linear infinite"></span>
+        Opening The Gruvs…
+      </div>
       <h1 style="font-size:28px;font-weight:900;color:#00f2ff;margin:0 0 14px">The Gruvs — discover what’s on tonight</h1>
       <p style="font-size:15px;line-height:1.6;color:rgba(255,255,255,0.75);margin:0 0 18px">${DESC}</p>
       <p style="font-size:14px;line-height:1.6;color:rgba(255,255,255,0.55);margin:0 0 18px">Find parties, gigs, live music, sport and nightlife near you in Johannesburg, Cape Town, Durban, Pretoria and across South Africa. See which events are actually busy right now, RSVP with friends, and Touch Down when you arrive.</p>

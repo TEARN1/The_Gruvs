@@ -14,6 +14,7 @@ import {
 import Feather from '@expo/vector-icons/Feather';
 import { AwardManager } from '../services/clubEngine';
 import { supabase } from '../services/supabase';
+import { likeContains } from '../utils/sanitize';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { NotificationService } from '../services/notificationService';
@@ -72,7 +73,7 @@ export const AwardCeremonyPanel = ({ event }) => {
     const { data } = await supabase
       .from('profiles')
       .select('id, username, display_name, avatar_url')
-      .ilike('username', `%${q}%`)
+      .ilike('username', likeContains(q))
       .limit(8);
     setRecipientResults(data || []);
     setSearching(false);

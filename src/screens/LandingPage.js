@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, startTransition, Suspense } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TouchableWithoutFeedback, Image, Animated, RefreshControl, ScrollView, TextInput, Share, Modal, Platform, ActivityIndicator, Dimensions, BackHandler, useWindowDimensions } from 'react-native';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +21,7 @@ import { HashtagStrip } from '../components/HashtagStrip';
 import { useIdentity } from '../context/IdentityContext';
 import { SafeSection } from '../components/SafeSection';
 import { supabase, isSupabaseEnabled } from '../services/supabase';
+import { likeContains } from '../utils/sanitize';
 import { thumb } from '../utils/storageThumb';
 import { buildShareText } from '../utils/shareText';
 import { heatLabel, heatScore as heatScoreCanon } from '../utils/heatScore';
@@ -45,6 +46,7 @@ import { MasonryFeed } from '../components/MasonryFeed';
 import { ReelsRail } from '../components/ReelsRail';
 import { LazyCard } from '../components/LazyCard';
 import { feature } from '../constants/launchConfig';
+import { PendingIntent } from '../utils/pendingIntent';
 import { logError } from '../utils/logError';
 import { track } from '../utils/analytics';
 import { FriendActivityFeed } from '../components/FriendActivityFeed';
@@ -53,10 +55,14 @@ import { CheckInNudge } from '../components/CheckInNudge';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
-import { AnimatedCounter } from '../components/Motion';
+import { AnimatedCounter, CyberScanline } from '../components/Motion';
+import { Pop } from '../components/Pop';
+import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
 import { CrewJourneyPanel } from '../components/CrewJourneyPanel';
 import { ReturnPathCard } from '../components/ReturnPathCard';
 import { PresenceBar } from '../components/PresenceBar';
+import { CyberRadarRefresh } from '../components/CyberRadarRefresh';
+import { EcosystemUniverseBar } from '../components/EcosystemUniverseBar';
 import { AdFlywheel } from '../components/AdFlywheel';
 import { optimisticEngine } from '../services/optimisticEngine';
 import { EchoSection } from '../components/EchoSection';
@@ -67,6 +73,7 @@ import { ReactPicker } from '../components/ReactPicker';
 import { GlitterBurst } from '../components/GlitterBurst';
 import { SuggestedFollows } from '../components/SuggestedFollows';
 import { GoOutNudge } from '../components/GoOutNudge';
+import { appInstallService } from '../services/appInstallService';
 import birthdaySpotlight from '../services/birthdaySpotlight';
 // ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
 import { PostEventModal }       from '../components/PostEventModal';
@@ -76,6 +83,7 @@ import { EventAdminPanel }      from '../components/EventAdminPanel';
 import { EditEventModal }       from '../components/EditEventModal';
 import { RSVPConfirmModal }     from '../components/RSVPConfirmModal';
 import { ReportModal }          from '../components/ReportModal';
+import { QuickToolsSheet }      from '../components/QuickToolsSheet';
 import { EventMapView }         from '../components/EventMapView';
 import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './lazyScreens';
@@ -86,15 +94,24 @@ import { insertStartHeaders } from '../utils/startGroup';
 import { UnlockTeaserCard } from '../components/UnlockTeaserCard';
 import { NotificationNudge } from '../components/NotificationNudge';
 import { BirthDateNudge } from '../components/BirthDateNudge';
+import { sensoryHaptics } from '../services/sensoryHapticEngine';
+import { BorderTracer } from '../components/KasiIndustrialUI';
+import { deferred } from '../utils/deferred';
+import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
+import { fx } from '../styles/webFx';
+
+// Panels load on first open, not at app start (see src/utils/deferred.js).
+const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
+const CultureArtifactsModal = deferred(() => require('../components/CultureArtifactsModal').CultureArtifactsModal, 'CultureArtifactsModal');
+const DropRidesModal = deferred(() => require('../components/DropRidesModal').DropRidesModal, 'DropRidesModal');
 
 // Resident (res_*) tables may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing on every load; flips back on with a
 // fresh app load once the schema is deployed.
 let residentAlertsEnabled = true;
 
-const SCREEN_W = Dimensions.get('window').width;
-const TREND_CARD_W = Math.min(210, SCREEN_W * 0.56);
-const TREND_CARD_H = Math.round(TREND_CARD_W * 0.62);
+const TREND_CARD_W = 190;
+const TREND_CARD_H = 124;
 
 // Safe haptic wrapper for web compatibility
 const safeHaptic = (fn) => {
@@ -132,6 +149,7 @@ const AvatarStack = ({ count, size = 20 }) => {
 const SkeletonCard = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
+    if (IS_WEB_LOOP) return;   // web: CSS animation (cssLoop) — no per-frame re-render
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.7, duration: 1000, useNativeDriver: true }),
@@ -140,7 +158,7 @@ const SkeletonCard = ({ primary }) => {
     ).start();
   }, []);
   return (
-    <Animated.View style={[skStyles.card, { opacity: pulse, borderColor: `${primary}30` }]}>
+    <Animated.View style={[skStyles.card, IS_WEB_LOOP ? { opacity: 0.3, ...cssLoop({ '0%': { opacity: 0.3 }, '100%': { opacity: 0.7 } }, 1000) } : { opacity: pulse }, { borderColor: `${primary}30` }]}>
       <View style={[skStyles.media, { backgroundColor: `${primary}12` }]} />
       <View style={skStyles.body}>
         <View style={[skStyles.avatar, { backgroundColor: `${primary}20` }]} />
@@ -169,12 +187,13 @@ const skStyles = StyleSheet.create({
 // different (Touch Down), then the sign-in CTA. Guest-only, so it never clutters
 // the signed-in feed.
 const VisitorBanner = ({ onSignIn, primary, muted, textColor }) => (
-  <View style={[vb.hero, { backgroundColor: `${primary}0e`, borderColor: `${primary}30` }]}>
+  <View {...fx('glass aurora rise')} style={[vb.hero, { backgroundColor: `${primary}0e`, borderColor: `${primary}30` }]}>
     <Text style={[vb.heroTitle, { color: textColor }]}>What’s on tonight, near you.</Text>
     <Text style={[vb.heroSub, { color: muted }]}>
       Real nights, verified. Find what’s happening, RSVP, and <Text style={{ color: primary, fontWeight: '800' }}>Touch Down</Text> at the door to prove you were there.
     </Text>
     <TouchableOpacity
+      {...fx('sheen')}
       style={[vb.heroBtn, { backgroundColor: primary }]}
       onPress={onSignIn}
       activeOpacity={0.85}
@@ -315,6 +334,8 @@ const EventCard = React.memo(({
   const title = event.title || event.description?.split('.')[0] || 'Upcoming Gruv';
   const matchCard = parseMatchCard(event.match_card);
   const [saveFx, setSaveFx] = useState(0);
+  // Like (vibe) button animation: n bumps on every tap; burst only when turning ON.
+  const [likeFx, setLikeFx] = useState({ n: 0, kind: 'like', burst: 0 });
   const [isFlashing, setIsFlashing] = useState(false);
   const prevSavedRef = useRef(isSaved);
   useEffect(() => {
@@ -353,24 +374,22 @@ const EventCard = React.memo(({
 
   return (
     <React.Fragment>
-      <FadeInView delay={Math.min(index, 5) * 60} direction="up">
+      <FadeInView delay={Math.min(index, 5) * 60} direction="up" reveal>
         <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
         <View
+          {...fx('rim')}
           style={[
             styles.eventCard,
             {
-              backgroundColor: isFlashing ? `${primary}22` : flashColor ? `${flashColor}12` : surface,
-              borderColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}25`,
-              borderTopColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}40`,
+              backgroundColor: isFlashing ? `${primary}22` : flashColor ? `${flashColor}12` : '#0d1114',
+              borderColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}35`,
+              borderTopColor: isFlashing ? primary : flashColor ? flashColor : isHighlighted ? primary : `${primary}45`,
               borderTopWidth: isFlashing || flashColor ? 2 : 1,
               opacity: isPast ? 0.9 : 1,
             },
             (isHighlighted || flashColor || isFlashing) && {
-              borderWidth: 2,
-              ...(isWeb ? { boxShadow: `0 0 25px ${(isFlashing ? primary : flashColor || primary)}80` } : { shadowColor: isFlashing ? primary : flashColor || primary, shadowOpacity: 0.6, shadowRadius: 16, elevation: 12 })
+              borderWidth: 1.5,
             },
-            isWeb && !flashColor && !isFlashing && { boxShadow: '0 12px 40px rgba(0,0,0,0.6)' },
-            isWeb && (flashColor || isFlashing) && { transition: 'border-color 0.5s ease, background-color 0.5s ease, box-shadow 0.5s ease' },
             isWeb && { cursor: 'pointer' },
           ]}
           accessibilityRole="button"
@@ -381,6 +400,8 @@ const EventCard = React.memo(({
             onKeyPress: (e) => e.nativeEvent?.key === 'Enter' && onSelectEvent(event),
           } : {})}
         >
+          {/* Sweeping kinetic hairline tracer for live/highlighted cards */}
+          <BorderTracer active={!!(isHighlighted || flashColor || isFlashing)} color={flashColor || primary} />
 
           {/* Recurring series banner */}
           {event.is_recurring && !event._isTrending && (
@@ -452,13 +473,14 @@ const EventCard = React.memo(({
               aspectRatio={event.poster_mode ? 3 / 4 : 4 / 3}
               fitToImage
               maxHeightRatio={1.5}
+              emptyPoster={{ title, category: event.category, date: event.event_date, time: event.event_time, venue: event.venue_name, color: catColor }}
               media={(() => {
               let m = event.media;
               if (!m?.length && event.media_urls?.length) {
                 m = event.media_urls.map(u => ({ url: u, type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image' }));
               }
               if (!m?.length && event.cover_url) m = [{ url: event.cover_url, type: 'image' }];
-              // TODO(v6): remove cover_image/image_url fallbacks after migration
+              // NOTE(v6): retain cover_image/image_url fallbacks for backward compatibility
               if (!m?.length && event.cover_image) m = [{ url: event.cover_image, type: 'image' }];
               if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
 
@@ -490,7 +512,7 @@ const EventCard = React.memo(({
                 opacity: heartAnim.opacity,
                 transform: [{ scale: heartAnim.scale }],
               }}>
-                <Text style={{ fontSize: 72 }}>❤️</Text>
+                <Feather name="heart" size={72} color="#ff3366" />
               </Animated.View>
             )}
             {/* Subtle bottom-edge vignette — only enough to keep the corner controls
@@ -647,7 +669,21 @@ const EventCard = React.memo(({
                   ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' }} />
                   : <Feather name="trending-up" size={11} color="#f59e0b" />}
                 <Text style={[styles.crewBadgeText, { color: heat.live ? '#10b981' : '#f59e0b' }]}>
-                  {heat.live ? `🔥 ${heat.text}` : heat.text}
+                  {heat.live ? `LIVE · ${heat.text}` : heat.text}
+                </Text>
+              </View>
+            )}
+
+            {/* The "Crowd Thermal" pill that sat here printed a fixed "84% Inside"
+                or "42% Inside" on every card, events ten days out included, and
+                a "UV 8.4" badge printed the same number whatever the weather.
+                The heat pill above is the real signal (Touch Downs, then intent);
+                invented numbers undercut "Real nights, verified". */}
+            {(event.category === 'day_party' || event.category === 'outdoor' || (event.event_time && parseInt(event.event_time) < 18)) && (
+              <View style={[styles.crewBadge, { backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.35)' }]}>
+                <Feather name="sun" size={11} color="#f59e0b" />
+                <Text style={[styles.crewBadgeText, { color: '#f59e0b' }]}>
+                  Daytime · bring sunscreen
                 </Text>
               </View>
             )}
@@ -665,7 +701,7 @@ const EventCard = React.memo(({
               >
                 <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
                 {event.poster_mode
-                  ? <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={1}>📋 Details on the poster</Text>
+                  ? <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={1}>Details on the poster</Text>
                   : <Text style={[styles.eventDesc, { color: muted }]} numberOfLines={2}>{event.description}</Text>}
                 {/* The strongest reason anyone ever leaves the house: someone
                     they know will be there. Names the person — an abstract count
@@ -727,8 +763,7 @@ const EventCard = React.memo(({
                   <View
                     style={[
                       styles.rsvpFill,
-                      { width: `${goingPct}%`, backgroundColor: catColor },
-                      isWeb && { boxShadow: `0 0 10px ${catColor}80` }
+                      { width: `${goingPct}%`, backgroundColor: catColor, borderWidth: 1, borderColor: `${catColor}60` },
                     ]}
                     accessibilityRole="progressbar"
                     accessibilityLabel={`${goingPct}% capacity filled`}
@@ -738,7 +773,7 @@ const EventCard = React.memo(({
                 <View style={styles.rsvpLabels}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <AvatarStack count={event.going || 0} primary={primary} />
-                    <Text style={[styles.rsvpText, { color: textColor }]}>{event.going || 0} going</Text>
+                    <Text style={[styles.rsvpText, { color: textColor }]}>{event.going ? `${event.going} going` : 'Be the first to go'}</Text>
                   </View>
                   {event.capacity - (event.going || 0) > 0 && (
                     <Text style={[styles.rsvpText, { color: muted }]}>
@@ -758,7 +793,38 @@ const EventCard = React.memo(({
                 <Feather name="tag" size={13} color={catColor} />
                 <Text style={[styles.ticketText, { color: catColor }]}>Get Tickets / RSVP</Text>
               </TouchableOpacity>
+            ) : (event.price && priceLabel(event.price) !== 'FREE') ? (
+              // 65 of 106 upcoming events showed a price with no way to pay and
+              // no word on how. Say only what we know: no ticket link was added.
+              <View style={[styles.ticketBtn, { borderColor: `${catColor}55` }]}>
+                <Feather name="info" size={13} color={muted} />
+                <Text style={[styles.ticketText, { color: muted }]}>No ticket link added yet</Text>
+              </View>
             ) : null}
+
+            {/* 1-Tap Tactile Log-Drum RSVP button */}
+            <TouchableOpacity
+              style={[
+                styles.lockInBtn,
+                {
+                  backgroundColor: `${primary}15`,
+                  borderColor: `${primary}45`,
+                }
+              ]}
+              onPress={() => {
+                sensoryHaptics.triggerLogDrum('heavy');
+                if (user) onRsvpEvent(event);
+                else { PendingIntent.set('rsvp', { eventId: event.id, event }); onAuthRequired(); }
+              }}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Lock It In for ${title}`}
+            >
+              <Feather name="zap" size={14} color={primary} />
+              <Text style={[styles.lockInBtnText, { color: primary }]}>
+                LOCK IT IN · LOG-DRUM RSVP
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Schedule preview — tap card to see full schedule + polls */}
@@ -795,122 +861,158 @@ const EventCard = React.memo(({
             </TouchableOpacity>
           ) : null}
 
-          {/* Action bar — Item 51: accessible labels on all action buttons */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
+          {/* Action bar — Responsive, full-width with secondary tools toggle */}
+          <View style={[styles.actionBarWrapper, { borderTopColor: `${primary}25` }]}>
             <View style={styles.actionBar}>
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onVibe(id)}
-                accessibilityRole="button"
-                accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
-              >
-                <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
-                <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? "#ef4444" : muted }]} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'react')}
-                accessibilityRole="button"
-                accessibilityLabel="React to this event"
-              >
-                {userReaction
-                  ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
-                  : <Feather name="smile" size={19} color={muted} />
-                }
-                <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'echo')}
-                accessibilityRole="button"
-                accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
-              >
-                <Feather name="message-circle" size={19} color={openSection === 'echo' ? primary : muted} />
-                <Text style={[styles.actionCount, { color: openSection === 'echo' ? primary : muted }]}>{event.echo_count || 0}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'gallery')}
-                accessibilityRole="button"
-                accessibilityLabel="View event gallery"
-              >
-                <Feather name="camera" size={19} color={openSection === 'gallery' ? primary : muted} />
-                <Text style={[styles.actionLabel, { color: openSection === 'gallery' ? primary : muted }]}>Gallery</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'pulse')}
-                accessibilityRole="button"
-                accessibilityLabel="View Pulse Schedule"
-              >
-                <Feather name="activity" size={19} color={openSection === 'pulse' ? primary : muted} />
-                <Text style={[styles.actionLabel, { color: openSection === 'pulse' ? primary : muted }]}>Pulse</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleRoute(event)}
-                accessibilityRole="button"
-                accessibilityLabel={isRoute ? 'Remove from journey' : 'Pin to your journey'}
-              >
-                <Feather
-                  name={isRoute ? "map-pin" : "plus-circle"}
-                  size={19}
-                  color={isRoute ? primary : muted}
-                />
-                <Text style={[styles.actionLabel, { color: isRoute ? primary : muted }]}>Journey</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onToggleSection(id, 'rate')}
-                accessibilityRole="button"
-                accessibilityLabel="Rate this event"
-              >
-                <Feather name="star" size={19} color={openSection === 'rate' ? primary : muted} />
-                <Text style={[styles.actionLabel, { color: openSection === 'rate' ? primary : muted }]}>Rate</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onShare(event)}
-                accessibilityRole="button"
-                accessibilityLabel={`Share event: ${title}`}
-              >
-                <Feather name="share-2" size={19} color={muted} />
-                <Text style={[styles.actionLabel, { color: muted }]}>Share</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionBtn} onPress={() => {
-                safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
-                user ? onRsvpEvent(event) : onAuthRequired();
-              }}>
-                <Feather name="check-circle" size={19} color={muted} />
-                <Text style={[styles.actionLabel, { color: muted }]}>RSVP</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionBtn} onPress={() => onReportTarget({ id, type: 'event' })}>
-                <Feather name="flag" size={19} color={muted} />
-              </TouchableOpacity>
-
-              {isOwner && (
-                <TouchableOpacity style={styles.actionBtn} onPress={() => onEditEvent(event)}>
-                  <Feather name="edit-2" size={19} color={primary} />
+              <View style={styles.actionGroupLeft}>
+                {/* Vibe */}
+                <TouchableOpacity
+                  style={[styles.actionBtn, { position: 'relative' }]}
+                  onPress={() => {
+                    const canVibe = !!user && (isVibed || event.author_id !== user.id);
+                    if (canVibe) setLikeFx(f => ({ n: f.n + 1, kind: isVibed ? 'unlike' : 'like', burst: isVibed ? f.burst : Date.now() }));
+                    onVibe(id);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
+                >
+                  <View style={{ position: 'relative' }}>
+                    <Pop trigger={likeFx.n} kind={likeFx.kind}>
+                      <Feather name="zap" size={19} color={isVibed ? "#ef4444" : muted} />
+                    </Pop>
+                    <ControlledGlitterBurst trigger={likeFx.burst} count={10} radius={26} colors={['#ef4444', '#fde047', '#ffffff']} enableHaptics={false} />
+                  </View>
+                  <AnimatedCounter value={vibeCounts[id] || 0} style={[styles.actionCount, { color: isVibed ? "#ef4444" : muted }]} />
                 </TouchableOpacity>
-              )}
 
-              {isOwner && (
-                <TouchableOpacity style={styles.actionBtn} onPress={() => onAdminEvent(event)}>
-                  <Feather name="bar-chart-2" size={19} color={primary} />
-                  <Text style={[styles.actionLabel, { color: primary }]}>Admin</Text>
+                {/* React */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onToggleSection(id, 'react')}
+                  accessibilityRole="button"
+                  accessibilityLabel="React to this event"
+                >
+                  <Pop trigger={userReaction || ''} kind="pop">
+                    {userReaction
+                      ? <MaterialCommunityIcons name={REACTION_LIST.find(r => r.key === userReaction)?.icon || 'star'} size={19} color={primary} />
+                      : <Feather name="smile" size={19} color={muted} />
+                    }
+                  </Pop>
+                  <Text style={[styles.actionLabel, { color: userReaction ? primary : muted }]}>React</Text>
                 </TouchableOpacity>
-              )}
+
+                {/* Echo (Comments) */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onToggleSection(id, 'echo')}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
+                >
+                  <Feather name="message-circle" size={19} color={openSection === 'echo' ? primary : muted} />
+                  <Text style={[styles.actionCount, { color: openSection === 'echo' ? primary : muted }]}>{event.echo_count || 0}</Text>
+                </TouchableOpacity>
+
+                {/* Share */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onShare(event)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Share event: ${title}`}
+                >
+                  <Feather name="share-2" size={19} color={muted} />
+                </TouchableOpacity>
+
+                {/* More Tools Toggle */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onToggleSection(id, 'more')}
+                  accessibilityRole="button"
+                  accessibilityLabel="More event tools"
+                >
+                  <Feather name="more-horizontal" size={19} color={openSection === 'more' ? primary : muted} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Bookmark Button */}
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onBookmark(id)}
+                accessibilityRole="button"
+                accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+                  <Feather name="bookmark" size={19} color={isSaved ? primary : muted} />
+                  <GlitterBurst trigger={saveFx} size={90} colors={[primary, '#fde047', '#ffffff', '#a78bfa']} />
+                </View>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
+
+            {/* Secondary actions tray */}
+            {openSection === 'more' && (
+              <View style={[styles.moreToolsTray, { borderTopColor: `${primary}15` }]}>
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: isRoute ? primary : 'rgba(255,255,255,0.12)', backgroundColor: isRoute ? `${primary}15` : 'transparent' }]}
+                  onPress={() => onToggleRoute(event)}
+                >
+                  <Feather name={isRoute ? "map-pin" : "plus-circle"} size={13} color={isRoute ? primary : muted} />
+                  <Text style={[styles.moreToolText, { color: isRoute ? primary : textColor }]}>{isRoute ? 'In Journey' : 'Journey'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onToggleSection(id, 'gallery')}
+                >
+                  <Feather name="camera" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: textColor }]}>Gallery</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onToggleSection(id, 'pulse')}
+                >
+                  <Feather name="activity" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: textColor }]}>Pulse</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onToggleSection(id, 'rate')}
+                >
+                  <Feather name="star" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: textColor }]}>Rate</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  onPress={() => onReportTarget({ id, type: 'event' })}
+                >
+                  <Feather name="flag" size={13} color={muted} />
+                  <Text style={[styles.moreToolText, { color: muted }]}>Report</Text>
+                </TouchableOpacity>
+
+                {isOwner && (
+                  <TouchableOpacity
+                    style={[styles.moreToolPill, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}
+                    onPress={() => onEditEvent(event)}
+                  >
+                    <Feather name="edit-2" size={13} color={primary} />
+                    <Text style={[styles.moreToolText, { color: primary }]}>Edit</Text>
+                  </TouchableOpacity>
+                )}
+
+                {isOwner && (
+                  <TouchableOpacity
+                    style={[styles.moreToolPill, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}
+                    onPress={() => onAdminEvent(event)}
+                  >
+                    <Feather name="bar-chart-2" size={13} color={primary} />
+                    <Text style={[styles.moreToolText, { color: primary }]}>Admin</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
 
           {/* Collapsible sections — each in its own SafeSection */}
           {openSection === 'react' && (
@@ -1023,7 +1125,16 @@ const orderForGuest = (list) =>
 //  ScoreEngine.eventScore + personalisation + diversify. This screen only
 //  filters, dedupes and collapses tours; it never re-ranks.)
 
-export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels }) => {
+export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap, onNavigateToTab, initialFeedFilter, onClearInitialFeedFilter }) => {
+  // Header fit on small phones: at 320 px the logo, wordmark and five round
+  // buttons were wider than the screen and the "+" (post) button was cut off.
+  const { width: winW } = useWindowDimensions();
+  const tightHeader = winW < 360;
+  // Warm the fallback events list in the background: the feed reaches for it
+  // the moment the database answers with too few events (or not at all), and
+  // fetching it only then added a round-trip to the first paint of the feed.
+  const iconSize = tightHeader ? 32 : 36;
+  const iconBox = { width: iconSize, height: iconSize, borderRadius: iconSize / 2 };
   const insets = useSafeAreaInsets();
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
@@ -1039,8 +1150,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [trendingEvents, setTrendingEvents] = useState([]); // full event objects for top trending
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ridesModalVisible, setRidesModalVisible] = useState(false);
   const [selectedCat, setSelectedCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [quickToolsVisible, setQuickToolsVisible] = useState(false);
   // ── Community Safety Alert (from The Resident) ────────────────────────────
   const [communityAlert, setCommunityAlert] = useState(null);
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -1066,7 +1181,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1);
-      if (suburb) query.ilike('suburb', `%${suburb}%`);
+      if (suburb) query.ilike('suburb', likeContains(suburb));
       const { data, error } = await query;
       if (error) {
         // Missing table / not exposed → disable for the rest of the session.
@@ -1142,8 +1257,17 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // New feature modals
   const [editEvent, setEditEvent] = useState(null);
   const [rsvpEvent, setRsvpEvent] = useState(null);
+  // A guest tapped RSVP on a card, then signed in: open the RSVP sheet they
+  // were reaching for (they still confirm it — nothing is RSVP'd for them).
+  useEffect(() => {
+    if (!user?.id) return;
+    const wanted = PendingIntent.take('rsvp', (p) => !!p?.event);
+    if (wanted?.event) setRsvpEvent(wanted.event);
+  }, [user?.id]);
   const [reportTarget, setReportTarget] = useState(null);
   const [rouletteVisible, setRouletteVisible] = useState(false);
+  const [sensoryModalVisible, setSensoryModalVisible] = useState(false);
+  const [cultureModalVisible, setCultureModalVisible] = useState(false);
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
   const followedIdsRef = useRef([]); // stable ref so fetchPage can use it without re-render
   const pageRef = useRef(0);
@@ -1167,6 +1291,29 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [feedMode, setFeedMode] = useState('upcoming'); // 'upcoming' | 'all' | 'following' | 'mine'
   const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
   const fetchedCheckinIds = useRef(new Set());
+
+  // Handle SEO deep-link query hydration (e.g. ?city=Pretoria, ?genre=amapiano, ?filter=dezemba)
+  useEffect(() => {
+    if (!initialFeedFilter) return;
+    if (initialFeedFilter.category) {
+      setSelectedCat(initialFeedFilter.category.toLowerCase());
+    }
+    if (initialFeedFilter.city) {
+      setSearchQuery(initialFeedFilter.city);
+      setDebouncedQuery(initialFeedFilter.city);
+    }
+    if (initialFeedFilter.search) {
+      setSearchQuery(initialFeedFilter.search);
+      setDebouncedQuery(initialFeedFilter.search);
+    }
+    if (initialFeedFilter.filter === 'dezemba') {
+      setDateFilter('dezemba');
+      setDateRange({ from: '2026-12-01', to: '2027-01-05' });
+    } else if (initialFeedFilter.filter === 'weekend') {
+      setDateFilter('weekend');
+    }
+    if (onClearInitialFeedFilter) onClearInitialFeedFilter();
+  }, [initialFeedFilter]);
 
   // ── Dwell-time tracking (feeds the recommendation engine) ──────────────────
   const viewStartRef = useRef({}); // eventId → ms timestamp when it became visible
@@ -1212,6 +1359,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     const handleBackButton = () => {
       if (selectedEvent) {
         setSelectedEvent(null);
+        return true;
+      }
+      if (quickToolsVisible) {
+        setQuickToolsVisible(false);
         return true;
       }
       if (routeModalVisible) {
@@ -1762,16 +1913,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       const ok = wasFollowing
         ? await resilient(
             [
-              async () => { const { error } = await supabase.rpc('unfollow_user', { p_follower_id: user.id, p_following_id: profileId }); if (error) throw error; return true; },
-              async () => { const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profileId); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.rpc('unfollow_user', { p_follower_id: user?.id, p_following_id: profileId }); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.from('follows').delete().eq('follower_id', user?.id).eq('following_id', profileId); if (error) throw error; return true; },
             ],
             { attemptsPerTier: 2, baseMs: 300, label: `LandingPage.unfollow:${profileId}`, fallbackValue: null }
           )
         : await resilient(
             [
-              async () => { const { error } = await supabase.rpc('follow_user', { p_follower_id: user.id, p_following_id: profileId }); if (error) throw error; return true; },
-              async () => { const { error } = await supabase.from('follows').upsert({ follower_id: user.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }); if (error) throw error; return true; },
-              async () => { const { error } = await supabase.from('follows').insert({ follower_id: user.id, following_id: profileId }); if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error; return true; },
+              async () => { const { error } = await supabase.rpc('follow_user', { p_follower_id: user?.id, p_following_id: profileId }); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.from('follows').upsert({ follower_id: user?.id, following_id: profileId }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }); if (error) throw error; return true; },
+              async () => { const { error } = await supabase.from('follows').insert({ follower_id: user?.id, following_id: profileId }); if (error && !/duplicate|already exists|unique/i.test(error.message || '')) throw error; return true; },
             ],
             { attemptsPerTier: 2, baseMs: 300, label: `LandingPage.follow:${profileId}`, fallbackValue: null }
           );
@@ -1796,6 +1947,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       });
     }
   }, [user, followingSet]);
+
+  // Vibes made anywhere (this feed, the event page) land here, with the
+  // server's real count once known, so this list never drifts from it.
+  useEffect(() => VibeManager.subscribe(({ eventId, userId, vibed, count }) => {
+    if (!user?.id || userId !== user.id) return;
+    setMyVibes(prev => {
+      if (prev.has(eventId) === vibed) return prev;
+      const next = new Set(prev);
+      if (vibed) next.add(eventId); else next.delete(eventId);
+      return next;
+    });
+    if (typeof count === 'number') {
+      setVibeCounts(prev => (prev[eventId] === count ? prev : { ...prev, [eventId]: count }));
+      setEvents(prev => prev.map(e => (e.id === eventId && e.vibe_count !== count ? { ...e, vibe_count: count } : e)));
+    }
+  }), [user?.id]);
 
   const handleVibe = async (eventId) => {
     if (!user) { onAuthRequired(); return; }
@@ -1844,6 +2011,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       if (res === 'self') {
         rollback();
         toast.show("You can't vibe your own event", 'info');
+      } else if (res === 'throttled') {
+        rollback();   // too fast: nothing was sent, so don't keep the +1
       } else if (res === null) {
         rollback();
         toast.show(isCurrentVibed ? 'Failed to remove vibe' : 'Failed to send vibe — try again', 'error');
@@ -1988,7 +2157,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     if (isAdded) {
       toast.show('Removed from your journey', 'info');
     } else {
-      toast.show('Added to your journey 📍', 'success');
+      toast.show('Added to your journey', 'success');
       safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
     }
   };
@@ -2009,7 +2178,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <Feather name="gift" size={18} color={primary} />
             <Text style={{ color: textColor, fontWeight: '950', fontSize: 11, letterSpacing: 1 }}>
-              {isToday ? "HAPPY BIRTHDAY TO YOU! 🎂" : `YOUR BIRTHDAY IS IN ${birthdayLeadUp.daysUntil} DAYS! 🎈`}
+              {isToday ? "HAPPY BIRTHDAY TO YOU!" : `YOUR BIRTHDAY IS IN ${birthdayLeadUp.daysUntil} DAYS!`}
             </Text>
           </View>
           <Text style={{ color: muted, fontSize: 12, lineHeight: 18, marginBottom: 10 }}>
@@ -2045,7 +2214,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       items.push(
         <GlassView key="locals-bday" style={{ marginHorizontal: 16, marginBottom: 12, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
           <Text style={{ color: textColor, fontWeight: '950', fontSize: 11, letterSpacing: 1, marginBottom: 10 }}>
-            🎂 CELEBRATING TODAY
+            CELEBRATING TODAY
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, alignItems: 'center' }}>
             {birthdaysToday.map((p) => {
@@ -2082,11 +2251,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // ── HEADER ──────────────────────────────────────────────────────────────────
   const renderHeader = () => (
     <View style={[styles.headerWrap, { borderBottomColor: `${primary}20` }]}>
-      {/* Main Row: Logo + Search + Actions */}
-      <View style={styles.mainRow}>
+      <CyberScanline color={primary} opacity={0.12} duration={4500} />
+      {/* Main Row: Logo + Search + Actions (dynamic notch clearance) */}
+      <View style={[styles.mainRow, { paddingTop: Math.max(insets.top || 0, 14) }]}>
         <View style={styles.brandGroup}>
-          <BrandLogo size={36} showGlow />
-          <View style={styles.wordmarkMini}>
+          <BrandLogo size={tightHeader ? 30 : 36} showGlow />
+          {!tightHeader && <View style={styles.wordmarkMini}>
             <Text style={[styles.brandText, { color: primary }]}>GRUVS</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <Text style={[styles.brandSub, { color: muted }]}>{mode === 'drop' ? 'DROP' : 'EXPLORE'}</Text>
@@ -2096,7 +2266,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 </View>
               )}
             </View>
-          </View>
+          </View>}
         </View>
 
         <GlassView style={[styles.compactSearch, { borderColor: `${primary}30` }]}>
@@ -2106,6 +2276,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             placeholder="Search events, scenes, venues..."
             placeholderTextColor={muted}
             value={searchQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 250)}
             onChangeText={setSearchQuery}
             onSubmitEditing={() => { if (searchQuery.trim()) saveSearch(searchQuery.trim()); }}
             returnKeyType="search"
@@ -2117,29 +2289,30 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           )}
         </GlassView>
 
-        <View style={styles.headerActions}>
-          {/* Reels — opt-in entry while it's demoted from the tab bar */}
-          {onNavigateToReels && HIDDEN_TABS.includes('reels') && (
+        <View style={[styles.headerActions, tightHeader && { gap: 6 }]}>
+          {Platform.OS === 'web' && (
             <TouchableOpacity
-              style={[styles.iconBtn, { backgroundColor: `${primary}12`, borderColor: `${primary}25` }]}
-              onPress={onNavigateToReels}
+              style={[styles.iconBtn, iconBox, { backgroundColor: `${primary}18`, borderColor: `${primary}45` }]}
+              onPress={() => appInstallService.openModal()}
               accessibilityRole="button"
-              accessibilityLabel="Reels"
+              accessibilityLabel="Download and install The Gruvs App for Apple or Android"
             >
-              <Feather name="film" size={16} color={primary} />
+              <Feather name="download" size={16} color={primary} />
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.1)' }]}
-            onPress={() => setRouletteVisible(true)}
+            style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: `${primary}35` }]}
+            onPress={() => setQuickToolsVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel="Vibe Roulette"
+            accessibilityLabel="Explore tools and quick actions"
           >
-            <Feather name="compass" size={16} color={textColor} />
+            <Feather name="grid" size={16} color={primary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.postIconBtn, { backgroundColor: primary, borderColor: primary }]}
+            style={[styles.postIconBtn, iconBox, { backgroundColor: primary, borderColor: primary }]}
             onPress={() => user ? setPostModalVisible(true) : onAuthRequired()}
+            accessibilityRole="button"
+            accessibilityLabel="Drop a Gruv"
           >
             <Feather name="plus" size={18} color="#000" />
           </TouchableOpacity>
@@ -2148,7 +2321,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       <StoriesRow onAuthRequired={onAuthRequired} />
 
-      <CommunityStatsBar />
+      <EcosystemUniverseBar primary={primary} textColor={textColor} muted={muted} />
 
       {!!user && (
         <ErrorBoundary inline label="Check in">
@@ -2196,29 +2369,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {/* Visitor banner — only if no user */}
       {!user && <VisitorBanner onSignIn={onAuthRequired} primary={primary} muted={muted} textColor={textColor} />}
 
-      {/* Search history chips */}
-      <SearchHistoryBar
-        currentQuery={searchQuery}
-        onSelect={q => { setSearchQuery(q); setDebouncedQuery(q); }}
-        primary={primary}
-        muted={muted}
-      />
-
-      {/* Date filter strip */}
-      <DateFilterStrip
-        value={dateFilter}
-        onChange={(val, range) => { setDateFilter(val); setDateRange(range); }}
-        primary={primary}
-        muted={muted}
-      />
-
-      {/* Trending hashtags */}
-      <HashtagStrip
-        activeTag={activeHashtag}
-        onTagSelect={tag => { setActiveHashtag(tag); if (tag) setSearchQuery(`#${tag}`); else setSearchQuery(''); }}
-        primary={primary}
-        muted={muted}
-      />
+      {/* Search history chips — only rendered when actively searching */}
+      {(searchFocused || searchQuery.length > 0) && (
+        <SearchHistoryBar
+          currentQuery={searchQuery}
+          onSelect={q => { setSearchQuery(q); setDebouncedQuery(q); }}
+          primary={primary}
+          muted={muted}
+        />
+      )}
 
       <TonightAlert
         events={events}
@@ -2226,13 +2385,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           const idx = events.findIndex(e => e.id === ev.id);
           if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.1 });
         }}
+        onNavigateToMap={onNavigateToMap}
         primary={primary}
       />
 
-      {/* Vibe Oracle (AI Prediction) — DISABLED */}
-
-      {/* Feed mode toggle — All / Upcoming / Following / Mine */}
-      <View style={{ flexDirection: 'row', marginHorizontal: 14, marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
+      {/* Primary Discovery Bar: Feed Mode Tabs + Filter Drawer Trigger + Layout Toggle */}
+      <View style={styles.filterControlRow}>
+        <View style={styles.feedModeTabs}>
           {[
             { key: 'upcoming', label: 'Upcoming', icon: 'calendar' },
             { key: 'all', label: 'For You', icon: 'home' },
@@ -2250,18 +2409,44 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   }
                   safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
                 }}
-                style={{
-                  flexDirection: 'row', alignItems: 'center', gap: 5,
-                  paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
-                  backgroundColor: active ? primary : 'rgba(255,255,255,0.06)',
-                  borderWidth: 1, borderColor: active ? primary : 'rgba(255,255,255,0.10)',
-                }}
+                style={[
+                  styles.modeTabPill,
+                  {
+                    backgroundColor: active ? primary : 'rgba(255,255,255,0.06)',
+                    borderColor: active ? primary : 'rgba(255,255,255,0.10)',
+                  }
+                ]}
               >
                 <Feather name={tab.icon} size={12} color={active ? '#000' : textColor} />
                 <Text style={{ fontSize: 12, fontWeight: '800', color: active ? '#000' : textColor }}>{tab.label}</Text>
               </TouchableOpacity>
             );
           })}
+        </View>
+
+        <View style={styles.filterActionsRight}>
+          {/* Filter Drawer Toggle with active filter dot */}
+          <TouchableOpacity
+            onPress={() => {
+              setFiltersExpanded(prev => !prev);
+              safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Filter by date and hashtags"
+            style={[
+              styles.filterToggleBtn,
+              {
+                backgroundColor: (filtersExpanded || dateFilter !== 'any' || activeHashtag) ? `${primary}25` : 'rgba(255,255,255,0.06)',
+                borderColor: (filtersExpanded || dateFilter !== 'any' || activeHashtag) ? primary : 'rgba(255,255,255,0.10)',
+              }
+            ]}
+          >
+            <Feather name="sliders" size={13} color={(filtersExpanded || dateFilter !== 'any' || activeHashtag) ? primary : textColor} />
+            {(dateFilter !== 'any' || activeHashtag) ? (
+              <View style={[styles.filterActiveDot, { backgroundColor: primary }]} />
+            ) : null}
+          </TouchableOpacity>
+
           {/* List ⇄ Masonry (Pinterest) layout toggle */}
           <TouchableOpacity
             onPress={() => {
@@ -2272,16 +2457,51 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             }}
             accessibilityRole="button"
             accessibilityLabel={layoutType === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
-            style={{
-              marginLeft: 'auto', width: 34, height: 30, borderRadius: 15,
-              alignItems: 'center', justifyContent: 'center',
-              backgroundColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.06)',
-              borderWidth: 1, borderColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.10)',
-            }}
+            style={[
+              styles.layoutToggleBtn,
+              {
+                backgroundColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.06)',
+                borderColor: layoutType === 'grid' ? primary : 'rgba(255,255,255,0.10)',
+              }
+            ]}
           >
-            <Feather name={layoutType === 'grid' ? 'list' : 'grid'} size={14} color={layoutType === 'grid' ? '#000' : textColor} />
+            <Feather name={layoutType === 'grid' ? 'list' : 'grid'} size={13} color={layoutType === 'grid' ? '#000' : textColor} />
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Expandable Filter Drawer (Date Range + Hashtags) */}
+      {(filtersExpanded || dateFilter !== 'any' || activeHashtag) && (
+        <View style={[styles.filterDrawer, { borderColor: `${primary}25` }]}>
+          <View style={styles.filterDrawerHeader}>
+            <Text style={[styles.filterDrawerTitle, { color: primary }]}>Filter Feed</Text>
+            {(dateFilter !== 'any' || activeHashtag) ? (
+              <TouchableOpacity
+                onPress={() => {
+                  setDateFilter('any');
+                  setDateRange(null);
+                  setActiveHashtag('');
+                  setSearchQuery('');
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: muted }}>Reset</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <DateFilterStrip
+            value={dateFilter}
+            onChange={(val, range) => { setDateFilter(val); setDateRange(range); }}
+            primary={primary}
+            muted={muted}
+          />
+          <HashtagStrip
+            activeTag={activeHashtag}
+            onTagSelect={tag => { setActiveHashtag(tag); if (tag) setSearchQuery(`#${tag}`); else setSearchQuery(''); }}
+            primary={primary}
+            muted={muted}
+          />
+        </View>
+      )}
 
       {/* Who to follow — suggested people, attractive cards */}
       {user && <SuggestedFollows />}
@@ -2294,21 +2514,6 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingBottom: 8 }}
         {...(Platform.OS === 'web' ? { className: 'sticky-filter-bar' } : {})}
       >
-        {/* Web has no pull-to-refresh gesture — give it an explicit button. */}
-        {Platform.OS === 'web' && (
-          <TouchableOpacity
-            onPress={handleRefresh}
-            disabled={refreshing}
-            accessibilityLabel="Refresh feed"
-            accessibilityRole="button"
-            style={[styles.pill, { backgroundColor: `${primary}18`, borderColor: `${primary}40`, borderWidth: 1 }]}
-          >
-            {refreshing
-              ? <ActivityIndicator size="small" color={primary} />
-              : <Feather name="refresh-cw" size={13} color={primary} />}
-            <Text style={[styles.pillText, { color: primary }]}>Refresh</Text>
-          </TouchableOpacity>
-        )}
         {CATEGORY_KEYS.map(key => {
           const cfg = CATEGORY_CONFIG[key];
           const isActive = selectedCat === key;
@@ -2475,61 +2680,108 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     // Masonry mode: one virtual item renders the whole Pinterest grid.
     if (id === '__masonry__') {
       return (
-        <MasonryFeed
-          events={feedData.filter(e => !e._header)}
-          onSelectEvent={(ev) => setSelectedEvent(ev)}
-          primary={primary}
-          textColor={textColor}
-        />
+        <View key="__masonry_container__">
+          {renderTrending()}
+          <MasonryFeed
+            events={feedData.filter(e => !e._header)}
+            onSelectEvent={(ev) => setSelectedEvent(ev)}
+            primary={primary}
+            textColor={textColor}
+          />
+          {mode === 'drop' && onNavigateToReels && feature('reelsRail') && (
+            <ReelsRail
+              onOpenReel={(reelId) => onNavigateToReels(reelId)}
+              primary={primary}
+              textColor={textColor}
+              muted={muted}
+            />
+          )}
+        </View>
       );
     }
+
+    const isTrendingSlot = index === (feedData.length === 1 ? 0 : 1);
+    const isReelsSlot = index === 3;
+    const isBirthdaySlot = index === 5;
+    const isGoOutSlot = index === 7;
+
     return (
-      <LazyCard eager={index < 3}>
-      <EventCard
-        event={event}
-        index={index}
-        user={user}
-        primary={primary}
-        surface={surface}
-        textColor={textColor}
-        muted={muted}
-        isVibed={myVibes.has(id)}
-        vibeCounts={vibeCounts}
-        isSaved={savedEvents.has(id)}
-        userReaction={reactions[id]}
-        crewCount={crewRsvpMap[id] || 0}
-        isHighlighted={highlightedId === id}
-        flashColor={reactionFlash[id]}
-        isRoute={routeEvents.some(re => re.id === id)}
-        isFollowing={followingSet.has(event.profiles?.id)}
-        checkins={eventCheckins[id]}
-        friendsGoingList={friendsByEvent.get(id)}
-        onAuthRequired={onAuthRequired}
-        onNavigateToServices={onNavigateToServices}
-        onSelectEvent={setSelectedEvent}
-        onEditEvent={setEditEvent}
-        onAdminEvent={setAdminEvent}
-        onRsvpEvent={setRsvpEvent}
-        onReportTarget={setReportTarget}
-        onSetReactorsEvent={(eventId) => { setReactorsEvent(eventId); setReactorsFilter('all'); fetchReactors(eventId); }}
-        onFetchCheckins={fetchEventCheckins}
-        onOpenViberProfile={openViberProfile}
-        onFollow={handleFollowFromFeed}
-        onImageTap={handleImageTap}
-        onImageLongPress={handleImageLongPress}
-        onCardPressIn={onCardPressIn}
-        onCardPressOut={onCardPressOut}
-        scaleValue={getCardScale(id)}
-        heartAnim={heartAnimRef.current[id]}
-        openSection={openSection[id]}
-        onVibe={handleVibe}
-        onBookmark={handleBookmark}
-        onReact={handleReact}
-        onShare={handleShare}
-        onToggleRoute={handleToggleRoute}
-        onToggleSection={toggleSection}
-      />
-      </LazyCard>
+      <View key={id || index}>
+        <LazyCard eager={index < 3}>
+          <EventCard
+            event={event}
+            index={index}
+            user={user}
+            primary={primary}
+            surface={surface}
+            textColor={textColor}
+            muted={muted}
+            isVibed={myVibes.has(id)}
+            vibeCounts={vibeCounts}
+            isSaved={savedEvents.has(id)}
+            userReaction={reactions[id]}
+            crewCount={crewRsvpMap[id] || 0}
+            isHighlighted={highlightedId === id}
+            flashColor={reactionFlash[id]}
+            isRoute={routeEvents.some(re => re.id === id)}
+            isFollowing={followingSet.has(event.profiles?.id)}
+            checkins={eventCheckins[id]}
+            friendsGoingList={friendsByEvent.get(id)}
+            onAuthRequired={onAuthRequired}
+            onNavigateToServices={onNavigateToServices}
+            onSelectEvent={setSelectedEvent}
+            onEditEvent={setEditEvent}
+            onAdminEvent={setAdminEvent}
+            onRsvpEvent={setRsvpEvent}
+            onReportTarget={setReportTarget}
+            onSetReactorsEvent={(eventId) => { setReactorsEvent(eventId); setReactorsFilter('all'); fetchReactors(eventId); }}
+            onFetchCheckins={fetchEventCheckins}
+            onOpenViberProfile={openViberProfile}
+            onFollow={handleFollowFromFeed}
+            onImageTap={handleImageTap}
+            onImageLongPress={handleImageLongPress}
+            onCardPressIn={onCardPressIn}
+            onCardPressOut={onCardPressOut}
+            scaleValue={getCardScale(id)}
+            heartAnim={heartAnimRef.current[id]}
+            openSection={openSection[id]}
+            onVibe={handleVibe}
+            onBookmark={handleBookmark}
+            onReact={handleReact}
+            onShare={handleShare}
+            onToggleRoute={handleToggleRoute}
+            onToggleSection={toggleSection}
+          />
+        </LazyCard>
+
+        {/* Content discovery interleaved into feed — ensures Event #1 is immediately above the fold */}
+        {isTrendingSlot && renderTrending()}
+
+        {isReelsSlot && mode === 'drop' && onNavigateToReels && feature('reelsRail') && (
+          <ReelsRail
+            onOpenReel={(reelId) => onNavigateToReels(reelId)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+          />
+        )}
+
+        {isBirthdaySlot && renderBirthdaySpotlight()}
+
+        {isGoOutSlot && mode === 'drop' && (
+          <GoOutNudge
+            events={events}
+            topEvent={trendingEvents[0] || null}
+            onHost={() => (user ? setPostModalVisible(true) : onAuthRequired())}
+            onExplore={onNavigateToServices}
+            onViewEvent={(ev) => setSelectedEvent(ev)}
+            primary={primary}
+            textColor={textColor}
+            muted={muted}
+            surface={surface}
+          />
+        )}
+      </View>
     );
   }, [myVibes, vibeCounts, reactions, savedEvents, openSection, reactionFlash, routeEvents, crewRsvpMap,
       followingSet, highlightedId, eventCheckins, user, primary, surface, textColor, muted, mode,
@@ -2554,9 +2806,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           paddingHorizontal: 14, paddingVertical: 10,
           flexDirection: 'row', alignItems: 'center', gap: 10,
         }}>
-          <Text style={{ fontSize: 20 }}>
-            {communityAlert.severity === 'panic' ? '🚨' : '⚠️'}
-          </Text>
+          <Feather name="alert-triangle" size={18} color="#fff" />
           <View style={{ flex: 1 }}>
             <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }} numberOfLines={1}>
               {communityAlert.title}
@@ -2626,53 +2876,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         // matter how far you scroll — "I only see 5 events"). Browsers handle a
         // few hundred cards fine, so render everything and let the DOM scroll.
         disableVirtualization={Platform.OS === 'web'}
-        maxToRenderPerBatch={Platform.OS === 'web' ? 100 : 8}
-        windowSize={Platform.OS === 'web' ? 1001 : 14}
-        initialNumToRender={Platform.OS === 'web' ? 200 : 7}
+        maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 8}
+        windowSize={Platform.OS === 'web' ? 25 : 14}
+        initialNumToRender={Platform.OS === 'web' ? 16 : 7}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>
             {renderHeader()}
-            {/* Max-reach reminder to enable phone notifications (shared 7-day
-                snooze with Chats/Pings, so it never double-nags). */}
-            {mode === 'drop' && (
-              <NotificationNudge primary={primary} surface={surface} textColor={textColor} muted={muted} />
-            )}
-            {/* The age gate fails open on an unknown birthday, so the only thing
-                closing it is asking. Self-hides once a DOB exists. */}
-            {mode === 'drop' && (
-              <BirthDateNudge primary={primary} surface={surface} textColor={textColor} muted={muted} />
-            )}
-            {renderTrending()}
-            {/* Reels on The Drop — video discovery starts in the feed */}
-            {mode === 'drop' && onNavigateToReels && feature('reelsRail') && (
-              <ReelsRail
-                onOpenReel={(reelId) => onNavigateToReels(reelId)}
-                primary={primary}
-                textColor={textColor}
-                muted={muted}
-              />
-            )}
-            {renderBirthdaySpotlight()}
-            {mode === 'drop' && (
-              <GoOutNudge
-                events={events}
-                topEvent={trendingEvents[0] || null}
-                onHost={() => (user ? setPostModalVisible(true) : onAuthRequired())}
-                onExplore={onNavigateToServices}
-                onViewEvent={(ev) => setSelectedEvent(ev)}
-                primary={primary}
-                textColor={textColor}
-                muted={muted}
-                surface={surface}
-              />
-            )}
-            {mode === 'drop' && (
-              <CrewJourneyPanel onEventPress={(ev) => {
-                const idx = events.findIndex(e => e.id === ev.id);
-                if (idx >= 0) flatListRef.current?.scrollToIndex({ index: idx, animated: true });
-              }} />
-            )}
             {renderFeedHeader()}
           </>
         }
@@ -2730,10 +2940,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                   <Text style={[styles.emptyBtnText, { color: primary }]}>{feedMode === 'mine' ? 'Post your first Gruv' : 'Drop the first Gruv'}</Text>
                 </TouchableOpacity>
               )}
+              {renderTrending()}
             </View>
           ) : null
         }
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={[styles.flatListContent, { paddingBottom: 140 }]}
       />
 
       {/* Modals — only mount when open so lazy components don't crash on idle load */}
@@ -2784,6 +2995,23 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           />
         </SafeSection>
       )}
+      <QuickToolsSheet
+        visible={quickToolsVisible}
+        onClose={() => setQuickToolsVisible(false)}
+        onOpenRoulette={() => setRouletteVisible(true)}
+        onOpenSensory={() => setSensoryModalVisible(true)}
+        onOpenCulture={() => setCultureModalVisible(true)}
+        onOpenRides={() => setRidesModalVisible(true)}
+        onOpenReels={onNavigateToReels}
+        onOpenCalendar={() => onNavigateToTab?.('calendar')}
+        onOpenNotifications={() => onNavigateToTab?.('notifications')}
+        hasReels={!!onNavigateToReels}
+        hasSensory={feature('sensorySuite')}
+        primary={primary}
+        surface={surface}
+        textColor={textColor}
+        muted={muted}
+      />
       <TrendingModal
         visible={trendingModalVisible}
         onClose={() => setTrendingModalVisible(false)}
@@ -2802,6 +3030,33 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           onSelectEvent={setSelectedEvent}
           primary={primary}
         />
+      )}
+      {sensoryModalVisible && (
+        <SafeSection label="Sensory Suite" primary={primary}>
+          <NightlifeSensoryModal
+            visible={sensoryModalVisible}
+            onClose={() => setSensoryModalVisible(false)}
+            onNavigateToMap={onNavigateToMap}
+            event={events[0] || null}
+          />
+        </SafeSection>
+      )}
+      {ridesModalVisible && (
+        <DropRidesModal
+          visible={ridesModalVisible}
+          onClose={() => setRidesModalVisible(false)}
+          events={events}
+          onNavigateToMap={onNavigateToMap}
+        />
+      )}
+      {cultureModalVisible && (
+        <SafeSection label="Culture Artifacts" primary={primary}>
+          <CultureArtifactsModal
+            visible={cultureModalVisible}
+            onClose={() => setCultureModalVisible(false)}
+            event={events[0] || null}
+          />
+        </SafeSection>
       )}
       {!!editEvent && (
         <SafeSection label="Edit Event" primary={primary}>
@@ -2924,14 +3179,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             event={selectedEvent}
             onClose={() => setSelectedEvent(null)}
             onAuthRequired={onAuthRequired}
+            onOpenReel={onNavigateToReels ? (reelId) => { setSelectedEvent(null); onNavigateToReels(reelId); } : undefined}
           />
         </SafeSection>
       )}
 
-      {/* Royal Journey Builder Floating Action */}
+      {/* Royal Journey Builder Floating Action (docked on bottom-left, balancing createFab on right) */}
       {routeEvents.length > 0 && (
         <TouchableOpacity
-          style={[styles.routeFab, { backgroundColor: primary }]}
+          style={[styles.routeFab, { backgroundColor: primary, bottom: Math.max((insets.bottom || 0) + 76, 86) }]}
           onPress={() => setRouteModalVisible(true)}
           activeOpacity={0.9}
         >
@@ -2958,24 +3214,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         </SafeSection>
       )}
 
-      {/* ── Web pull-to-refresh indicator ────────────────────────────────── */}
-      {Platform.OS === 'web' && (pullDist > 0 || refreshing) && (
-        <View style={{
-          position: 'absolute', top: 10, alignSelf: 'center', zIndex: 60,
-          width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center',
-          backgroundColor: surface, borderWidth: 1.5,
-          borderColor: refreshing || pullDist > 80 ? primary : `${primary}35`,
-        }}>
-          {refreshing
-            ? <ActivityIndicator size="small" color={primary} />
-            : <Feather name="arrow-down" size={17} color={pullDist > 80 ? primary : muted} />}
-        </View>
+      {/* ── Futuristic Cyber Radar Sonar Pull-to-Refresh HUD ────────────────── */}
+      {(pullDist > 0 || refreshing) && (
+        <CyberRadarRefresh
+          refreshing={refreshing}
+          pullDist={pullDist}
+          threshold={80}
+          primary={primary}
+          textColor={textColor}
+          muted={muted}
+        />
       )}
 
-      {/* ── Scroll-to-top button ─────────────────────────────────────────── */}
+      {/* ── Scroll-to-top button (stacked cleanly above createFab) ─────────────────── */}
       {showScrollTop && (
         <TouchableOpacity
-          style={[styles.scrollTopBtn, { backgroundColor: `${primary}22`, borderColor: `${primary}60`, bottom: (insets.bottom || 0) + 100 }]}
+          style={[styles.scrollTopBtn, { backgroundColor: `${primary}22`, borderColor: `${primary}60`, bottom: Math.max((insets.bottom || 0) + 76, 86) + 64 }]}
           onPress={() => {
             flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
             safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
@@ -2990,6 +3244,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       {/* ── Create event FAB (bottom right, above floating dock) ───────────────── */}
       <TouchableOpacity
+        {...fx('pulse')}
         style={[styles.createFab, { backgroundColor: primary, bottom: Math.max((insets.bottom || 0) + 76, 86) }]}
         onPress={() => {
           safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
@@ -3021,7 +3276,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             />
 
             {[
-              { icon: 'zap', label: myVibes.has(quickActionTarget.id) ? 'Remove Vibe' : 'Vibe it ⚡', action: () => { handleVibe(quickActionTarget.id); setQuickActionTarget(null); } },
+              { icon: 'zap', label: myVibes.has(quickActionTarget.id) ? 'Remove Vibe' : 'Vibe it', action: () => { handleVibe(quickActionTarget.id); setQuickActionTarget(null); } },
               { icon: 'bookmark', label: savedEvents.has(quickActionTarget.id) ? 'Unsave' : 'Save', action: () => { handleBookmark(quickActionTarget.id); setQuickActionTarget(null); } },
               { icon: 'check-circle', label: 'RSVP', action: () => { setRsvpEvent(quickActionTarget); setQuickActionTarget(null); } },
               { icon: 'share-2', label: 'Share', action: () => { handleShare(quickActionTarget); setQuickActionTarget(null); } },
@@ -3042,9 +3297,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
       {/* ── Under-finger reaction ring (long-press) ──────────────────────── */}
       {!!reactionRing && (() => {
+        const winW = Dimensions.get('window').width;
         const EMOJIS = REACTION_LIST.slice(0, 8);
-        const BAR_W = Math.min(SCREEN_W - 24, EMOJIS.length * 44 + 16);
-        const left = Math.max(12, Math.min(reactionRing.x - BAR_W / 2, SCREEN_W - BAR_W - 12));
+        const BAR_W = Math.min(winW - 24, EMOJIS.length * 44 + 16);
+        const left = Math.max(12, Math.min(reactionRing.x - BAR_W / 2, winW - BAR_W - 12));
         const top = Math.max(70, reactionRing.y - 78); // float above the finger
         const current = reactions[reactionRing.event.id];
         return (
@@ -3089,14 +3345,14 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 };
 
 const styles = StyleSheet.create({
-  reactRing: { position: 'absolute', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 6, borderRadius: 30, borderWidth: 1, gap: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 12 },
+  reactRing: { position: 'absolute', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 6, borderRadius: 30, borderWidth: 1, gap: 2 },
   reactRingItem: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   reactRingMore: { width: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
   crewBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, alignSelf: 'flex-start', marginBottom: 8 },
   crewBadgeText: { fontSize: 11, fontWeight: '700' },
   root: { flex: 1 },
-  createFab: { position: 'absolute', bottom: 24, right: 20, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
-  scrollTopBtn: { position: 'absolute', bottom: 96, right: 20, width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  createFab: { position: 'absolute', bottom: 24, right: 20, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ffffff20' },
+  scrollTopBtn: { position: 'absolute', bottom: 96, right: 20, width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   quickSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, paddingTop: 10, paddingBottom: 34, paddingHorizontal: 4 },
   quickSheetHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
   quickSheetTitle: { fontSize: 14, fontWeight: '800', paddingHorizontal: 20, paddingBottom: 12, opacity: 0.8 },
@@ -3116,13 +3372,92 @@ const styles = StyleSheet.create({
 
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  postIconBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#00f2ff', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  postIconBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   bellDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: '#000' },
 
   // Categories
   catBar: { marginTop: 4 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
   pillText: { fontSize: 9, fontWeight: '800' },
+
+  // Streamlined Filter Bar & Drawer
+  filterControlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 14,
+    marginTop: 6,
+    marginBottom: 8,
+    gap: 8,
+  },
+  feedModeTabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    flex: 1,
+  },
+  modeTabPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterActionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterToggleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  filterActiveDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  layoutToggleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterDrawer: {
+    marginHorizontal: 14,
+    marginBottom: 8,
+    padding: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    gap: 6,
+  },
+  filterDrawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
+  filterDrawerTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
 
   // Visitor banner
   visitorBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginVertical: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
@@ -3147,8 +3482,10 @@ const styles = StyleSheet.create({
   trendMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   trendMeta: { color: 'rgba(255,255,255,0.75)', fontSize: 10 },
 
+  flatListContent: { width: '100%', maxWidth: 720, alignSelf: 'center' },
+
   // Card
-  eventCard: { flex: 1, marginHorizontal: SCREEN_W < 375 ? 10 : 16, marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
+  eventCard: { width: '100%', maxWidth: 680, alignSelf: 'center', marginBottom: 20, borderRadius: 22, overflow: 'hidden', borderWidth: 1 },
   schedulePreview: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
   schedulePreviewText: { fontSize: 12, fontWeight: '700', flex: 1, flexShrink: 1, minWidth: 0 },
   // Loading floor only — fitToImage drives the real height so the frame hugs the
@@ -3162,19 +3499,19 @@ const styles = StyleSheet.create({
   bookmarkBtn: { position: 'absolute', top: 12, right: 12, padding: 8, borderRadius: 20 },
   cardBody: { padding: 14 },
 
-  userRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
-  avatarWrap: { position: 'relative' },
+  userRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
+  avatarWrap: { position: 'relative', flexShrink: 0 },
   avatar: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5 },
   onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: 5, borderWidth: 1.5, borderColor: '#000' },
-  username: { fontSize: 14, fontWeight: '900', flex: 1, flexShrink: 1, minWidth: 0 },
-  vibeScoreBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1 },
+  username: { fontSize: 13.5, fontWeight: '900', flex: 1, flexShrink: 1, minWidth: 0 },
+  vibeScoreBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1, flexShrink: 0 },
   vibeScoreText: { fontSize: 8, fontWeight: '900' },
-  handle: { fontSize: 10, opacity: 0.6 },
-  verifiedBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  priceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
-  priceText: { fontSize: 11, fontWeight: '900' },
-  feedFollowBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: "#00f2ff", backgroundColor: 'rgba(0,242,255,0.1)', marginRight: 6 },
-  feedFollowText: { fontSize: 11, fontWeight: '700', color: "#00f2ff" },
+  handle: { fontSize: 10, opacity: 0.6, flexShrink: 1 },
+  verifiedBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  priceBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1, flexShrink: 0 },
+  priceText: { fontSize: 10.5, fontWeight: '900' },
+  feedFollowBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: "#00f2ff", backgroundColor: 'rgba(0,242,255,0.1)', marginRight: 2, flexShrink: 0 },
+  feedFollowText: { fontSize: 10.5, fontWeight: '700', color: "#00f2ff" },
 
   countdownOverlay: {
     position: 'absolute', bottom: 12, left: 12,
@@ -3220,22 +3557,50 @@ const styles = StyleSheet.create({
   reactionCount: { fontSize: 11 },
 
   actionBarWrapper: { borderTopWidth: 1 },
-  actionBar: { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 12, gap: 20 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 50 },
+  actionBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10 },
+  actionGroupLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 4 },
   actionCount: { fontSize: 13, fontWeight: '800' },
   actionLabel: { fontSize: 10, fontWeight: '700' },
+
+  moreToolsTray: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  moreToolPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  moreToolText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  lockInBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14, marginTop: 8, marginBottom: 4 },
+  lockInBtnText: { fontSize: 11.5, fontWeight: '900', letterSpacing: 0.8 },
 
   // Empty state
   emptyWrap: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },
   emptyIconCircle: { width: 100, height: 100, borderRadius: 50, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 24, position: 'relative' },
-  emptyIconGlow: { position: 'absolute', width: 70, height: 70, borderRadius: 35, opacity: 0.15, shadowColor: '#fff', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 20, elevation: 10 },
+  emptyIconGlow: { position: 'absolute', width: 70, height: 70, borderRadius: 35, opacity: 0.15 },
   emptyTitle: { fontSize: 22, fontWeight: '900', marginBottom: 10, textAlign: 'center' },
   emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 30 },
   emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 30 },
   emptyBtnText: { fontWeight: '900', fontSize: 14, letterSpacing: 0.5 },
 
-  // Royal Journey FAB
-  routeFab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, elevation: 10, zIndex: 100 },
+  // Royal Journey FAB (docked bottom-left)
+  routeFab: { position: 'absolute', bottom: 86, left: 20, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ffffff20', zIndex: 100 },
   routeFabBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: "#ef4444", minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#000' },
   routeFabBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
   reactorsSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, paddingBottom: 0, maxHeight: '65%' },

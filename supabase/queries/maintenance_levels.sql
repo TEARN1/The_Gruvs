@@ -273,7 +273,10 @@ begin
 end;
 $$;
 
-grant execute on function public.maintenance_status() to anon, authenticated;
+-- Not anon: these SECURITY DEFINER sensors expose operational data. The
+-- Guardian calls them with the service role key.
+revoke execute on function public.maintenance_status() from anon, public;
+grant execute on function public.maintenance_status() to authenticated, service_role;
 -- The runners are cron/service-role only — never client-callable.
 revoke execute on function public.run_maintenance_l1() from public, anon, authenticated;
 revoke execute on function public.run_maintenance_l2() from public, anon, authenticated;

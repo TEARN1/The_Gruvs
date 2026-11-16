@@ -7,15 +7,16 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { Platform, Easing } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
 import { supabase } from '../services/supabase';
 import { resilient } from '../utils/resilience';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './ToastNotification';
 import { REACTION_LIST } from '../constants/CategoryConfig';
 import { ReactionFX } from './ReactionFX';
+import { ControlledGlitterBurst } from './ControlledGlitterBurst';
 
 // Curated signature set — keys are pulled from REACTION_LIST so a reaction made
 // here maps to the same emoji everywhere else in the app (no raw-key leaks).
@@ -32,6 +33,7 @@ const reducedMotion = () =>
 const ReactionPill = ({ reaction, count, active, onPress, primary, muted, index = 0 }) => {
   const scale = useRef(new Animated.Value(1)).current;
   const float = useRef(new Animated.Value(0)).current;
+  const [glitterTrigger, setGlitterTrigger] = useState(0);
 
   useEffect(() => {
     if (reducedMotion()) return;
@@ -51,6 +53,7 @@ const ReactionPill = ({ reaction, count, active, onPress, primary, muted, index 
       Animated.timing(scale, { toValue: 1.35, duration: 100, useNativeDriver: true }),
       Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200, friction: 8 }),
     ]).start();
+    setGlitterTrigger(Date.now());
     onPress();
   };
 
@@ -66,10 +69,8 @@ const ReactionPill = ({ reaction, count, active, onPress, primary, muted, index 
           {
             backgroundColor: active ? `${primary}25` : 'rgba(255,255,255,0.05)',
             borderColor: active ? primary : 'rgba(255,255,255,0.1)',
+            position: 'relative',
           },
-          active && (IS_WEB
-            ? { boxShadow: `0 0 14px ${primary}99` }
-            : { shadowColor: primary, shadowOpacity: 0.8, shadowRadius: 10, elevation: 6 }),
         ]}
       >
         <MaterialCommunityIcons name={reaction.icon || 'star'} size={18} color={active ? primary : muted} />
@@ -78,6 +79,7 @@ const ReactionPill = ({ reaction, count, active, onPress, primary, muted, index 
             {count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}
           </Text>
         )}
+        <ControlledGlitterBurst trigger={glitterTrigger} count={10} radius={26} colors={[primary, '#ffd700', '#fff']} />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -90,6 +92,7 @@ export const EventReactions = ({ eventId, primary, muted }) => {
   const [myReactions, setMyReactions] = useState(new Set());
   const [ready, setReady] = useState(false);
   const [fx, setFx] = useState({ key: null, trigger: 0 }); // signature reaction burst
+  const inFlightRef = useRef(false);
 
   const fetchReactions = useCallback(async () => {
     if (!eventId) return;
@@ -125,20 +128,25 @@ export const EventReactions = ({ eventId, primary, muted }) => {
 
   const handleReaction = async (key) => {
     if (!user) { toast.show('Sign in to react', 'info'); return; }
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     const wasActive = myReactions.has(key);
+    // The table holds ONE reaction per person per event (unique event_id,
+    // user_id), as the feed card already assumes. Picking a second one used to
+    // try to add a row the database refuses, so it never saved. Now a new pick
+    // replaces the old one.
+    const previous = [...myReactions].find(k => k !== key) || null;
     if (!wasActive) setFx({ key, trigger: Date.now() }); // erupt the opposite-world plume on add
     // Optimistic update
-    setMyReactions(prev => {
-      const next = new Set(prev);
-      wasActive ? next.delete(key) : next.add(key);
+    const before = { mine: myReactions, counts };
+    setMyReactions(wasActive ? new Set() : new Set([key]));
+    setCounts(prev => {
+      const next = { ...prev, [key]: Math.max(0, (prev[key] || 0) + (wasActive ? -1 : 1)) };
+      if (!wasActive && previous) next[previous] = Math.max(0, (prev[previous] || 0) - 1);
       return next;
     });
-    setCounts(prev => ({
-      ...prev,
-      [key]: Math.max(0, (prev[key] || 0) + (wasActive ? -1 : 1)),
-    }));
 
     try {
       if (wasActive) {
@@ -152,23 +160,18 @@ export const EventReactions = ({ eventId, primary, muted }) => {
       } else {
         await resilient(
           [
-            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user?.id, reaction_key: key }, { onConflict: 'event_id,user_id,reaction_key', ignoreDuplicates: true }),
-            () => supabase.from('event_reactions').insert({ event_id: eventId, user_id: user?.id, reaction_key: key }),
+            () => supabase.from('event_reactions').upsert({ event_id: eventId, user_id: user?.id, reaction_key: key }, { onConflict: 'event_id,user_id' }),
+            () => supabase.rpc('upsert_event_reaction', { p_event_id: eventId, p_user_id: user?.id, p_key: key }),
           ],
           { attemptsPerTier: 2, baseMs: 200, label: 'EventReactions.add', fallbackValue: null }
         );
       }
     } catch {
-      // Rollback
-      setMyReactions(prev => {
-        const next = new Set(prev);
-        wasActive ? next.add(key) : next.delete(key);
-        return next;
-      });
-      setCounts(prev => ({
-        ...prev,
-        [key]: Math.max(0, (prev[key] || 0) + (wasActive ? 1 : -1)),
-      }));
+      // Rollback to exactly what was showing before the tap.
+      setMyReactions(before.mine);
+      setCounts(before.counts);
+    } finally {
+      inFlightRef.current = false;
     }
   };
 

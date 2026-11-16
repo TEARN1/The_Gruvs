@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
-  TextInput, Dimensions, Animated, Platform, Modal, RefreshControl, ActivityIndicator,
+  TextInput, Dimensions, useWindowDimensions, Animated, Platform, Modal, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import * as Location from 'expo-location';
@@ -40,7 +40,11 @@ import { SurveyCard } from '../components/SurveyCard';
 import { MealCard } from '../components/MealCard';
 import { MealDetailModal } from '../components/MealDetailModal';
 import { MealService } from '../services/mealService';
+import { appInstallService } from '../services/appInstallService';
+import { fx } from '../styles/webFx';
 
+// Module-level StyleSheets below (hero, cg, et) size from the window at load.
+// The component itself reads live dimensions through useWindowDimensions.
 const { width } = Dimensions.get('window');
 
 // ── Sport type quick-filter chips ────────────────────────────────────────────
@@ -172,10 +176,10 @@ const HeroCard = ({ event, primary, onPress }) => {
     if (e.media?.[0]) {
       url = typeof e.media[0] === 'string' ? e.media[0] : e.media[0].url;
     }
-    // TODO(v6): remove media_urls fallback after migration
+    // NOTE(v6): retain media_urls fallback for backward compatibility
     if (!url && e.media_urls?.[0]) url = e.media_urls[0];
     if (!url && e.cover_url) url = e.cover_url;
-    // TODO(v6): remove cover_image/image_url fallbacks after migration
+    // NOTE(v6): retain cover_image/image_url fallbacks for backward compatibility
     if (!url && e.cover_image) url = e.cover_image;
     if (!url && e.image_url) url = e.image_url;
     if (!url) return null;
@@ -314,13 +318,14 @@ const CategoryGrid = ({ onSelect, primary, textColor, muted, categoryCounts }) =
   const TOP_CATS = CATEGORY_KEYS.slice(0, 12);
   return (
     <View style={cg.grid}>
-      {TOP_CATS.map(key => {
+      {TOP_CATS.map((key, idx) => {
         const cfg = CATEGORY_CONFIG[key];
         const count = categoryCounts[key] || 0;
         return (
           // Items 67-68: accessible label + web hover via className
           <TouchableOpacity
             key={key}
+            {...fx('rim lift rise', idx)}
             style={[
               cg.cell,
               { backgroundColor: `${cfg.color}12`, borderColor: `${cfg.color}25` },
@@ -422,7 +427,7 @@ const startsInLabel = (event) => {
 const EventTile = ({ event, primary, textColor, muted, onPress, isHot = false }) => {
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
   const starts = startsInLabel(event);
-  // TODO(v6): remove media_urls/cover_image/image_url fallbacks after migration
+  // Legacy compatibility: media_urls/cover_image/image_url fallbacks retained for older records
   // Named thumbUrl (not `thumb`) so it doesn't shadow the imported CDN helper —
   // this raw URL was being served full-res, uncached and un-resized, straight
   // past the weserv resizer every other image call site goes through.
@@ -550,11 +555,13 @@ const sh = StyleSheet.create({
 // ── Main ExplorePage ──────────────────────────────────────────────────────────
 export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const { currentTheme } = useTheme();
   const { user } = useAuth();
   const { applyLocationPrivacy } = useIdentity();
 
   const [query, setQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [activeMoods, setActiveMoods] = useState(new Set());
   const [activeCat, setActiveCat] = useState(null);
   const [activeSport, setActiveSport] = useState(null);
@@ -1045,7 +1052,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ width: '100%', maxWidth: 720, alignSelf: 'center', paddingBottom: 140 }}
         onScroll={Platform.OS === 'web' ? (e) => {
           const y = e.nativeEvent.contentOffset.y;
           // Only re-render when the scroll-to-top threshold (400) is crossed.
@@ -1072,46 +1079,100 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
               <Text style={[styles.headerSub, { color: primary }]}>DISCOVER YOUR NEXT GRUV</Text>
             </View>
           </View>
-          <TouchableOpacity
-            onPress={() => setScoutOpen(true)}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 20,
-              borderWidth: 1.2,
-              borderColor: `${primary}45`,
-              backgroundColor: `${primary}15`,
-              ...(Platform.OS === 'web' ? { boxShadow: `0 0 14px ${primary}25` } : {}),
-            }}
-            activeOpacity={0.85}
-            accessibilityLabel="Open Talent Scout leaderboard"
-          >
-            <Feather name="award" size={14} color={primary} />
-            <Text style={{ color: primary, fontWeight: '900', fontSize: 12, letterSpacing: 0.5 }}>Scout</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {Platform.OS === 'web' && (
+              <TouchableOpacity
+                onPress={() => appInstallService.openModal()}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  borderWidth: 1.2,
+                  borderColor: `${primary}45`,
+                  backgroundColor: `${primary}15`,
+                  ...(Platform.OS === 'web' ? { boxShadow: `0 0 10px ${primary}20` } : {}),
+                }}
+                activeOpacity={0.85}
+                accessibilityLabel="Download and install The Gruvs App for Apple or Android"
+              >
+                <Feather name="download" size={13} color={primary} />
+                <Text style={{ color: primary, fontWeight: '900', fontSize: 11.5, letterSpacing: 0.5 }}>Get App</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => setScoutOpen(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 20,
+                borderWidth: 1.2,
+                borderColor: `${primary}45`,
+                backgroundColor: `${primary}15`,
+                ...(Platform.OS === 'web' ? { boxShadow: `0 0 14px ${primary}25` } : {}),
+              }}
+              activeOpacity={0.85}
+              accessibilityLabel="Open Talent Scout leaderboard"
+            >
+              <Feather name="award" size={14} color={primary} />
+              <Text style={{ color: primary, fontWeight: '900', fontSize: 12, letterSpacing: 0.5 }}>Scout</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search bar — neo-glass capsule */}
-        <GlassView glow={isSearching} style={[styles.searchWrap, { borderColor: isSearching ? primary : `${primary}25`, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
-          <Feather name="search" size={17} color={isSearching ? primary : muted} />
+        <GlassView glow={isSearching || searchFocused} style={[styles.searchWrap, { borderColor: (isSearching || searchFocused) ? primary : `${primary}25`, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+          <Feather name="search" size={17} color={(isSearching || searchFocused) ? primary : muted} />
           <TextInput
             style={[styles.searchInput, { color: textColor }]}
             placeholder="Search events, artists, venues..."
             placeholderTextColor={muted}
             value={query}
             onChangeText={setQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
             accessibilityLabel="Search events, artists, and venues"
             accessibilityHint="Results appear below as you type"
           />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} style={{ padding: 6, marginRight: 2 }}>
+          {(query.length > 0 || searchFocused) && (
+            <TouchableOpacity onPress={() => { setQuery(''); setSearchFocused(false); }} style={{ padding: 6, marginRight: 2 }}>
               <Feather name="x" size={15} color={muted} />
             </TouchableOpacity>
           )}
         </GlassView>
+
+        {/* Recent & Trending search suggestions */}
+        {searchFocused && !isSearching && (
+          <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <Feather name="compass" size={12} color={primary} />
+              <Text style={{ color: muted, fontSize: 10.5, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                Trending Searches & Neighborhoods
+              </Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
+              {['Amapiano', 'Braamfontein', 'Rooftop Party', 'Deep House', 'Rosebank', 'Afrobeats', 'Kasi Soul', 'Soweto'].map(t => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => { setQuery(t); setSearchFocused(false); }}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+                    backgroundColor: `${primary}15`, borderWidth: 1, borderColor: `${primary}35`,
+                  }}
+                >
+                  <Feather name="trending-up" size={11} color={primary} />
+                  <Text style={{ color: textColor, fontSize: 11.5, fontWeight: '700' }}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* ── SEARCH MODE ─────────────────────────────────────────────────── */}
         {isSearching ? (
@@ -1191,7 +1252,7 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 </View>
                 <Text style={[styles.servSub, { color: muted, fontSize: 11, lineHeight: 15 }]}>Transport & Haulage · Crew & Muscle · Event logistics{'\n'}Reliable Vibers active near you.</Text>
               </View>
-              <View style={[styles.servCta, { backgroundColor: primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, shadowColor: primary, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }]}>
+              <View style={[styles.servCta, { backgroundColor: primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }]}>
                 <Text style={[styles.servCtaText, { fontWeight: '900', color: '#000' }]}>Hire</Text>
                 <Feather name="arrow-right" size={14} color="#000" />
               </View>
@@ -1560,21 +1621,21 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                 (() => {
                   const GAP = 10;
                   const SIDE = 16;
-                  const colW = (width - SIDE * 2 - GAP) / 2;
+                  const numCols = windowWidth >= 1024 ? 4 : (windowWidth >= 640 ? 3 : 2);
                   // Deterministic varied heights for the masonry rhythm.
                   const heights = [200, 150, 240, 175, 215, 160];
-                  const cols = [[], []];
+                  const cols = Array.from({ length: numCols }, () => []);
                   // Pinterest-style teaser: show a few tiles, reveal the rest on "See more".
-                  const PREVIEW = 8;
+                  const PREVIEW = numCols * 4;
                   const shown = showAllPhotos ? galleryPhotos : galleryPhotos.slice(0, PREVIEW);
                   shown.forEach((photo, i) => {
-                    cols[i % 2].push({ photo, i, h: heights[i % heights.length] });
+                    cols[i % numCols].push({ photo, i, h: heights[i % heights.length] });
                   });
                   const renderTile = ({ photo, i, h }) => (
                     <TouchableOpacity
                       key={photo.id}
                       activeOpacity={0.9}
-                      style={{ width: colW, height: h, borderRadius: 18, overflow: 'hidden', backgroundColor: `${primary}10`, marginBottom: GAP }}
+                      style={{ width: '100%', height: h, borderRadius: 18, overflow: 'hidden', backgroundColor: `${primary}10`, marginBottom: GAP }}
                       onPress={() => { setSelectedPhotoIndex(i); setPhotoViewerVisible(true); }}
                     >
                       <SmartImage source={{ uri: thumb.thumbnail(photo.media_url) }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
@@ -1597,8 +1658,9 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
                   return (
                     <>
                       <View style={{ flexDirection: 'row', paddingHorizontal: SIDE, gap: GAP }}>
-                        <View style={{ flex: 1 }}>{cols[0].map(renderTile)}</View>
-                        <View style={{ flex: 1 }}>{cols[1].map(renderTile)}</View>
+                        {cols.map((colItems, colIdx) => (
+                          <View key={colIdx} style={{ flex: 1 }}>{colItems.map(renderTile)}</View>
+                        ))}
                       </View>
                       {galleryPhotos.length > PREVIEW && (
                         <TouchableOpacity
@@ -1621,6 +1683,24 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             {/* ── App Updates (Upgrades) ──────────────────────────────────── */}
             <View style={{ marginBottom: 20 }}>
               <SectionHeader title="App Upgrades" textColor={textColor} primary={primary} />
+              {Platform.OS === 'web' && (
+                <View style={{ marginHorizontal: 20, marginBottom: 14, padding: 14, borderRadius: 16, backgroundColor: `${primary}12`, borderWidth: 1, borderColor: `${primary}35`, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: primary, alignItems: 'center', justifyContent: 'center' }}>
+                    <Feather name="download" size={18} color="#000" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>Get The Gruvs Mobile App</Text>
+                    <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>Free install for Apple iOS & Android</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => appInstallService.openModal()}
+                    style={{ backgroundColor: primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>Install</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               {appUpdates.length === 0 ? (
                 <View style={{ paddingHorizontal: 20, paddingVertical: 14 }}>
                   <Text style={{ color: muted, fontSize: 13 }}>No updates recorded yet.</Text>
@@ -1834,10 +1914,8 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 600,
-            shadowColor: primary,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.5,
-            shadowRadius: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.22)',
           }}
         >
           <Feather name="chevron-up" size={22} color="#000" />
@@ -1926,7 +2004,7 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginTop: 2 },
   searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginVertical: 14, paddingHorizontal: 14, height: 48, borderRadius: 24, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.05)' },
   searchInput: { flex: 1, fontSize: 14 },
-  heroSkeleton: { height: Math.min(320, Math.max(240, width * 0.75)), borderRadius: 24, marginHorizontal: 16, marginBottom: 20 },
+  heroSkeleton: { height: 280, borderRadius: 24, marginHorizontal: 16, marginBottom: 20 },
   noResults: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   noResultsText: { fontSize: 14 },
   resultCount: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 12 },

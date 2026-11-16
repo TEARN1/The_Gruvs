@@ -14,10 +14,12 @@
     <!-- SEO & Social — default (overridden by /share edge function for dynamic links) -->
     <meta name="description" content="The Gruvs — the ultimate event discovery platform. Find gruvs near you, connect with vibers, hire services, and ride the vibe economy." />
     <meta name="keywords" content="events, discover, gruvs, vibers, nightlife, music, party, food, culture, South Africa" />
-    <meta name="author" content="The Gruvs" />
-    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Asemahle &quot;TEARN&quot; Nkwali, TEARN Ventures" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="google-site-verification" content="bPRhAOVtjTVgWbL5K-p0Y9L4qwQtw8Ja9y4enHRp_QA" />
     <link rel="canonical" href="https://thegruvs.com" />
+    <link rel="author" href="https://thegruvs.com/founder" />
+    <link rel="alternate" type="application/rss+xml" title="The Gruvs — Live Events Feed" href="https://thegruvs.com/feed.xml" />
 
     <!-- Open Graph — default app card -->
     <meta property="og:type" content="website" />
@@ -39,6 +41,126 @@
     <meta name="twitter:image" content="https://thegruvs.com/og-default.jpg" />
     <meta name="twitter:image:alt" content="The Gruvs" />
 
+    <!-- Google Rich Results & Knowledge Graph (Schema.org Multi-Entity Graph) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Person",
+          "@id": "https://thegruvs.com/#founder",
+          "name": "Asemahle \"TEARN\" Nkwali",
+          "alternateName": ["Asemahle Nkwali", "TEARN!", "TEARN"],
+          "jobTitle": "Founder & CEO",
+          "url": "https://thegruvs.com/founder",
+          "image": {
+            "@type": "ImageObject",
+            "@id": "https://thegruvs.com/#founderPortrait",
+            "url": "https://thegruvs.com/images/asemahle-nkwali-ceo-the-gruvs.jpg",
+            "caption": "Asemahle \"TEARN\" Nkwali, Founder & CEO of The Gruvs, The Resident Crew, and Excellency Academy",
+            "width": 1200,
+            "height": 1200
+          },
+          "description": "Founder & CEO of The Gruvs, The Resident Crew, and Excellency Academy. Architect of high-frequency event discovery systems, verified co-living networks, and technical craftsmanship across South Africa.",
+          "knowsAbout": [
+            "Technology",
+            "South African Nightlife",
+            "Community Safety",
+            "Enterprise Software",
+            "Event Discovery",
+            "Urban Culture",
+            "PropTech",
+            "Systems Architecture"
+          ],
+          "worksFor": { "@id": "https://thegruvs.com/#parent-org" },
+          "sameAs": [
+            "https://thegruvs.com/founder",
+            "https://www.linkedin.com/in/asemahle-nkwali",
+            "https://twitter.com/thegruvs",
+            "https://instagram.com/thegruvs"
+          ]
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://thegruvs.com/#parent-org",
+          "name": "TEARN Ventures",
+          "alternateName": ["The Gruvs Group", "The Gruvs Technologies", "TEARN Ventures", "TEARN"],
+          "url": "https://thegruvs.com",
+          "logo": {
+            "@type": "ImageObject",
+            "@id": "https://thegruvs.com/#logo",
+            "url": "https://thegruvs.com/logo.png",
+            "caption": "The Gruvs Logo",
+            "width": 512,
+            "height": 512
+          },
+          "founder": { "@id": "https://thegruvs.com/#founder" },
+          "subOrganization": [
+            {
+              "@type": "Organization",
+              "@id": "https://thegruvs.com/#thegruvs",
+              "name": "The Gruvs",
+              "url": "https://thegruvs.com",
+              "description": "South Africa's premier live event discovery and vibe platform."
+            },
+            {
+              "@type": "Organization",
+              "@id": "https://theresidentcrew.com/#organization",
+              "name": "The Resident Crew",
+              "url": "https://theresidentcrew.com",
+              "description": "Verified stays, student accommodation, event crash pads, and safe community co-living."
+            },
+            {
+              "@type": "Organization",
+              "@id": "https://excellencyacs.com/#organization",
+              "name": "Excellency Academy",
+              "url": "https://excellencyacs.com",
+              "description": "Engineering craftsmanship, cloud architecture, and technical innovation academy."
+            }
+          ],
+          "description": "Parent technology and venture studio operating The Gruvs, The Resident Crew, and Excellency Academy.",
+          "sameAs": [
+            "https://twitter.com/thegruvs",
+            "https://instagram.com/thegruvs"
+          ]
+        },
+        {
+          "@type": "WebApplication",
+          "@id": "https://thegruvs.com/#app",
+          "name": "The Gruvs",
+          "url": "https://thegruvs.com",
+          "applicationCategory": "LifestyleApplication",
+          "operatingSystem": "Web, Android, iOS",
+          "creator": { "@id": "https://thegruvs.com/#founder" },
+          "publisher": { "@id": "https://thegruvs.com/#parent-org" },
+          "description": "Live event discovery, crowd meters, real-time vibe mapping, ticket vaults, and verified nightlife community platform.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "ZAR"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://thegruvs.com/#website",
+          "url": "https://thegruvs.com",
+          "name": "The Gruvs",
+          "description": "Find the best local events — from music and nightlife to food and culture across Gauteng and South Africa.",
+          "publisher": { "@id": "https://thegruvs.com/#parent-org" },
+          "creator": { "@id": "https://thegruvs.com/#founder" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://thegruvs.com/?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- PWA & Mobile -->
     <meta name="theme-color" content="#0d1112" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -57,6 +179,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="preconnect" href="https://cdn-az.allevents.in" />
+    <link rel="preconnect" href="https://feevvddvrjmfbhffccbf.supabase.co" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin />
@@ -117,9 +241,17 @@
       @media (prefers-color-scheme: light) {
         :root { --color-bg: #f0f4f5; --color-surface: #e4e8e9; --color-text: #0d1112; --color-muted: rgba(13,17,18,0.55); }
       }
-      html, body { height: 100%; margin: 0; padding: 0; display: flex; flex-direction: column; }
-      body { background-color: #0d1112; color: #fff; }
-      #root { display: flex; flex: 1; height: 100%; }
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden !important;
+        max-width: 100vw;
+      }
+      body { background-color: #0d1112; color: #fff; overflow-x: hidden !important; }
+      #root { display: flex; flex: 1; height: 100%; overflow-x: hidden !important; max-width: 100vw; }
       body, input, textarea, button, select {
         font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;

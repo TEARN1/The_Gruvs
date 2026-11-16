@@ -107,8 +107,8 @@ const TURN_CREDENTIAL = process.env.EXPO_PUBLIC_TURN_CREDENTIAL;
 
 const ICE_CONFIG = {
   iceServers: [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-    { urls: ['stun:stun2.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302', 'stun:stun3.l.google.com:19302', 'stun:stun4.l.google.com:19302'] },
+    { urls: ['stun:stun.cloudflare.com:3478', 'stun:openrelay.metered.ca:80'] },
     ...(TURN_URL ? [{ urls: [TURN_URL], username: TURN_USERNAME, credential: TURN_CREDENTIAL }] : []),
   ],
   // Gather candidates BEFORE the user hits call, so the handshake doesn't spend

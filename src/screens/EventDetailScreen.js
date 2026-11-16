@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, TextInput } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Platform, Share, Animated, Modal, Dimensions, RefreshControl, TextInput, ActivityIndicator, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useIdentity } from '../context/IdentityContext';
@@ -20,6 +20,7 @@ import { TalentEngine } from '../services/talentEngine';
 import { useToast } from '../components/ToastNotification';
 import { supabase } from '../services/supabase';
 import { RSVPManager, CheckInManager, UserManager, RealtimeManager, CapacityManager, ReminderManager, VibeManager } from '../services/dataFlow';
+import { findNearbyCoPresence } from '../services/coPresence';
 import { LocationService } from '../services/locationService';
 import { SecurityService } from '../services/securityService';
 import { affiliateUrl } from '../utils/affiliate';
@@ -51,7 +52,9 @@ import { CarpoolBoard }           from '../components/CarpoolBoard';
 import { ResidentLiftsSection }   from '../components/ResidentLiftsSection';
 import { ResidentStaysSection }   from '../components/ResidentStaysSection';
 import { ResidentTrustBadge }     from '../components/ResidentTrustBadge';
+import { ExcellencyMasterclassSection } from '../components/ExcellencyMasterclassSection';
 import { EventContextualAds }     from '../components/EventContextualAds';
+import { EventFlyersSection }     from '../components/EventFlyersSection';
 import { EventScheduleSection }   from '../components/EventScheduleSection';
 import { EventChatRoom }          from '../components/EventChatRoom';
 import { EventPollSection }       from '../components/EventPollSection';
@@ -89,6 +92,27 @@ import { lifecycleState } from '../utils/eventLifecycle';
 import { eventInstant } from '../utils/tz';
 import { DoorCheckInModal } from '../components/DoorCheckInModal';
 import { checkinVerdict, movementPlausible } from '../utils/checkinGuard';
+import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
+import { Pop } from '../components/Pop';
+import { AnimatedCounter } from '../components/Motion';
+import { sensoryHaptics } from '../services/sensoryHapticEngine';
+import { OpticalMoirePass, BorderTracer } from '../components/KasiIndustrialUI';
+import { deferred } from '../utils/deferred';
+import { EventClipsSection } from '../components/EventClipsSection';
+import { CreateReelModal } from '../components/CreateReelModal';
+import { ClipConversions } from '../services/clipConversions';
+import { PendingIntent } from '../utils/pendingIntent';
+import { ClipStatsPanel } from '../components/ClipStatsPanel';
+
+// Panels load on first open, not at app start (see src/utils/deferred.js).
+const DoorCodeModal = deferred(() => require('../components/DoorCodeModal').DoorCodeModal, 'DoorCodeModal');
+const DoorCodeEntryModal = deferred(() => require('../components/DoorCodeEntryModal').DoorCodeEntryModal, 'DoorCodeEntryModal');
+const TicketVaultExchangeModal = deferred(() => require('../components/TicketVaultExchangeModal').TicketVaultExchangeModal, 'TicketVaultExchangeModal');
+const NightSafetyLogisticsModal = deferred(() => require('../components/NightSafetyLogisticsModal').NightSafetyLogisticsModal, 'NightSafetyLogisticsModal');
+const InPersonVibeRadarModal = deferred(() => require('../components/InPersonVibeRadarModal').InPersonVibeRadarModal, 'InPersonVibeRadarModal');
+const BoothAndStreetModal = deferred(() => require('../components/BoothAndStreetModal').BoothAndStreetModal, 'BoothAndStreetModal');
+const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
+const CultureArtifactsModal = deferred(() => require('../components/CultureArtifactsModal').CultureArtifactsModal, 'CultureArtifactsModal');
 
 // Gaming events get a scoreboard too (esports engine), EXCEPT the purely social
 // gaming categories where a league table makes no sense.
@@ -101,8 +125,7 @@ const _isSportCat = (cat) => {
   return GAMING_KEYS.has(c) && !_NON_SCORE_GAMING.has(c);
 };
 
-const SCREEN_W = Dimensions.get('window').width;
-const HERO_H = Math.min(300, Math.max(220, SCREEN_W * 0.72));
+const HERO_H = 280;
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -157,7 +180,8 @@ const formatPrice = (price) => {
   return money(parsedFloat, { decimals: true });
 };
 
-export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) => {
+// onOpenReel(reelId): open the full-screen Reels player on a clip from this event.
+export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onOpenReel }) => {
   useBackClose(visible, onClose);
   const { currentTheme } = useTheme();
   const { user, profile } = useAuth();
@@ -185,9 +209,21 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [settingReminder, setSettingReminder] = useState(false);
   const [whoGoingVisible, setWhoGoingVisible] = useState(false);
   const [whoGoing, setWhoGoing] = useState([]);
+  const [whoHereVisible, setWhoHereVisible] = useState(false);
+  const [whoHere, setWhoHere] = useState([]);
+  const [whoHereLoading, setWhoHereLoading] = useState(false);
+  const [activeProfileId, setActiveProfileId] = useState(null);
+  const [dmUser, setDmUser] = useState(null);
   const [attendeePreview, setAttendeePreview] = useState([]);
   const [attendeeGroups, setAttendeeGroups] = useState({ mutuals: [], friends: [], neighborhood: [] });
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
+  const [vaultModalVisible, setVaultModalVisible] = useState(false);
+  const [safetyModalVisible, setSafetyModalVisible] = useState(false);
+  const [inPersonModalVisible, setInPersonModalVisible] = useState(false);
+  const [boothModalVisible, setBoothModalVisible] = useState(false);
+  const [sensoryModalVisible, setSensoryModalVisible] = useState(false);
+  const [cultureModalVisible, setCultureModalVisible] = useState(false);
+  const [dockGlitter, setDockGlitter] = useState({ vault: 0, safety: 0, vibe: 0, booth: 0, sensory: 0, culture: 0 });
   const [myTicket, setMyTicket] = useState(null);
   const [groupModalVisible, setGroupModalVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
@@ -198,12 +234,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [countdown, setCountdown] = useState(null);
   const [weather, setWeather] = useState(null);
   const [calendarAdded, setCalendarAdded] = useState(false);
+  const [showLogistics, setShowLogistics] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
   const [roleManagerVisible, setRoleManagerVisible] = useState(false);
   const [doorPosterVisible, setDoorPosterVisible] = useState(false);
   const [inviteVisible, setInviteVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'manage' | 'polls' | 'playlist'
   const [momentCaptureOpen, setMomentCaptureOpen] = useState(false);
+  const [clipCreatorOpen, setClipCreatorOpen] = useState(false);
+  const [clipsRefresh, setClipsRefresh] = useState(0);
   const [mapVisible, setMapVisible] = useState(false);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [guestListBusy, setGuestListBusy] = useState(false);
@@ -231,7 +270,9 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   const [giftingOpen, setGiftingOpen] = useState(false);
   const scrollRef = useRef(null);
 
-  const { isOrganiser, isCoHost, canPost, canModerate } = useEventRole(
+  const [doorCodeOpen, setDoorCodeOpen] = useState(false);
+  const [doorEntryOpen, setDoorEntryOpen] = useState(false);
+  const { isOrganiser, isCoHost, canPost, canModerate, canScan } = useEventRole(
     event?.id, user?.id, event?.author_id ?? event?.profiles?.id
   );
 
@@ -342,13 +383,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     try {
       if (liking) {
         const { error } = await supabase.from('event_guest_likes').upsert(
-          { guest_id: guestId, user_id: user.id, event_id: event?.id },
+          { guest_id: guestId, user_id: user?.id, event_id: event?.id },
           { onConflict: 'guest_id,user_id', ignoreDuplicates: true },
         );
         if (error) throw error;
       } else {
         const { error } = await supabase.from('event_guest_likes')
-          .delete().eq('guest_id', guestId).eq('user_id', user.id);
+          .delete().eq('guest_id', guestId).eq('user_id', user?.id);
         if (error) throw error;
       }
     } catch {
@@ -384,7 +425,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         media = urls.map(u => ({ type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image', url: u }));
       } else if (event?.cover_url) {
         media = [{ type: 'image', url: event.cover_url }];
-      // TODO(v6): remove image_url/cover_image fallbacks after migration
+      // Legacy compatibility: cover_image/image_url fallbacks retained for older event records
       } else if (event?.image_url) {
         media = [{ type: 'image', url: event.image_url }];
       } else if (event?.cover_image) {
@@ -581,7 +622,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
   }, [visible, event?.id, fetchUserState, fetchAttendeePreview]);
 
   const handleRsvp = useCallback(async (status) => {
-    if (!user) { onAuthRequired?.(); return; }
+    // Signed out: remember the tap, so signing in finishes it (effect below).
+    if (!user) { PendingIntent.set('rsvp', { eventId: event?.id, status }); onAuthRequired?.(); return; }
     // Age gate (the only legal hard restriction): no positive RSVP to an 18+
     // Gruv when the user is under the limit.
     if (status === 'going' || status === 'maybe') {
@@ -592,13 +634,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     // Optimistic update
     const prev = rsvpStatus;
     setRsvpStatus(status);
-    if (status === 'going' && prev !== 'going') { setGoingCount((c) => c + 1); setRsvpFx(Date.now()); }
+    if (status === 'going' && prev !== 'going') {
+      setGoingCount((c) => c + 1);
+      setRsvpFx(Date.now());
+      sensoryHaptics.triggerLogDrum('heavy');
+    }
     if (prev === 'going' && status !== 'going') setGoingCount((c) => Math.max(0, c - 1));
     setRsvpLoading(true);
     try {
       const ok = await RSVPManager.upsert(event.id, user.id, status);
       if (!ok) throw new Error('RSVP update failed');
-      if (status === 'going' || status === 'maybe') track('rsvp', { eventId: event.id, status });
+      if (status === 'going' || status === 'maybe') {
+        track('rsvp', { eventId: event.id, status });
+        ClipConversions.recordRsvp({ eventId: event.id, viewerId: user?.id }); // credits the clip that sent them, if one did
+      }
       showToast(
         status === 'going' ? "You're Locked In!" : status === 'maybe' ? "Marked Maybe" : "Removed",
         'success'
@@ -614,6 +663,14 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     }
   }, [user, profile, rsvpStatus, rsvpLoading, event, onAuthRequired, showToast]);
 
+  // They tapped RSVP while signed out and have now signed in: do what they
+  // asked. Waits for the profile so the 18+ check sees their real birthday.
+  useEffect(() => {
+    if (!user?.id || !profile || !event?.id) return;
+    const wanted = PendingIntent.take('rsvp', (p) => p?.eventId === event.id);
+    if (wanted?.status) handleRsvp(wanted.status);
+  }, [user?.id, profile, event?.id, handleRsvp]);
+
   const handleAddToCalendar = useCallback(async () => {
     if (!event) return;
     try {
@@ -621,28 +678,44 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
       if (result.success) {
         setCalendarAdded(true);
         await RichHaptics.success();
-        showToast('Gruv added to your calendar! 📅', 'success');
+        showToast('Gruv added to your calendar!', 'success');
       } else {
         showToast(result.error === 'Permission denied' ? 'Allow calendar access in Settings' : 'Could not add to calendar', 'error');
       }
     } catch { showToast('Could not add to calendar', 'error'); }
   }, [event, showToast]);
 
+  // Same vibe state as the feed (see VibeManager.subscribe): a vibe made on
+  // either screen, and the server's real count, show up on both.
+  useEffect(() => VibeManager.subscribe(({ eventId, userId, vibed, count }) => {
+    if (!event?.id || eventId !== event.id || userId !== user?.id) return;
+    setHasVibed(vibed);
+    if (typeof count === 'number') setVibeCount(count);
+  }), [event?.id, user?.id]);
+
+  const [likeFx, setLikeFx] = useState({ n: 0, kind: 'like', burst: 0 });
+
   const handleVibe = useCallback(async () => {
     if (!user) { onAuthRequired?.(); return; }
     if (vibeSending) return;
     const wasVibed = hasVibed;
+    if (!wasVibed && event?.author_id === user.id) { showToast("You can't vibe your own event", 'info'); return; }
+    setLikeFx(f => ({ n: f.n + 1, kind: wasVibed ? 'unlike' : 'like', burst: wasVibed ? f.burst : Date.now() }));
     setHasVibed(!wasVibed);
     setVibeCount(c => wasVibed ? Math.max(0, c - 1) : c + 1);
     setVibeSending(true);
     try {
-      const ok = wasVibed
+      const res = wasVibed
         ? await VibeManager.removeVibe(event.id, user.id)
-        : await VibeManager.sendVibe(event.id, user.id);
-      if (!ok) throw new Error('vibe failed');
+        : await VibeManager.sendVibe(event.id, user.id, event.author_id);
+      // Only `true` is success. 'self' and 'throttled' are truthy strings, and
+      // were counted as success: own-event vibes showed +1 the server rejected.
+      if (res === 'self') { setHasVibed(wasVibed); setVibeCount(c => wasVibed ? c + 1 : Math.max(0, c - 1)); showToast("You can't vibe your own event", 'info'); return; }
+      if (res === 'throttled') { setHasVibed(wasVibed); setVibeCount(c => wasVibed ? c + 1 : Math.max(0, c - 1)); return; }
+      if (res !== true) throw new Error('vibe failed');
       if (!wasVibed) {
         if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-        showToast('⚡ Vibe sent!', 'success');
+        showToast('Vibe sent!', 'success');
       }
     } catch {
       setHasVibed(wasVibed);
@@ -722,6 +795,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
     }
   };
 
+  const handleWhoHere = async () => {
+    if (!event?.id) return;
+    setWhoHereLoading(true);
+    setWhoHereVisible(true);
+    try {
+      const results = await findNearbyCoPresence(user?.id, event.id);
+      setWhoHere(results);
+    } catch {
+      showToast('Could not load vibers in the room.', 'error');
+    } finally {
+      setWhoHereLoading(false);
+    }
+  };
+
   const openMaps = () => {
     const lat = event?.lat ?? event?.latitude;
     const lon = event?.lon ?? event?.longitude;
@@ -774,7 +861,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           const { data: recent } = await supabase
             .from('live_checkins')
             .select('lat, lon, checked_in_at')
-            .eq('user_id', user.id)
+            .eq('user_id', user?.id)
             .order('checked_in_at', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -798,20 +885,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
         SoundFX.playChannel('touchDown'); // the hero sound — the signature moment, tone-pickable
         track('touch_down', { eventId: event.id, category: event.category });
-        showToast("Touched Down! Your footprint is lit. 🔥", 'success');
+        showToast("Touched Down! Your footprint is lit.", 'success');
         // Reveal who you keep crossing paths with — but only where there's enough
         // density for it to be magic (parked at launch; see launchConfig).
         if (feature('crossedPaths')) setCrossedVisible(true);
       } else if (await CheckinSync.queueFailed(event.id, user.id, privateCoords, { expiresAt: checkinExpiry, identityMode })) {
         setCheckedIn(true);
-        showToast("Bad signal — we'll log your Touch Down the moment you're back. 📍", 'info');
+        showToast("Bad signal — we'll log your Touch Down the moment you're back.", 'info');
       } else {
         showToast('Touch Down failed. Try again.', 'error');
       }
     } catch {
       if (await CheckinSync.queueFailed(event.id, user.id, {}, { identityMode })) {
         setCheckedIn(true);
-        showToast("Bad signal — we'll log your Touch Down the moment you're back. 📍", 'info');
+        showToast("Bad signal — we'll log your Touch Down the moment you're back.", 'info');
       } else {
         showToast('Touch Down failed. Try again.', 'error');
       }
@@ -834,12 +921,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose} statusBarTranslucent>
-      <View
-        style={[styles.root, { backgroundColor: background }]}
-        accessibilityViewIsModal
-        accessibilityLabel={event?.title ? `Event details: ${event.title}` : 'Event details'}
-        {...(Platform.OS === 'web' ? { 'aria-modal': true } : {})}
-      >
+      <View style={{ flex: 1, width: '100%', backgroundColor: background }}>
+        <View
+          style={[styles.root, { backgroundColor: background }]}
+          accessibilityViewIsModal
+          accessibilityLabel={event?.title ? `Event details: ${event.title}` : 'Event details'}
+          {...(Platform.OS === 'web' ? { 'aria-modal': true } : {})}
+        >
 
         <View style={styles.hero}>
           {matchCard ? (
@@ -897,6 +985,20 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 surface={surface}
                 triggerCapture={momentCaptureOpen}
                 onCaptureHandled={() => setMomentCaptureOpen(false)}
+              />
+            </SafeSection>
+          )}
+
+          {event?.id && (
+            <SafeSection label="Clips" primary={primary}>
+              <EventClipsSection
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                refreshKey={clipsRefresh}
+                onOpenReel={onOpenReel}
+                onAddClip={() => (user ? setClipCreatorOpen(true) : onAuthRequired?.())}
               />
             </SafeSection>
           )}
@@ -1065,7 +1167,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             if (!hasTiers) return null;
             return (
                   <View style={[styles.ticketSection, { backgroundColor: `${primary}06`, borderColor: `${primary}18` }]}>
-                    <Text style={[styles.ticketSectionTitle, { color: primary }]}>🎟️ TICKET OPTIONS</Text>
+                    <Text style={[styles.ticketSectionTitle, { color: primary }]}>TICKET OPTIONS</Text>
                     <View style={styles.ticketGrid}>
                       {parsed.general ? (
                         <View style={styles.ticketTier}>
@@ -1075,13 +1177,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                       ) : null}
                       {parsed.vip ? (
                         <View style={styles.ticketTier}>
-                          <Text style={[styles.ticketLabel, { color: "#f59e0b" }]}>👑 VIP</Text>
+                          <Text style={[styles.ticketLabel, { color: "#f59e0b" }]}>VIP</Text>
                           <Text style={[styles.ticketValue, { color: "#f59e0b" }]}>{money(parseFloat(parsed.vip), { decimals: true })}</Text>
                         </View>
                       ) : null}
                       {parsed.vvip ? (
                         <View style={styles.ticketTier}>
-                          <Text style={[styles.ticketLabel, { color: "#d946ef" }]}>💎 VVIP</Text>
+                          <Text style={[styles.ticketLabel, { color: "#d946ef" }]}>VVIP</Text>
                           <Text style={[styles.ticketValue, { color: "#d946ef" }]}>{money(parseFloat(parsed.vvip), { decimals: true })}</Text>
                         </View>
                       ) : null}
@@ -1092,6 +1194,13 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                         <Text style={[styles.ticketValue, { color: textColor, fontSize: 13, fontWeight: '700' }]}>{parsed.other}</Text>
                       </View>
                     ) : null}
+                    {/* Prices with no way to buy, and no word on how, read like a
+                        broken button. Say only what we know. */}
+                    {!event?.ticket_url && (
+                      <Text style={{ color: textMuted, fontSize: 12, marginTop: 10 }}>
+                        No ticket link added yet.
+                      </Text>
+                    )}
                   </View>
                 );
           })()}
@@ -1141,6 +1250,33 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             />
           )}
 
+          {event?.id && canScan && (
+            <DoorCodeModal
+              visible={doorCodeOpen}
+              eventId={event.id}
+              eventTitle={event.title}
+              primary={primary}
+              onClose={() => setDoorCodeOpen(false)}
+            />
+          )}
+          {event?.id && user && (
+            <DoorCodeEntryModal
+              visible={doorEntryOpen}
+              eventId={event.id}
+              primary={primary}
+              onClose={() => setDoorEntryOpen(false)}
+              getCoords={() => Promise.race([
+                LocationService.requestAndGet(),
+                new Promise((resolve) => setTimeout(() => resolve(null), 4000)),
+              ])}
+              onVerified={() => {
+                setCheckedIn(true);
+                try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
+                showToast('Verified at the door ✓ Your Touch Down is proven.', 'success');
+              }}
+            />
+          )}
+
           {/* Host: Set Now Playing modal */}
           {isOrganiser && event?.id && (
             <SetNowPlayingModal
@@ -1156,6 +1292,21 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               boundary keeps a failure to a small labelled chip and, next time,
               tells us exactly which host tool broke instead of hiding it. */}
           <SafeSection label="Host tools" primary={primary}>
+          {/* Touch Down v2: the rotating door code (organiser, co-host, scanner). */}
+          {canScan && event?.id && (
+            <TouchableOpacity
+              onPress={() => setDoorCodeOpen(true)}
+              activeOpacity={0.85}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                marginHorizontal: 16, marginTop: 12, paddingVertical: 12, borderRadius: 12,
+                backgroundColor: primary,
+              }}
+            >
+              <Feather name="shield" size={15} color="#000" />
+              <Text style={{ color: '#000', fontWeight: '900', fontSize: 13 }}>Show door code</Text>
+            </TouchableOpacity>
+          )}
           {/* Host only: the door list. RSVP next to VERIFIED attendance — the one
               thing a spreadsheet can't give them, and the first thing they ask for. */}
           {isOrganiser && event?.id && (
@@ -1288,13 +1439,19 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           {/* Vibe count + Who's Going */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <TouchableOpacity
-              style={[styles.vibePill, { backgroundColor: hasVibed ? `${primary}30` : `${primary}15`, borderColor: hasVibed ? primary : `${primary}30` }]}
+              style={[styles.vibePill, { position: 'relative', backgroundColor: hasVibed ? `${primary}30` : `${primary}15`, borderColor: hasVibed ? primary : `${primary}30` }]}
               onPress={handleVibe}
               disabled={vibeSending}
               activeOpacity={0.7}
             >
-              <Feather name="zap" size={13} color={primary} />
-              <Text style={[styles.vibeCountText, { color: primary }]}>{vibeCount} Vibe{vibeCount !== 1 ? 's' : ''}</Text>
+              <View style={{ position: 'relative' }}>
+                <Pop trigger={likeFx.n} kind={likeFx.kind}>
+                  <Feather name="zap" size={13} color={primary} />
+                </Pop>
+                <ControlledGlitterBurst trigger={likeFx.burst} count={10} radius={26} colors={[primary, '#fde047', '#ffffff']} enableHaptics={false} />
+              </View>
+              <AnimatedCounter value={vibeCount} style={[styles.vibeCountText, { color: primary }]} />
+              <Text style={[styles.vibeCountText, { color: primary }]}> Vibe{vibeCount !== 1 ? 's' : ''}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.vibePill, { backgroundColor: `${primary}08`, borderColor: `${primary}20` }]}
@@ -1304,10 +1461,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               <Text style={[styles.vibeCountText, { color: primary }]}>{goingCount} Locked In</Text>
             </TouchableOpacity>
             {hereCount > 0 && (
-              <View style={[styles.vibePill, { backgroundColor: '#10b98118', borderColor: '#10b98140' }]}>
+              <TouchableOpacity
+                style={[styles.vibePill, { backgroundColor: '#10b98118', borderColor: '#10b98140' }]}
+                onPress={handleWhoHere}
+                activeOpacity={0.8}
+              >
                 <Feather name="map-pin" size={13} color="#10b981" />
                 <Text style={[styles.vibeCountText, { color: '#10b981' }]}>{hereCount} Here</Text>
-              </View>
+                <Feather name="chevron-right" size={12} color="#10b981" style={{ marginLeft: 2 }} />
+              </TouchableOpacity>
             )}
             {isSoldOut && (
               <View style={[styles.vibePill, { backgroundColor: '#ef444420', borderColor: '#ef444440' }]}>
@@ -1391,7 +1553,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                     <Text style={{ color: textColor, fontWeight: '900', fontSize: 13 }}>{revealed ? 'Headliner revealed' : 'Secret headliner'}</Text>
                   </View>
                   {revealed ? (
-                    <Text style={{ color: '#fbbf24', fontWeight: '900', fontSize: 20 }}>🎤 {event.secret_act}</Text>
+                    <Text style={{ color: '#fbbf24', fontWeight: '900', fontSize: 20 }}>{event.secret_act}</Text>
                   ) : (
                     <>
                       <Text style={{ color: textColor, fontWeight: '900', fontSize: 20, letterSpacing: 4 }}>▓▓▓▓▓▓</Text>
@@ -1406,6 +1568,223 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
               </View>
             );
           })()}
+
+          {/* Nightlife Operations & Squad Command Strip — Zero AI Truth Protocol */}
+          {event?.id && (
+            <View style={{ paddingHorizontal: 16, marginTop: 14, marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <Text style={{ color: textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 0.8 }}>
+                  NIGHTLIFE & EVENT OPERATIONS
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: `${primary}15`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: `${primary}30` }}>
+                  <Feather name="shield" size={10} color={primary} />
+                  <Text style={{ color: primary, fontSize: 10, fontWeight: '800' }}>Zero AI · Truth Protocol</Text>
+                </View>
+              </View>
+
+              {/* 2x2 Command Grid with flat shadowless styling and micro-glitter bursts */}
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                {feature('ticketVault') && (<>
+                {/* 1. Offline Pass & Vault */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, vault: Date.now() }));
+                    setVaultModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: `${primary}35`,
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: `${primary}18`, borderWidth: 1, borderColor: `${primary}40`, alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="shield" size={16} color={primary} />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: primary, fontSize: 9.5, fontWeight: '800' }}>OFFLINE HMAC</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Ticket Vault</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Pass · Resale · Kitty · Escrow</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.vault} count={12} radius={32} colors={[primary, '#fde047', '#fff']} />
+                </TouchableOpacity>
+                </>)}
+
+                {/* 2. Night Safety & Squad Care */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, safety: Date.now() }));
+                    setSafetyModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(239,68,68,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="life-buoy" size={16} color="#ef4444" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(239,68,68,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#ef4444', fontSize: 9.5, fontWeight: '800' }}>SOS GUARD</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Night Safety</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Safe Ride · Walk to Car · Shuttles</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.safety} count={12} radius={32} colors={['#ef4444', '#fde047', '#fff']} />
+                </TouchableOpacity>
+              </View>
+
+              {(feature('inPersonVibe') || feature('boothStreet')) && (<>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {feature('inPersonVibe') && (<>
+                {/* 3. In-Person Radar & Handshake */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, vibe: Date.now() }));
+                    setInPersonModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(16,185,129,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="radio" size={16} color="#10b981" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(16,185,129,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#10b981', fontSize: 9.5, fontWeight: '800' }}>CREW RADAR</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Vibe Radar</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Handshake · Crossed · Mayor</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.vibe} count={12} radius={32} colors={['#10b981', '#00f2ff', '#fff']} />
+                </TouchableOpacity>
+                </>)}
+
+                {feature('boothStreet') && (<>
+                {/* 4. DJ Booth & Street Bites */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, booth: Date.now() }));
+                    setBoothModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(245,158,11,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="headphones" size={16} color="#f59e0b" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(245,158,11,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#f59e0b', fontSize: 9.5, fontWeight: '800' }}>BOOTH DROPS</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Booth & Street</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Live Audio · Kotas · 3AM Braai</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.booth} count={12} radius={32} colors={['#f59e0b', '#fde047', '#fff']} />
+                </TouchableOpacity>
+                </>)}
+              </View>
+              </>)}
+
+              {/* Row 3: Sensory & Safety Suite + Cultural Artifacts */}
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                {/* 5. Sensory & Safety Suite */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, sensory: Date.now() }));
+                    setSensoryModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(236,72,153,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(236,72,153,0.15)', borderWidth: 1, borderColor: 'rgba(236,72,153,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="zap" size={16} color="#ec4899" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(236,72,153,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#ec4899', fontSize: 9.5, fontWeight: '800' }}>SENSORY HUD</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Sensory Suite</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Beacon · 3AM Survival · Bouncer</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.sensory} count={12} radius={32} colors={['#ec4899', '#fde047', '#fff']} />
+                </TouchableOpacity>
+
+                {/* 6. Cultural Artifacts */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setDockGlitter(prev => ({ ...prev, culture: Date.now() }));
+                    setCultureModalVisible(true);
+                  }}
+                  activeOpacity={0.82}
+                  style={{
+                    flex: 1,
+                    backgroundColor: surface,
+                    borderWidth: 1,
+                    borderColor: 'rgba(251,191,36,0.35)',
+                    borderRadius: 16,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(251,191,36,0.15)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.40)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="award" size={16} color="#fbbf24" />
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(251,191,36,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#fbbf24', fontSize: 9.5, fontWeight: '800' }}>ARTIFACTS</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textColor, fontWeight: '900', fontSize: 13.5 }}>Cultural Stubs</Text>
+                  <Text style={{ color: textMuted, fontSize: 10.5, marginTop: 2 }} numberOfLines={1}>Receipts · Sparklers · Dials</Text>
+                  <ControlledGlitterBurst trigger={dockGlitter.culture} count={12} radius={32} colors={['#fbbf24', '#00f2ff', '#fff']} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           {event?.rsvp_tiers?.length > 0 && (
             <SafeSection label="VIP Tiers" primary={primary}>
@@ -1710,9 +2089,37 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </View>
           )}
 
+          {/* Touch Down v2: guests verify with the code shown at the door. */}
+          {user && event?.id && (
+            <TouchableOpacity
+              onPress={() => setDoorEntryOpen(true)}
+              activeOpacity={0.8}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 }}
+              accessibilityRole="button"
+            >
+              <Feather name="shield" size={13} color={primary} />
+              <Text style={{ color: primary, fontWeight: '800', fontSize: 13 }}>
+                {checkedIn ? 'Verify at the door with a code' : 'At the door? Verify with a code'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {event && (
             <SafeSection label="Ads" primary={primary}>
               <EventContextualAds event={event} onNavigate={() => {}} />
+            </SafeSection>
+          )}
+
+          {event && (
+            <SafeSection label="In-Event Flyers" primary={primary}>
+              <EventFlyersSection
+                event={event}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                surface={surface}
+                onAuthRequired={onAuthRequired}
+              />
             </SafeSection>
           )}
 
@@ -1753,43 +2160,85 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           )}
 
           <View style={styles.sectionDivider} />
+          {/* Logistics Accordion: Carpool, Stays & Mentorship */}
           {event?.id && (
-            <SafeSection label="Carpool" primary={primary}>
-              <CarpoolBoard
-                event={event}
-                primary={primary}
-                textColor={textColor}
-                muted={textMuted}
-                surface={surface}
-              />
-              <ResidentLiftsSection
-                eventId={event.id}
-                primary={primary}
-                surface={surface}
-                textColor={textColor}
-                muted={textMuted}
-              />
-            </SafeSection>
-          )}
-
-          {/* Stays — rooms/guesthouses near the event, from The Resident. Gated
-              by feature('accommodation') + self-disabling on missing table, so
-              it renders nothing until res_listings is live. */}
-          {feature('accommodation') && event?.id && (event?.city || event?.suburb) && (
-            <>
-              <View style={styles.sectionDivider} />
-              <SafeSection label="Stays" primary={primary}>
-                <View style={{ paddingHorizontal: 16 }}>
-                  <ResidentStaysSection
-                    event={event}
-                    primary={primary}
-                    surface={surface}
-                    textColor={textColor}
-                    muted={textMuted}
-                  />
+            <View style={{ marginHorizontal: 16, marginVertical: 6 }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: `${primary}30`,
+                  backgroundColor: `${primary}08`,
+                }}
+                onPress={() => setShowLogistics(prev => !prev)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle Travel and Logistics"
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+                  <Feather name="navigation" size={15} color={primary} />
+                  <Text style={{ color: textColor, fontWeight: '800', fontSize: 13 }}>
+                    Travel & Event Logistics
+                  </Text>
                 </View>
-              </SafeSection>
-            </>
+                <Feather name={showLogistics ? "chevron-up" : "chevron-down"} size={16} color={primary} />
+              </TouchableOpacity>
+
+              {showLogistics && (
+                <View style={{ marginTop: 10 }}>
+                  <SafeSection label="Carpool" primary={primary}>
+                    <CarpoolBoard
+                      event={event}
+                      primary={primary}
+                      textColor={textColor}
+                      muted={textMuted}
+                      surface={surface}
+                    />
+                    <ResidentLiftsSection
+                      eventId={event.id}
+                      primary={primary}
+                      surface={surface}
+                      textColor={textColor}
+                      muted={textMuted}
+                    />
+                  </SafeSection>
+
+                  {feature('accommodation') && (event?.city || event?.suburb) && (
+                    <SafeSection label="Stays" primary={primary}>
+                      <View style={{ marginTop: 8 }}>
+                        <ResidentStaysSection
+                          event={event}
+                          primary={primary}
+                          surface={surface}
+                          textColor={textColor}
+                          muted={textMuted}
+                        />
+                      </View>
+                    </SafeSection>
+                  )}
+
+                  {/* Excellency Academy — only if event has linked masterclass/workshop */}
+                  {(event?.has_masterclass || event?.workshop_title) && (
+                    <SafeSection label="Excellency" primary={primary}>
+                      <View style={{ marginTop: 8 }}>
+                        <ExcellencyMasterclassSection
+                          event={event}
+                          primary={primary}
+                          surface={surface}
+                          textColor={textColor}
+                          muted={textMuted}
+                        />
+                      </View>
+                    </SafeSection>
+                  )}
+                </View>
+              )}
+            </View>
           )}
 
           <View style={styles.sectionDivider} />
@@ -1868,7 +2317,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}20` }}>
               {[
                 { key: 'info',    label: 'Info' },
-                ...(isOrganiser || isCoHost ? [{ key: 'manage', label: '⚙️ Manage' }] : []),
+                ...(isOrganiser || isCoHost ? [{ key: 'manage', label: 'Manage' }] : []),
                 { key: 'polls',   label: 'Polls' },
                 { key: 'playlist', label: 'Playlist' },
               ].map(tab => (
@@ -1897,6 +2346,15 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                 primary={primary}
                 textColor={textColor}
                 muted={textMuted}
+              />
+              {/* Clips sell the night: post one, and see which ones filled it */}
+              <ClipStatsPanel
+                eventId={event.id}
+                primary={primary}
+                textColor={textColor}
+                muted={textMuted}
+                refreshKey={clipsRefresh}
+                onPostClip={() => setClipCreatorOpen(true)}
               />
               {_isSportCat(event.category)
                 ? <SportManagementPanel
@@ -2096,7 +2554,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <Text style={[{ color: textColor, fontWeight: '700', fontSize: 14 }]}>{p.username}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                        <Text style={[{ color: primary, fontSize: 11, fontWeight: '600' }]}>⚡ {p.vibe_score || 0} pts</Text>
+                        <Text style={[{ color: primary, fontSize: 11, fontWeight: '600' }]}>{p.vibe_score || 0} pts</Text>
                         {p.social_integrity_score != null && (
                           <View style={[styles.sisBadge, { backgroundColor: `${primary}15`, borderColor: `${primary}30` }]}>
                             <Text style={{ color: primary, fontSize: 9, fontWeight: '700' }}>SIS {p.social_integrity_score}</Text>
@@ -2110,6 +2568,114 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             </View>
           </View>
         </Modal>
+
+        {/* In The Room / Find Me Verified Co-Presence Modal */}
+        <Modal visible={whoHereVisible} animationType="slide" transparent onRequestClose={() => setWhoHereVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
+            <View style={[styles.whoGoingSheet, { backgroundColor: background, maxHeight: '80%' }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Feather name="navigation" size={16} color="#10b981" />
+                    <Text style={[styles.whoGoingTitle, { color: textColor }]}>In The Room ({whoHere.length})</Text>
+                  </View>
+                  <Text style={{ color: textMuted, fontSize: 12, marginTop: 2 }}>
+                    Verified on-the-ground Touch Downs
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setWhoHereVisible(false)}>
+                  <Feather name="x" size={22} color={textColor} />
+                </TouchableOpacity>
+              </View>
+
+              {whoHereLoading ? (
+                <View style={{ paddingVertical: 36, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color={primary} />
+                  <Text style={{ color: textMuted, fontSize: 13, marginTop: 10 }}>Locating Vibers in the room...</Text>
+                </View>
+              ) : whoHere.length === 0 ? (
+                <View style={{ paddingVertical: 36, alignItems: 'center' }}>
+                  <Feather name="map-pin" size={32} color={textMuted} style={{ marginBottom: 10 }} />
+                  <Text style={{ color: textColor, fontWeight: '700', fontSize: 14 }}>No other verified Touch Downs yet</Text>
+                  <Text style={{ color: textMuted, fontSize: 12, textAlign: 'center', marginTop: 4, paddingHorizontal: 20 }}>
+                    When other Vibers Touch Down at the venue, they will show up here.
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {whoHere.map((p) => (
+                    <View key={p.userId || p.id} style={[styles.whoGoingRow, { borderBottomColor: `${primary}15`, justifyContent: 'space-between' }]}>
+                      <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                        onPress={() => {
+                          setWhoHereVisible(false);
+                          setActiveProfileId(p.userId || p.id);
+                        }}
+                      >
+                        {p.avatar_url ? (
+                          <Image source={{ uri: thumb.avatar(p.avatar_url) }} style={styles.whoGoingAvatar} />
+                        ) : (
+                          <View style={[styles.whoGoingAvatar, { backgroundColor: ["#0891b2", "#7c3aed", "#059669", "#dc2626"][(p.username?.charCodeAt(0) || 0) % 4], alignItems: 'center', justifyContent: 'center' }]}>
+                            <Text style={{ color: '#fff', fontWeight: '900' }}>{(p.username || 'V')[0].toUpperCase()}</Text>
+                          </View>
+                        )}
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={{ color: textColor, fontWeight: '700', fontSize: 14 }}>{p.display_name || p.username}</Text>
+                            {p.is_verified && <Feather name="check-circle" size={13} color={primary} />}
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                            <View style={{ backgroundColor: '#10b98120', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                              <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '700' }}>In Room</Text>
+                            </View>
+                            <Text style={{ color: primary, fontSize: 11, fontWeight: '600' }}>{p.vibe_score || 0} pts</Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 12,
+                          backgroundColor: `${primary}20`,
+                          borderColor: `${primary}40`,
+                          borderWidth: 1,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                        onPress={() => {
+                          if (!user) { onAuthRequired?.(); return; }
+                          setWhoHereVisible(false);
+                          setDmUser({ id: p.userId || p.id, username: p.username, avatar_url: p.avatar_url });
+                        }}
+                      >
+                        <Feather name="message-circle" size={13} color={primary} />
+                        <Text style={{ color: primary, fontSize: 12, fontWeight: '700' }}>Say Hey</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {activeProfileId && (
+          <ViberProfileModal
+            visible={!!activeProfileId}
+            userId={activeProfileId}
+            onClose={() => setActiveProfileId(null)}
+          />
+        )}
+        {dmUser && (
+          <DirectMessageModal
+            visible={!!dmUser}
+            recipient={dmUser}
+            onClose={() => setDmUser(null)}
+          />
+        )}
       </View>
       {dmOpen && (
         <DirectMessageModal
@@ -2128,6 +2694,102 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
             console.log('Gift sent successfully:', gift);
           }}
         />
+      )}
+
+      {/* 1. Cryptographic Offline Ticket Vault, Resale & Queue */}
+      {vaultModalVisible && (
+        <SafeSection label="Ticket Vault" primary={primary}>
+          <TicketVaultExchangeModal
+            visible={vaultModalVisible}
+            event={event}
+            onClose={() => setVaultModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            background={background}
+            surface={surface}
+            onAuthRequired={onAuthRequired}
+          />
+        </SafeSection>
+      )}
+
+      {/* 2. Night Safety, Safe Ride Home & Shuttles */}
+      {safetyModalVisible && (
+        <SafeSection label="Night Safety" primary={primary}>
+          <NightSafetyLogisticsModal
+            visible={safetyModalVisible}
+            event={event}
+            onClose={() => setSafetyModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
+      )}
+
+      {/* 3. In-Person Radar, Handshake & Morning After */}
+      {inPersonModalVisible && (
+        <SafeSection label="In-Person Vibe Radar" primary={primary}>
+          <InPersonVibeRadarModal
+            visible={inPersonModalVisible}
+            event={event}
+            onClose={() => setInPersonModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
+      )}
+
+      {/* 4. DJ Booth Live, Track ID, Kotas & 3AM Recovery */}
+      {boothModalVisible && (
+        <SafeSection label="Booth & Street" primary={primary}>
+          <BoothAndStreetModal
+            visible={boothModalVisible}
+            event={event}
+            onClose={() => setBoothModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
+      )}
+
+      {/* 5. Nightlife Sensory Suite — Squad Beacon, 3AM Survival & Bouncer HUD */}
+      {sensoryModalVisible && (
+        <SafeSection label="Sensory Suite" primary={primary}>
+          <NightlifeSensoryModal
+            visible={sensoryModalVisible}
+            event={event}
+            onClose={() => setSensoryModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
+      )}
+
+      {/* 6. Cultural Artifacts Hub — Butcher Receipts, Sparklers & Dials */}
+      {cultureModalVisible && (
+        <SafeSection label="Cultural Artifacts" primary={primary}>
+          <CultureArtifactsModal
+            visible={cultureModalVisible}
+            event={event}
+            onClose={() => setCultureModalVisible(false)}
+            primary={primary}
+            textColor={textColor}
+            muted={textMuted}
+            surface={surface}
+            bg={background}
+          />
+        </SafeSection>
       )}
 
       {/* Pitch to Perform Modal */}
@@ -2296,7 +2958,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                       await new Promise(r => setTimeout(r, 600));
                       setPitchSent(true);
                       setPitchModalOpen(false);
-                      showToast(`Pitch delivered to @${organizer?.username || 'Host'}! 🚀 We'll notify you when reviewed.`, 'success');
+                      showToast(`Pitch delivered to @${organizer?.username || 'Host'}! We'll notify you when reviewed.`, 'success');
                     } catch (e) {
                       showToast("Could not send pitch. Please try again.", 'error');
                     } finally {
@@ -2311,10 +2973,8 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
                     justifyContent: 'center',
                     flexDirection: 'row',
                     gap: 8,
-                    shadowColor: primary,
-                    shadowOpacity: 0.35,
-                    shadowRadius: 10,
-                    shadowOffset: { width: 0, height: 4 },
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.18)',
                   }}
                 >
                   <Feather name={pitchSending ? "loader" : "send"} size={16} color="#fff" />
@@ -2338,6 +2998,17 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired }) =
           onSelectEvent={() => setMapVisible(false)}
         />
       )}
+
+      {/* "Add a clip" — the creator opens already tagged to this event */}
+      {clipCreatorOpen && (
+        <CreateReelModal
+          visible={clipCreatorOpen}
+          presetEvent={{ id: event.id, title: event.title, event_date: event.event_date }}
+          onClose={() => setClipCreatorOpen(false)}
+          onPosted={() => { setClipCreatorOpen(false); setClipsRefresh((n) => n + 1); }}
+        />
+      )}
+      </View>
     </Modal>
   );
 };
@@ -2361,6 +3032,9 @@ const MetaChip = ({ icon, label, color, pressable }) => (
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    width: '100%',
+    maxWidth: 740,
+    alignSelf: 'center',
   },
   hero: {
     height: HERO_H,
@@ -2669,10 +3343,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
   },
   reportText: {
     fontSize: 12,

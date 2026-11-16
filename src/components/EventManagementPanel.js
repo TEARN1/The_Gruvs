@@ -949,11 +949,11 @@ const s = StyleSheet.create({
     borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 10,
   },
   modalOverlay: {
-    flex: 1, justifyContent: 'flex-end',
+    flex: 1, justifyContent: 'flex-end', alignItems: 'center',
   },
   modalSheet: {
     maxHeight: '88%', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 20, paddingBottom: 32,
+    padding: 20, paddingBottom: 32, maxWidth: 620, width: '100%', alignSelf: 'center',
   },
   saveBtn: {
     borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8, marginBottom: 8,

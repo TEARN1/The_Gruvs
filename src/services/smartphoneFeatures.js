@@ -17,7 +17,7 @@ import * as Calendar from 'expo-calendar';
 import * as MediaLibrary from 'expo-media-library';
 import * as Network from 'expo-network';
 import { Accelerometer } from 'expo-sensors';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 
 
 // ── BIOMETRIC AUTH ────────────────────────────────────────────────────────────
@@ -250,6 +250,22 @@ export const RichHaptics = {
       await new Promise(r => setTimeout(r, 80));
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await new Promise(r => setTimeout(r, 80));
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {}
+  },
+  /** Incoming call dual-pulse ring pattern */
+  async incomingCall() {
+    if (Platform.OS === 'web') return;
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      await new Promise(r => setTimeout(r, 120));
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    } catch {}
+  },
+  /** Call connected reassuring confirmation buzz */
+  async callConnected() {
+    if (Platform.OS === 'web') return;
+    try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {}
   },

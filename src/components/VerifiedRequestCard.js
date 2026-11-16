@@ -38,7 +38,7 @@ export const VerifiedRequestCard = ({ primary = '#00f2ff', surface = '#131a1c', 
       const { data } = await supabase
         .from('verification_requests')
         .select('id, status, created_at, reviewed_at, review_note')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();

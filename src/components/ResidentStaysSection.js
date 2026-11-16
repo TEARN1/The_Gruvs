@@ -248,7 +248,7 @@ export const ResidentStaysSection = ({ event, primary, surface, textColor, muted
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const st = StyleSheet.create({
-  section:       { marginTop: 16 },
+  section:       { marginTop: 16, maxWidth: 680, width: '100%', alignSelf: 'center' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   sectionTitle:  { fontSize: 13, fontWeight: '900' },
   sub:           { fontSize: 11, marginBottom: 10 },
@@ -265,7 +265,7 @@ const st = StyleSheet.create({
 
   priceBadge: { backgroundColor: '#22c55e12', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
                 borderWidth: 1, borderColor: '#22c55e30' },
-  priceText:  { fontSize: 12, fontWeight: '900' },
+  priceText:  { fontSize: 12, fontWeight: '900', fontVariant: ['tabular-nums'] },
 
   pill:     { flexDirection: 'row', alignItems: 'center', gap: 4,
               paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,

@@ -8,7 +8,7 @@ import {
   Animated, Dimensions, ScrollView, Platform,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { useTutorial } from '../context/TutorialContext';
 import { useTheme } from '../context/ThemeContext';
 

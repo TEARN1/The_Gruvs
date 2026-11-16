@@ -17,6 +17,7 @@ import { thumb } from '../utils/storageThumb';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { SmartImage } from '../components/SmartImage';
+import { fx } from '../styles/webFx';
 
 const TYPE_META = {
   vibe:             { icon: 'zap',            color: "#f97316" },
@@ -40,7 +41,7 @@ const TYPE_META = {
   session_starting: { icon: 'play-circle',    color: "#06b6d4" },
 };
 
-const SEGMENTS = ['Today', 'This Week', 'Older'];
+const SEGMENTS = ['All', 'Mentions & DMs', 'Event Updates'];
 const ITEM_HEIGHT = 71; // paddingVertical 14*2 + avatar 42 + 1 border
 
 const formatAge = (dateStr) => {
@@ -54,19 +55,16 @@ const formatAge = (dateStr) => {
   return `${Math.floor(h / 24)}d ago`;
 };
 
-const isInSegment = (dateStr, segment) => {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const weekStart = new Date(todayStart);
-  weekStart.setDate(weekStart.getDate() - 6);
-  if (segment === 'Today') return date >= todayStart;
-  if (segment === 'This Week') return date >= weekStart && date < todayStart;
-  return date < weekStart;
+const isMatchingSegment = (notif, segment) => {
+  if (segment === 'All') return true;
+  const isMention = ['profile_view', 'follow', 'echo', 'comment', 'message', 'crew_invite'].includes(notif.type);
+  if (segment === 'Mentions & DMs') return isMention;
+  if (segment === 'Event Updates') return !isMention;
+  return true;
 };
 
 // ── Notification Row ─────────────────────────────────────────────────────────
-const NotificationRow = React.memo(({ item, primary, textColor, muted, onPress }) => {
+const NotificationRow = React.memo(({ item, primary, textColor, muted, onPress, index = 0 }) => {
   const meta = TYPE_META[item.type] || TYPE_META.vibe;
   const avatarUrl = thumb.avatar(item.actor?.avatar_url || item.data?.viewer_avatar || item.data?.actor_avatar || null);
   const isActionable = [
@@ -77,6 +75,7 @@ const NotificationRow = React.memo(({ item, primary, textColor, muted, onPress }
 
   return (
     <TouchableOpacity
+      {...fx('rise', Math.min(index, 8))}
       onPress={() => onPress(item)}
       activeOpacity={isActionable ? 0.75 : 1}
     >
@@ -140,7 +139,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [segment, setSegment] = useState('Today');
+  const [segment, setSegment] = useState('All');
   const [profileModalUserId, setProfileModalUserId] = useState(null);
   const channelRef = useRef(null);
 
@@ -233,7 +232,7 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     return () => { supabase.removeChannel(channel); };
   }, [user, fetchNotifications]);
 
-  const filtered = notifications.filter(n => isInSegment(n.created_at, segment));
+  const filtered = notifications.filter(n => isMatchingSegment(n, segment));
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleNotifPress = useCallback((item) => {
@@ -260,9 +259,10 @@ export const NotificationsScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   }, [markRead, onNavigateToEvent]);
 
-  const renderItem = useCallback(({ item }) => (
+  const renderItem = useCallback(({ item, index }) => (
     <NotificationRow
       item={item}
+      index={index}
       primary={primary}
       textColor={textColor}
       muted={muted}

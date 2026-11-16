@@ -22,7 +22,7 @@ import { TalentEngine } from '../services/talentEngine';
 import { EditEventModal } from './EditEventModal';
 import { UserManager, PresenceManager, AuraService, PeopleInterestManager, isOnline as checkOnline } from '../services/dataFlow';
 import { SoundFX } from '../services/soundFX';
-import * as Haptics from 'expo-haptics';
+import { SafeHaptics as Haptics } from '../utils/haptics';
 import { isCallSupported } from '../services/webrtcCall';
 import { useCall } from '../context/CallContext';
 import { ReelsObservers } from '../services/reelsDataFlow';
@@ -30,6 +30,8 @@ import { useToast } from './ToastNotification';
 import { ReportModal } from './ReportModal';
 import { useBackClose } from '../hooks/useBackClose';
 import { isBirthdayToday } from '../utils/birthday';
+import { ControlledGlitterBurst } from './ControlledGlitterBurst';
+import { useIdentity } from '../context/IdentityContext';
 
 const RANK_LABELS = [
   { min: 0,     max: 100,    name: 'Viber',       color: "#94a3b8" },
@@ -210,6 +212,9 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const [editingEvent, setEditingEvent] = useState(null);
   const [avatarViewerVisible, setAvatarViewerVisible] = useState(false);
   const [birthdayToday, setBirthdayToday] = useState(false);
+  const [interestGlitter, setInterestGlitter] = useState(0);
+  const [quickEmojiGlitter, setQuickEmojiGlitter] = useState({});
+  const [bdayGlitter, setBdayGlitter] = useState(0);
   const [platformStats, setPlatformStats] = useState({ vibers: 0, gruvs: 0 });
   const slideAnim = useRef(new Animated.Value(300)).current;
   const presenceUnsubRef = useRef(null);
@@ -220,10 +225,12 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
   const primary   = currentTheme?.primary    || "#00f2ff";
   const bg        = currentTheme?.background || "#0d1112";
   const textColor = currentTheme?.text       || '#fff';
-  const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
+  const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.72)';
 
+  const { identityMode, setIdentityMode } = useIdentity();
   const targetId = propUserId || propUser?.id;
   const isOwnProfile = currentUser?.id === targetId;
+  const isReciprocalPrivate = !isOwnProfile && identityMode !== 'public';
 
   // Resolve this user's claimed player identity (if any) for the career card.
   useEffect(() => {
@@ -432,6 +439,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
   const handleExpressInterest = async () => {
     if (!currentUser || interestState) return; // one tap, ever — see below
+    setInterestGlitter(Date.now());
     setInterestState('sending');
     try {
       const result = await PeopleInterestManager.expressInterest(targetId);
@@ -459,6 +467,12 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
     }
   };
 
+  const handleQuickReaction = (emoji) => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+    setQuickEmojiGlitter((prev) => ({ ...prev, [emoji]: Date.now() }));
+    toast?.show(`Sent ${emoji} Vibe to ${profile?.username || 'viber'}!`, 'success');
+  };
+
   const handleShare = async () => {
     if (!profile) return;
     try {
@@ -473,6 +487,10 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 
   const loadFollowersList = useCallback(async () => {
     if (!targetId) return;
+    if (isReciprocalPrivate) {
+      toast?.show("Reciprocal Privacy: Switch to Public mode to view other vibers' circles.", "info");
+      return;
+    }
     try {
       const { data } = await supabase
         .from('follows')
@@ -482,10 +500,14 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       setFollowersList((data || []).map(r => r.profiles).filter(Boolean));
     } catch { /* keep existing list on failure */ }
     finally { setFollowersModalVisible(true); }
-  }, [targetId]);
+  }, [targetId, isReciprocalPrivate]);
 
   const loadFollowingList = useCallback(async () => {
     if (!targetId) return;
+    if (isReciprocalPrivate) {
+      toast?.show("Reciprocal Privacy: Switch to Public mode to view other vibers' circles.", "info");
+      return;
+    }
     try {
       const { data } = await supabase
         .from('follows')
@@ -495,7 +517,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
       setFollowingList((data || []).map(r => r.profiles).filter(Boolean));
     } catch { /* keep existing list on failure */ }
     finally { setFollowingModalVisible(true); }
-  }, [targetId]);
+  }, [targetId, isReciprocalPrivate]);
 
   const rank = profile ? getRank(profile.vibe_score || 0) : null;
 
@@ -613,6 +635,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                       style={[s.msgBtn, {
                         borderColor: interestState === 'matched' ? '#f5c518' : `${primary}40`,
                         backgroundColor: interestState === 'matched' ? '#f5c51822' : 'transparent',
+                        position: 'relative',
                       }]}
                       onPress={handleExpressInterest}
                       disabled={interestState === 'sending' || interestState === 'sent' || interestState === 'matched'}
@@ -626,6 +649,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                             color={interestState === 'matched' ? '#f5c518' : primary}
                           />
                       }
+                      <ControlledGlitterBurst trigger={interestGlitter} count={12} radius={30} colors={['#f5c518', '#00f2ff', '#fff', '#ec4899']} />
                     </TouchableOpacity>
 
                     {/* Quick Call Buttons — one-tap access */}
@@ -663,6 +687,23 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                 )}
               </View>
 
+              {/* Quick Vibe Reaction Emojis with Controlled Glitter */}
+              {!isOwnProfile && currentUser && (
+                <View style={s.quickReactionStrip}>
+                  {['🔥', '✨', '⚡', '👑', '🎉'].map((emoji) => (
+                    <TouchableOpacity
+                      key={emoji}
+                      onPress={() => handleQuickReaction(emoji)}
+                      style={[s.emojiBtn, { borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(255,255,255,0.04)' }]}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ fontSize: 16 }}>{emoji}</Text>
+                      <ControlledGlitterBurst trigger={quickEmojiGlitter[emoji]} count={8} radius={24} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
               {/* Name + rank */}
               <View style={s.nameSection}>
                 <Text style={[s.username, { color: textColor }]}>{profile.username || 'viber'}</Text>
@@ -670,9 +711,20 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                   <Text style={[s.displayName, { color: muted }]}>{profile.display_name}</Text>
                 ) : null}
                 {birthdayToday && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18, backgroundColor: '#f59e0b22', borderWidth: 1, borderColor: '#f59e0b' }}>
-                    <Text style={{ fontSize: 14 }}>🎂</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', marginTop: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 18, backgroundColor: '#f59e0b22', borderWidth: 1, borderColor: '#f59e0b' }}>
+                    <Text style={{ fontSize: 15 }}>🎂</Text>
                     <Text style={{ color: '#f59e0b', fontWeight: '900', fontSize: 12 }}>It's their birthday today!</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+                        setBdayGlitter(Date.now());
+                        toast?.show(`Sent Birthday Wishes & Sparkles to ${profile.username}! 🎂✨`, 'success');
+                      }}
+                      style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: '#f59e0b', position: 'relative' }}
+                    >
+                      <Text style={{ color: '#000', fontSize: 11, fontWeight: '900' }}>Wish ✦</Text>
+                      <ControlledGlitterBurst trigger={bdayGlitter} count={12} radius={28} colors={['#f59e0b', '#00f2ff', '#fff']} />
+                    </TouchableOpacity>
                   </View>
                 )}
                 {playerId && (
@@ -691,10 +743,14 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                     <Text style={[s.rankText, { color: rank.color }]}>{rank.name}</Text>
                   </View>
                 )}
-                {profile.bio ? (
+                {isReciprocalPrivate ? (
+                  <Text style={[s.bio, { color: muted, fontStyle: 'italic', marginVertical: 4 }]}>
+                    🔒 Profile details shielded by Reciprocal Privacy
+                  </Text>
+                ) : profile.bio ? (
                   <Text style={[s.bio, { color: muted }]}>{profile.bio}</Text>
                 ) : null}
-                {profile.location ? (
+                {!isReciprocalPrivate && profile.location ? (
                   <View style={s.locationRow}>
                     <Feather name="map-pin" size={11} color={muted} />
                     <Text style={[s.locationText, { color: muted }]}>{profile.location}</Text>
@@ -702,7 +758,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                 ) : null}
                 {/* Last seen — only shown on other people's profiles, and only if
                     they haven't hidden their online status */}
-                {!isOwnProfile && profile.show_online !== false && (
+                {!isOwnProfile && !isReciprocalPrivate && profile.show_online !== false && (
                   <View style={s.locationRow}>
                     <Feather name="clock" size={11} color={muted} />
                     <Text style={[s.locationText, { color: muted }]}>
@@ -715,16 +771,16 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
               {/* Stats */}
               <View style={[s.statsRow, { borderColor: `${primary}15` }]}>
                 {[
-                  { label: 'Vibe Score', value: profile.vibe_score || 0, icon: 'zap', color: primary, onPress: null },
-                  { label: 'Followers',  value: followerCount,            icon: 'users', color: "#10b981", onPress: loadFollowersList },
-                  { label: 'Following',  value: followingCount,           icon: 'user-check', color: "#8b5cf6", onPress: loadFollowingList },
-                  { label: 'Gruvs',      value: events.length,            icon: 'calendar', color: "#f59e0b", onPress: null },
+                  { label: 'Vibe Score', value: isReciprocalPrivate ? '🔒' : (profile.vibe_score || 0), icon: 'zap', color: primary, onPress: null },
+                  { label: 'Followers',  value: isReciprocalPrivate ? '🔒' : followerCount,            icon: 'users', color: "#10b981", onPress: loadFollowersList },
+                  { label: 'Following',  value: isReciprocalPrivate ? '🔒' : followingCount,           icon: 'user-check', color: "#8b5cf6", onPress: loadFollowingList },
+                  { label: 'Gruvs',      value: isReciprocalPrivate ? '🔒' : events.length,            icon: 'calendar', color: "#f59e0b", onPress: null },
                 ].map((stat, i, arr) => (
                   <React.Fragment key={stat.label}>
                     <TouchableOpacity style={s.stat} onPress={stat.onPress} activeOpacity={stat.onPress ? 0.7 : 1} disabled={!stat.onPress}>
                       <Feather name={stat.icon} size={12} color={stat.color} style={{ marginBottom: 4 }} />
                       <Text style={[s.statVal, { color: stat.color }]}>
-                        {stat.value > 999 ? `${(stat.value / 1000).toFixed(1)}k` : stat.value}
+                        {typeof stat.value === 'number' && stat.value > 999 ? `${(stat.value / 1000).toFixed(1)}k` : stat.value}
                       </Text>
                       <Text style={[s.statLab, { color: muted }]}>{stat.label}</Text>
                     </TouchableOpacity>
@@ -733,7 +789,31 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                 ))}
               </View>
 
-              {/* Interests */}
+              {isReciprocalPrivate ? (
+                <View style={s.reciprocalShieldCard}>
+                  <View style={s.shieldGlowIcon}>
+                    <Feather name="shield" size={30} color="#a855f7" />
+                  </View>
+                  <Text style={[s.shieldTitle, { color: textColor }]}>RECIPROCAL PRIVACY ENGAGED</Text>
+                  <Text style={s.shieldBadge}>EYE FOR AN EYE PROTOCOL</Text>
+                  <Text style={[s.shieldDesc, { color: muted }]}>
+                    You are browsing in <Text style={{ color: '#a855f7', fontWeight: '800' }}>{identityMode === 'ghost' ? 'Ghost Mode' : 'Incognito Mode'}</Text>. Because your own identity and attendance are concealed from other vibers, this viber's full profile, events, and circle are reciprocally shielded from you.
+                  </Text>
+                  <TouchableOpacity
+                    style={[s.unshieldBtn, { backgroundColor: primary }]}
+                    onPress={() => {
+                      setIdentityMode('public');
+                      toast?.show('Switched to Public Mode. Profiles unmasked!', 'success');
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Feather name="eye" size={14} color="#000" style={{ marginRight: 6 }} />
+                    <Text style={s.unshieldBtnText}>Switch to Public to Unmask</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  {/* Interests */}
               {(profile.interests?.length > 0) && (
                 <View style={s.section}>
                   <Text style={[s.sectionLabel, { color: muted }]}>INTERESTS</Text>
@@ -920,6 +1000,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                   </View>
                 )}
               </View>
+                </>
+              )}
             </ScrollView>
           )}
         </Animated.View>
@@ -987,8 +1069,8 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
 const SHEET_MAX_H = '90%';
 
 const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  sheet: { maxHeight: SHEET_MAX_H, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, overflow: 'hidden' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end', alignItems: 'center' },
+  sheet: { maxHeight: SHEET_MAX_H, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, overflow: 'hidden', maxWidth: 680, width: '100%', alignSelf: 'center' },
   handle: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 6 },
   closeBtn: { position: 'absolute', top: 14, right: 16, zIndex: 10, padding: 8 },
 
@@ -1007,6 +1089,23 @@ const s = StyleSheet.create({
   cancelledOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', borderRadius: 14, overflow: 'hidden' },
   cancelledLine: { position: 'absolute', top: '50%', left: 0, right: 0, height: 1.5, backgroundColor: "#ef4444", opacity: 0.7, transform: [{ rotate: '-8deg' }] },
   cancelledLabel: { color: "#ef4444", fontWeight: '900', fontSize: 11, letterSpacing: 2, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  quickReactionStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  emojiBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
 
   nameSection: { paddingHorizontal: 16, marginBottom: 14, gap: 4 },
   username: { fontSize: 20, fontWeight: '900', letterSpacing: 0.3 },
@@ -1039,4 +1138,11 @@ const s = StyleSheet.create({
   aboutRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, borderBottomWidth: 1 },
   communityBox: { marginTop: 14, borderRadius: 16, borderWidth: 1, padding: 14 },
   communityPill: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 14, borderWidth: 1, gap: 4 },
+  reciprocalShieldCard: { margin: 16, padding: 22, borderRadius: 22, borderWidth: 1.5, borderColor: 'rgba(168, 85, 247, 0.4)', backgroundColor: 'rgba(168, 85, 247, 0.08)', alignItems: 'center' },
+  shieldGlowIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(168, 85, 247, 0.15)', borderWidth: 1, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  shieldTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 1.5, textAlign: 'center', marginBottom: 4 },
+  shieldBadge: { fontSize: 10, fontWeight: '900', letterSpacing: 1, color: '#a855f7', marginBottom: 10 },
+  shieldDesc: { fontSize: 12.5, lineHeight: 18, textAlign: 'center', marginBottom: 16 },
+  unshieldBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20 },
+  unshieldBtnText: { color: '#000', fontSize: 12.5, fontWeight: '900' },
 });

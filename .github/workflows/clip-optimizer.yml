@@ -1,0 +1,49 @@
+# ────────────────────────────────────────────────────────────────────────────
+# Clip optimizer — every reel becomes a small 720p file with a cover image.
+#
+# Phones upload clips exactly as recorded (up to 100 MB) and the app used to
+# serve them that way, trim included only as a playback trick. On prepaid data
+# that cost a viewer around R8 per twenty clips. scripts/optimize-clips.mjs cuts
+# each clip to its trim, re-encodes it to 720p and saves a cover frame.
+#
+# Every 15 minutes, and on demand. The repo is public, so runs cost nothing.
+# Needs the SUPABASE_SERVICE_ROLE_KEY secret; until it exists every run warns
+# and exits without touching anything.
+# ────────────────────────────────────────────────────────────────────────────
+name: Clip optimizer
+
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'   # every 15 min, off the hour
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Encode but write nothing back'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One pass at a time: two overlapping runs would encode the same clips twice.
+concurrency:
+  group: clip-optimizer
+  cancel-in-progress: false
+
+jobs:
+  optimize:
+    name: Shrink new clips and add covers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with: { node-version: 20 }
+      - name: Make sure ffmpeg is there
+        run: command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q ffmpeg)
+      - name: Optimise waiting clips
+        run: node scripts/optimize-clips.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}

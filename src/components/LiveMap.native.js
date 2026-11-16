@@ -295,14 +295,32 @@ export function LiveMap({
           style={{ circleRadius: 16, circleColor: '#00f2ff', circleOpacity: 0.16, ...vis(!heat) }}
         />
         <CircleLayer
-          id="ev-hot"
-          filter={['all', ['!', ['has', 'point_count']], ['>', ['get', 'here'], 0]]}
-          style={{ circleRadius: ['interpolate', ['linear'], ['get', 'here'], 1, 8, 50, 20], circleColor: '#ff2d55', circleOpacity: 0.35, ...vis(!heat) }}
+          id="ev-live-radar"
+          filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'isLive'], true]]}
+          style={{
+            circleRadius: ['interpolate', ['linear'], ['get', 'here'], 1, 14, 25, 24, 50, 32],
+            circleColor: 'rgba(16, 185, 129, 0.16)',
+            circleStrokeColor: '#10b981',
+            circleStrokeWidth: 1.5,
+            circleStrokeOpacity: 0.85,
+            ...vis(!heat),
+          }}
         />
         <CircleLayer
           id="ev-dot"
           filter={['!', ['has', 'point_count']]}
-          style={{ circleRadius: 6, circleColor: '#00f2ff', circleStrokeColor: '#fff', circleStrokeWidth: 1.5, ...vis(!heat) }}
+          style={{
+            circleRadius: 6,
+            circleColor: [
+              'case',
+              ['get', 'isLive'], '#10b981',
+              ['get', 'isSecret'], '#a855f7',
+              '#00f2ff',
+            ],
+            circleStrokeColor: '#fff',
+            circleStrokeWidth: 1.5,
+            ...vis(!heat),
+          }}
         />
       </ShapeSource>
 

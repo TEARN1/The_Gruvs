@@ -147,6 +147,9 @@ const s = StyleSheet.create({
   },
   toast: {
     flexDirection: 'row',
+    maxWidth: 540,
+    width: '100%',
+    alignSelf: 'center',
     alignItems: 'center',
     gap: 10,
     borderLeftWidth: 3,

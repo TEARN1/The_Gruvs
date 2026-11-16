@@ -23,7 +23,7 @@ import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from './ToastNotification';
-import { SHADOW, GLASS } from '../constants/DesignTokens';
+import { GLASS } from '../constants/DesignTokens';
 import { ViberProfileModal } from './ViberProfileModal';
 import { optimisticEngine } from '../services/optimisticEngine';
 
@@ -211,12 +211,12 @@ export function MapEventPreview({
     const url = directionsUrl(dest, userCoords, Platform.OS);
     if (!url) { toast('No location on this event.', 'info'); return; }
     try {
-      await Linking.openURL(url);
+      await Linking.openURL(url).catch((err) => { throw err; });
       onClose();
     } catch {
       // Android's geo: scheme resolves to nothing when no maps app is installed.
       try {
-        await Linking.openURL(directionsFallbackUrl(dest, userCoords));
+        await Linking.openURL(directionsFallbackUrl(dest, userCoords)).catch((err) => { throw err; });
         onClose();
       } catch { toast('Could not open directions.', 'error'); }
     }
@@ -412,12 +412,11 @@ const cs = StyleSheet.create({
     bottom: 0,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    borderTopWidth: 1.5,
+    borderTopWidth: 1,
     padding: 16,
     paddingBottom: Platform.OS === 'ios' ? 32 : 24,
     gap: 12,
     zIndex: 50,
-    ...SHADOW?.lift,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' } : {}),
   },
   handle: {

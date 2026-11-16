@@ -1,4 +1,4 @@
-import { formatPrice, currencyForCountry, money, setActiveCurrency, setActiveRate, CURRENCIES } from '../src/constants/currencies';
+import { formatPrice, currencyForCountry, money, setActiveCurrency, setActiveRate, CURRENCIES, DEFAULT_CURRENCY } from '../src/constants/currencies';
 
 describe('formatPrice (symbol/format only — never converts the number)', () => {
   it('whole numbers render with grouping and no decimals', () => {
@@ -40,10 +40,26 @@ describe('currencyForCountry', () => {
     expect(currencyForCountry('SN').code).toBe('XOF'); // CFA zone
   });
 
-  it('defaults to ZAR for unknown / empty', () => {
-    expect(currencyForCountry('ZZ').code).toBe('ZAR');
-    expect(currencyForCountry(null).code).toBe('ZAR');
-    expect(currencyForCountry(undefined).code).toBe('ZAR');
+  // Since the platform went global, the default follows the device's region
+  // (USD when the region is unknown), not a fixed ZAR.
+  it('falls back to the device default for unknown / empty', () => {
+    expect(currencyForCountry('ZZ')).toBe(DEFAULT_CURRENCY);
+    expect(currencyForCountry(null)).toBe(DEFAULT_CURRENCY);
+    expect(currencyForCountry(undefined)).toBe(DEFAULT_CURRENCY);
+  });
+
+  it('loads on a device whose region is not in the map', () => {
+    // de-CH used to throw at import (DEFAULT_CURRENCY read before it existed).
+    const original = Intl.DateTimeFormat;
+    Intl.DateTimeFormat = () => ({ resolvedOptions: () => ({ locale: 'de-CH' }) });
+    try {
+      jest.isolateModules(() => {
+        const mod = require('../src/constants/currencies');
+        expect(mod.DEFAULT_CURRENCY.code).toBe('USD');
+      });
+    } finally {
+      Intl.DateTimeFormat = original;
+    }
   });
 });
 

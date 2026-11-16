@@ -90,7 +90,10 @@ const initialCountry = (() => {
   }
 })();
 
-export const DEFAULT_CURRENCY = (initialCountry && currencyForCountry(initialCountry)) || CURRENCIES.USD;
+// Read the map directly: currencyForCountry falls back to DEFAULT_CURRENCY,
+// which does not exist yet while this line runs, so an unmapped device region
+// (say de-CH) used to throw at import and blank the whole app.
+export const DEFAULT_CURRENCY = (initialCountry && CURRENCIES[COUNTRY_TO_CURRENCY[initialCountry]]) || CURRENCIES.USD;
 
 // ── Active currency (module-global) ──────────────────────────────────────────
 // CurrencyProvider keeps this in sync with the resolved/chosen currency so that

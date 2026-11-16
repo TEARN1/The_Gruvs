@@ -604,7 +604,7 @@ export const MatchManager = {
   async bulkCreateFixtures(eventId, fixtures) {
     const rows = fixtures.map(f => ({ event_id: eventId, ...f }));
     const { data, error } = await supabase
-      .from('sport_matches').insert(rows).select();
+      .from('sport_matches').insert(rows).select().limit(500);
     if (error) throw error;
 
     // Check for byes in Round 1 and auto-complete them
@@ -1047,7 +1047,7 @@ export const IndividualResultsManager = {
   async bulkSubmit(eventId, results) {
     const rows = results.map(r => ({ event_id: eventId, ...r }));
     const { data, error } = await supabase
-      .from('sport_individual_results').insert(rows).select();
+      .from('sport_individual_results').insert(rows).select().limit(500);
     if (error) throw error;
     return data || [];
   },

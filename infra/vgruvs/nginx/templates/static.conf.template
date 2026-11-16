@@ -1,0 +1,24 @@
+# __APP__ on V-Gruvs (static): nginx serves the current release.
+# Written by `vgruvs apps add`; edit freely, then `vgruvs site __APP__`.
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name __DOMAINS__;
+    server_tokens off;
+
+    root /srv/vgruvs/__APP__/current;
+    index index.html;
+
+    ssl_certificate /etc/letsencrypt/live/__PRIMARY__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__PRIMARY__/privkey.pem;
+    include snippets/vgruvs-tls.conf;
+    include snippets/vgruvs-gzip.conf;
+    include /etc/nginx/vgruvs/apps/__APP__.conf;
+    include snippets/vgruvs-platform.conf;
+    include snippets/vgruvs-headers.conf;
+    include snippets/vgruvs-acme.conf;
+
+    location /assets/ { expires 30d; try_files $uri @vault; }
+    location @vault { root /srv/vgruvs/__APP__/vault; expires 30d; try_files $uri =404; }
+    location / { expires epoch; try_files $uri $uri/ /index.html; }
+}

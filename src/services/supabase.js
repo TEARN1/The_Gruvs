@@ -55,7 +55,11 @@ export const supabase = createClient(
       storage:          secureStorage,
       autoRefreshToken: true,
       persistSession:   true,
-      detectSessionInUrl: false,
+      detectSessionInUrl: Platform.OS === 'web',
+      // On the web, a sign-in link only works in the browser that asked for
+      // it (PKCE). The implicit flow accepted tokens in any address, so a
+      // crafted link could sign someone into the sender's account.
+      flowType: Platform.OS === 'web' ? 'pkce' : 'implicit',
     },
   }
 );
