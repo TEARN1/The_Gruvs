@@ -92,6 +92,7 @@ export const EventReactions = ({ eventId, primary, muted }) => {
   const [myReactions, setMyReactions] = useState(new Set());
   const [ready, setReady] = useState(false);
   const [fx, setFx] = useState({ key: null, trigger: 0 }); // signature reaction burst
+  const inFlightRef = useRef(false);
 
   const fetchReactions = useCallback(async () => {
     if (!eventId) return;
@@ -127,6 +128,8 @@ export const EventReactions = ({ eventId, primary, muted }) => {
 
   const handleReaction = async (key) => {
     if (!user) { toast.show('Sign in to react', 'info'); return; }
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     const wasActive = myReactions.has(key);
@@ -167,6 +170,8 @@ export const EventReactions = ({ eventId, primary, muted }) => {
       // Rollback to exactly what was showing before the tap.
       setMyReactions(before.mine);
       setCounts(before.counts);
+    } finally {
+      inFlightRef.current = false;
     }
   };
 

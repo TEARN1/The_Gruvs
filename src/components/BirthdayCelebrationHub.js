@@ -130,7 +130,7 @@ export function BirthdayCelebrationHub({
           <View style={styles.headRow}>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                <Text style={{ fontSize: 18 }}>🎂</Text>
+                <Feather name="gift" size={18} color="#ec4899" />
                 <Text style={[styles.title, { color: textColor }]}>Birthday Celebration Radar</Text>
               </View>
               <Text style={[styles.sub, { color: muted }]}>
@@ -166,7 +166,7 @@ export function BirthdayCelebrationHub({
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <Text style={[styles.bdayName, { color: textColor }]}>{bday.name}</Text>
                           <View style={styles.bdayBadge}>
-                            <Text style={styles.bdayBadgeText}>TURNING {bday.ageTurned} 🎈</Text>
+                            <Text style={styles.bdayBadgeText}>TURNING {bday.ageTurned}</Text>
                           </View>
                         </View>
                         <Text style={{ color: muted, fontSize: 11, marginTop: 1 }}>
@@ -174,7 +174,7 @@ export function BirthdayCelebrationHub({
                         </Text>
                         {bday.plans ? (
                           <Text style={{ color: primary, fontSize: 11, fontWeight: '700', marginTop: 3 }}>
-                            📍 {bday.plans}
+                            {bday.plans}
                           </Text>
                         ) : null}
                       </View>
@@ -253,7 +253,7 @@ export function BirthdayCelebrationHub({
 
                   <View style={[styles.perkBox, { borderColor: `${sug.color}35`, backgroundColor: `${sug.color}10` }]}>
                     <Text style={{ color: sug.color, fontSize: 11, fontWeight: '800' }}>
-                      🎁 Special Birthday Offer: {sug.perk}
+                      Special Birthday Offer: {sug.perk}
                     </Text>
                   </View>
 

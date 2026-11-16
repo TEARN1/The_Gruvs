@@ -2082,7 +2082,7 @@ const ClubsAndAwardsSection = ({ userId, primary, textColor, muted, surface, onC
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {awards.map(a => (
               <View key={a.id} style={{ alignItems: 'center', gap: 3, width: 70, backgroundColor: `${primary}10`, borderRadius: 12, borderWidth: 1, borderColor: `${primary}25`, padding: 8 }}>
-                <Text style={{ fontSize: 22 }}>{a.award_icon || '🏆'}</Text>
+                <Feather name="award" size={20} color="#fbbf24" />
                 <Text style={{ color: textColor, fontSize: 9, fontWeight: '800', textAlign: 'center' }} numberOfLines={2}>{a.award_label}</Text>
                 <Text style={{ color: muted, fontSize: 8, textAlign: 'center' }} numberOfLines={1}>{a.events?.title}</Text>
                 {a.stat_value != null && (
@@ -4030,7 +4030,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 </View>
               ))}
               {!!vibeCoachData.next_milestone && (
-                <Text style={{ color: primary, fontSize: 11, fontWeight: '700', marginTop: 4 }}>Next: {vibeCoachData.next_milestone}</Text>
+                <Text style={{ color: primary, fontSize: 11, fontWeight: '700', marginTop: 4 }}>Next Milestone: {vibeCoachData.next_milestone}</Text>
               )}
             </>
           ) : (

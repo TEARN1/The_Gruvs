@@ -512,7 +512,7 @@ const EventCard = React.memo(({
                 opacity: heartAnim.opacity,
                 transform: [{ scale: heartAnim.scale }],
               }}>
-                <Text style={{ fontSize: 72 }}>❤️</Text>
+                <Feather name="heart" size={72} color="#ff3366" />
               </Animated.View>
             )}
             {/* Subtle bottom-edge vignette — only enough to keep the corner controls
@@ -669,7 +669,7 @@ const EventCard = React.memo(({
                   ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' }} />
                   : <Feather name="trending-up" size={11} color="#f59e0b" />}
                 <Text style={[styles.crewBadgeText, { color: heat.live ? '#10b981' : '#f59e0b' }]}>
-                  {heat.live ? `${heat.text}` : heat.text}
+                  {heat.live ? `LIVE · ${heat.text}` : heat.text}
                 </Text>
               </View>
             )}
@@ -2214,7 +2214,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       items.push(
         <GlassView key="locals-bday" style={{ marginHorizontal: 16, marginBottom: 12, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
           <Text style={{ color: textColor, fontWeight: '950', fontSize: 11, letterSpacing: 1, marginBottom: 10 }}>
-CELEBRATING TODAY
+            CELEBRATING TODAY
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, alignItems: 'center' }}>
             {birthdaysToday.map((p) => {

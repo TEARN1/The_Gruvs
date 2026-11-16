@@ -21,7 +21,35 @@ const path = require('path');
 const SITE = 'https://thegruvs.com';
 
 const STATIC = [
-  { loc: '/', changefreq: 'daily', priority: '1.0' },
+  {
+    loc: '/',
+    changefreq: 'daily',
+    priority: '1.0',
+    images: [
+      { loc: `${SITE}/icon-512.png`, title: 'The Gruvs App Icon', caption: 'Official App Icon' },
+      { loc: `${SITE}/logo.png`, title: 'The Gruvs Brand Logo', caption: 'Official Logo' },
+    ],
+  },
+  {
+    loc: '/founder',
+    changefreq: 'weekly',
+    priority: '0.95',
+    images: [
+      { loc: `${SITE}/images/asemahle-nkwali-ceo-the-gruvs.jpg`, title: 'Asemahle "TEARN" Nkwali Founder & CEO', caption: 'Official Executive Portrait' },
+      { loc: `${SITE}/images/asemahle-nkwali-founder-keynote.jpg`, title: 'Asemahle "TEARN" Nkwali Keynote', caption: 'South African Event Technology Address' },
+      { loc: `${SITE}/images/the-gruvs-app-launch-preview.jpg`, title: 'The Gruvs Mobile Platform', caption: 'Live Vibe Mapping and Discovery' },
+    ],
+  },
+  {
+    loc: '/press',
+    changefreq: 'weekly',
+    priority: '0.90',
+    images: [
+      { loc: `${SITE}/logo.png`, title: 'The Gruvs Press Logo', caption: 'Primary Brand Emblem' },
+      { loc: `${SITE}/images/asemahle-nkwali-ceo-the-gruvs.jpg`, title: 'Asemahle "TEARN" Nkwali Press Portrait', caption: 'Executive Media Kit' },
+      { loc: `${SITE}/images/the-gruvs-app-launch-preview.jpg`, title: 'The Gruvs Platform Interface', caption: 'Nightlife Intelligence Telemetry' },
+    ],
+  },
   { loc: '/get.html', changefreq: 'weekly', priority: '0.7' },
   { loc: '/privacy.html', changefreq: 'yearly', priority: '0.2' },
   { loc: '/terms.html', changefreq: 'yearly', priority: '0.2' },
@@ -51,6 +79,12 @@ const HUBS = [
   { loc: '/events/kimberley', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/pietermaritzburg', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/stellenbosch', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/maboneng', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/braamfontein', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/menlyn', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/hatfield', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/umlazi', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/camps-bay', changefreq: 'daily', priority: '0.90' },
 
   // Genre & Vibe Hubs (Major Music & Lifestyle Subcultures)
   { loc: '/events/amapiano', changefreq: 'daily', priority: '0.90' },
@@ -69,6 +103,37 @@ const HUBS = [
   // Date Horizons
   { loc: '/events/this-weekend', changefreq: 'daily', priority: '0.95' },
   { loc: '/events/nye-2027', changefreq: 'daily', priority: '0.95' },
+
+  // 28-Category Event Business & Hustler Directory Hubs
+  { loc: '/services', changefreq: 'weekly', priority: '0.90' },
+  { loc: '/services/shisanyama-braai', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/food-trucks', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/mobile-cocktail-bar', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/coffee-juice-vans', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/event-bakers', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/ice-cooler-hire', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/bakkie-haulers', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/stage-trucks', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/shuttle-fleets', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/vip-chauffeur', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/drum-percussion-rentals', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/pa-line-array', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/dj-gear-cdjs', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/backline-amps', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/sound-engineers', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/session-musicians-mcs', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/fashion-designers', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/streetwear-popups', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/mobile-barbers', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/makeup-artists-mua', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/bedouin-stretch-tents', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/staging-truss-rigging', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/mobile-toilets', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/event-furniture', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/bouncers-security', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/paramedics-first-aid', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/photographers-360', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/services/drone-videography', changefreq: 'weekly', priority: '0.88' },
 ];
 
 // A hub with no events of its own is built with noindex
@@ -127,6 +192,24 @@ function escapeXml(str) {
     .replace(/'/g, '&apos;');
 }
 
+function renderImageTags(imgs) {
+  const list = Array.isArray(imgs) ? imgs : (imgs ? [imgs] : []);
+  const lines = [];
+  for (const img of list) {
+    if (!img || !img.loc) continue;
+    lines.push('    <image:image>');
+    lines.push(`      <image:loc>${escapeXml(img.loc)}</image:loc>`);
+    if (img.title) {
+      lines.push(`      <image:title>${escapeXml(img.title)}</image:title>`);
+    }
+    if (img.caption) {
+      lines.push(`      <image:caption>${escapeXml(img.caption)}</image:caption>`);
+    }
+    lines.push('    </image:image>');
+  }
+  return lines;
+}
+
 function buildXml(entries) {
   const lines = [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -138,24 +221,41 @@ function buildXml(entries) {
   for (const entry of entries) {
     lines.push('  <url>');
     lines.push(`    <loc>${escapeXml(entry.loc)}</loc>`);
+    lines.push(`    <xhtml:link rel="alternate" hreflang="en-ZA" href="${escapeXml(entry.loc)}" />`);
+    lines.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(entry.loc)}" />`);
     if (entry.lastmod) {
       lines.push(`    <lastmod>${entry.lastmod}</lastmod>`);
     }
     lines.push(`    <changefreq>${entry.changefreq}</changefreq>`);
     lines.push(`    <priority>${entry.priority}</priority>`);
 
-    if (entry.image) {
-      lines.push('    <image:image>');
-      lines.push(`      <image:loc>${escapeXml(entry.image.loc)}</image:loc>`);
-      if (entry.image.title) {
-        lines.push(`      <image:title>${escapeXml(entry.image.title)}</image:title>`);
-      }
-      if (entry.image.caption) {
-        lines.push(`      <image:caption>${escapeXml(entry.image.caption)}</image:caption>`);
-      }
-      lines.push('    </image:image>');
+    const imgTags = renderImageTags(entry.images || entry.image);
+    if (imgTags.length > 0) {
+      lines.push(...imgTags);
     }
     lines.push('  </url>');
+  }
+
+  lines.push('</urlset>');
+  lines.push('');
+  return lines.join('\n');
+}
+
+function buildImageSitemapXml(entries) {
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+    '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">',
+  ];
+
+  for (const entry of entries) {
+    const imgTags = renderImageTags(entry.images || entry.image);
+    if (imgTags.length > 0) {
+      lines.push('  <url>');
+      lines.push(`    <loc>${escapeXml(entry.loc)}</loc>`);
+      lines.push(...imgTags);
+      lines.push('  </url>');
+    }
   }
 
   lines.push('</urlset>');
@@ -188,7 +288,11 @@ function buildXml(entries) {
       );
       let events = [];
       if (res.ok) {
-        events = await res.json();
+        const rawEvents = await res.json();
+        events = rawEvents.filter(e => {
+          const cover = e.cover_url || e.cover_image || (Array.isArray(e.media_urls) && e.media_urls[0]);
+          return Boolean(cover && typeof cover === 'string' && cover.trim().length > 5);
+        });
       }
 
       for (const e of events) {
@@ -262,14 +366,17 @@ function buildXml(entries) {
   }
 
   const sitemapXml = buildXml(urls);
+  const imageSitemapXml = buildImageSitemapXml(urls);
 
   if (fs.existsSync(publicDir)) {
     fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapXml, 'utf8');
-    console.log(`[gen-sitemap] Wrote public/sitemap.xml with ${urls.length} URLs.`);
+    fs.writeFileSync(path.join(publicDir, 'image-sitemap.xml'), imageSitemapXml, 'utf8');
+    console.log(`[gen-sitemap] Wrote public/sitemap.xml and public/image-sitemap.xml with ${urls.length} URLs.`);
   }
 
   if (fs.existsSync(distDir)) {
     fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemapXml, 'utf8');
-    console.log(`[gen-sitemap] Wrote dist/sitemap.xml with ${urls.length} URLs.`);
+    fs.writeFileSync(path.join(distDir, 'image-sitemap.xml'), imageSitemapXml, 'utf8');
+    console.log(`[gen-sitemap] Wrote dist/sitemap.xml and dist/image-sitemap.xml with ${urls.length} URLs.`);
   }
 })();

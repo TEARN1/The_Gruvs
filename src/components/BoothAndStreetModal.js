@@ -186,7 +186,7 @@ export function BoothAndStreetModal({
                   <View style={[styles.boothCard, { borderColor: isPlayingAudio ? '#10b981' : `${primary}45`, backgroundColor: surface }]}>
                     <View style={styles.boothTop}>
                       <View>
-                        <Text style={[styles.boothDj, { color: primary }]}>🎧 {boothDrop.dj_name}</Text>
+                        <Text style={[styles.boothDj, { color: primary }]}>{boothDrop.dj_name}</Text>
                         <Text style={[styles.boothGenre, { color: textColor }]}>{boothDrop.track_genre}</Text>
                       </View>
                       <View style={[styles.energyBadge, { backgroundColor: '#10b98125', borderColor: '#10b981' }]}>
@@ -323,7 +323,7 @@ export function BoothAndStreetModal({
                   <View key={spot.id} style={[styles.resaleRow, { borderColor: `${primary}30`, backgroundColor: surface }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.resaleTier, { color: textColor }]}>{spot.name}</Text>
-                      <Text style={{ color: '#10b981', fontSize: 11, fontWeight: '800' }}>⏰ {spot.openStatus}</Text>
+                      <Text style={{ color: '#10b981', fontSize: 11, fontWeight: '800' }}>{spot.openStatus}</Text>
                       <Text style={{ color: muted, fontSize: 10.5 }}>{spot.perk} · ~{spot.distanceKm} km</Text>
                     </View>
                     <TouchableOpacity

@@ -121,7 +121,7 @@ export function FoodKotaSection({
           <View style={styles.headRow}>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                <Text style={{ fontSize: 18 }}>🍔</Text>
+                <Feather name="coffee" size={18} color="#f59e0b" />
                 <Text style={[styles.title, { color: textColor }]}>Food & Kota Street Hub</Text>
               </View>
               <Text style={[styles.sub, { color: muted }]}>
@@ -218,7 +218,7 @@ export function FoodKotaSection({
 
                   <View style={styles.signatureBox}>
                     <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '800' }}>
-                      🌟 {spot.signature}
+                      Signature: {spot.signature}
                     </Text>
                     <Text style={{ color: muted, fontSize: 10, marginTop: 2 }}>
                       {spot.hours} · Prices: {spot.priceRange}
