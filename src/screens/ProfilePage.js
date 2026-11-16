@@ -2265,8 +2265,14 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           async () => {
             const { data: d, error } = await supabase
               .from('events')
+              // events has no user_id column — the .or() that referenced it made
+              // PostgREST reject the whole filter (42703), so this tier always
+              // threw and the degraded tier below silently served every profile's
+              // "My Gruvs" tab. Caught by Guardian's client-error sensor as
+              // SCHEMA_DRIFT:ProfilePage.loadTab:gruvs:primary. author_id is the
+              // only ownership column that exists.
               .select('*, profiles(username, avatar_url)')
-              .or(`author_id.eq.${user.id},user_id.eq.${user.id}`)
+              .eq('author_id', user.id)
               .is('deleted_at', null)
               .neq('status', 'cancelled')
               .order('created_at', { ascending: false })
@@ -2289,7 +2295,11 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           async () => {
             const { data: d, error } = await supabase
               .from('events')
-              .select('id, title, event_date, event_time, venue_name, category, media, cover_url, vibe_count, rsvp_count, status, deleted_at, created_at')
+              // rsvp_count does not exist on events either (the real counter is
+              // `going`, maintained by the event_rsvps trigger). Selecting it made
+              // this last-resort tier fail too, so a tier-2 outage would have
+              // dropped straight to the empty default instead of this fallback.
+              .select('id, title, event_date, event_time, venue_name, category, media, cover_url, vibe_count, status, deleted_at, created_at')
               .eq('author_id', user.id)
               .is('deleted_at', null)
               .order('created_at', { ascending: false })
