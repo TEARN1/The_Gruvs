@@ -93,7 +93,7 @@ export const BirthDateNudge = ({
       await loadViewerAge(user.id);
       refreshProfile?.();
 
-      showToast('Birthday saved — thanks 🎂', 'success');
+      showToast('Birthday saved — thanks', 'success');
       setShow(false);
     } catch {
       showToast('Could not save your birthday. Try again.', 'error');

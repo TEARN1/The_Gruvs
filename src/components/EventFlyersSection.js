@@ -73,7 +73,7 @@ export function EventFlyersSection({
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
         navigator.clipboard.writeText(flyer.perk_code).catch(() => {});
       }
-      toast?.(`Perk code "${flyer.perk_code}" claimed & copied! 🎟️`, 'success');
+      toast?.(`Perk code "${flyer.perk_code}" claimed & copied!`, 'success');
     } else {
       toast?.(`Perk claimed! Present this flyer at the venue.`, 'success');
     }

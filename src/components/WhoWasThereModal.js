@@ -19,9 +19,9 @@ const avatarBg = (u = '') =>
 
 
 const GENDERS = [
-  { key: 'male',        label: '♂ Male' },
-  { key: 'female',      label: '♀ Female' },
-  { key: 'non_binary',  label: '⚧ Non-binary' },
+  { key: 'male',        label: 'Male' },
+  { key: 'female',      label: 'Female' },
+  { key: 'non_binary',  label: 'Non-binary' },
   { key: 'any',         label: 'Any' },
 ];
 
@@ -377,7 +377,7 @@ export function WhoWasThereModal({ visible, onClose, onAuthRequired }) {
           {showFilters && (
             <View style={[s.filtersBox, { backgroundColor: `${surface}60`, borderColor: `${primary}15` }]}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <Text style={[s.filtersTitle, { color: textColor }]}>🔍 Description Filters</Text>
+                <Text style={[s.filtersTitle, { color: textColor }]}>Description Filters</Text>
                 {activeFilterCount > 0 && (
                   <TouchableOpacity onPress={clearFilters}>
                     <Text style={{ color: "#ef4444", fontSize: 11, fontWeight: '800' }}>Clear All</Text>

@@ -63,7 +63,7 @@ const CreatePollModal = ({ visible, onClose, eventId, scheduleSlot, primary, bg,
       if (ok === null) {
         toast.show('Could not create poll — try again.', 'error');
       } else {
-        toast.show('Poll created! 🗳️', 'success');
+        toast.show('Poll created!', 'success');
         reset();
         onClose(true);
       }
@@ -138,7 +138,7 @@ const CreatePollModal = ({ visible, onClose, eventId, scheduleSlot, primary, bg,
             >
               {loading
                 ? <ActivityIndicator color="#000" />
-                : <Text style={cp.createBtnText}>LAUNCH POLL 🗳️</Text>
+                : <Text style={cp.createBtnText}>LAUNCH POLL</Text>
               }
             </TouchableOpacity>
             <View style={{ height: 20 }} />

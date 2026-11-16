@@ -17,7 +17,7 @@ export function eventShareUrl(id, opts = {}) {
 
 export function buildShareText(event = {}, opts = {}) {
   const e = event || {};
-  const lines = [`🎉 "${e.title || 'A Gruv'}" on The Gruvs`];
+  const lines = [`"${e.title || 'A Gruv'}" on The Gruvs`];
 
   if (e.event_date) {
     try {
@@ -25,24 +25,24 @@ export function buildShareText(event = {}, opts = {}) {
         opts.locale || undefined,
         { weekday: 'short', day: 'numeric', month: 'short' },
       );
-      if (d && d !== 'Invalid Date') lines.push(`📅 ${d}${e.event_time ? ` · ${e.event_time}` : ''}`);
+      if (d && d !== 'Invalid Date') lines.push(`${d}${e.event_time ? ` · ${e.event_time}` : ''}`);
     } catch { /* skip unparseable date */ }
   }
 
   const venue = e.venue_name || e.city || '';
-  if (venue) lines.push(`📍 ${venue}`);
+  if (venue) lines.push(`${venue}`);
 
-  if (e.price === 0 || e.price === 'FREE' || !e.price) lines.push('🆓 FREE entry');
+  if (e.price === 0 || e.price === 'FREE' || !e.price) lines.push('FREE entry');
 
   // social proof — verified presence leads, then intent (hype never leads)
   const here  = Number(e.here_count ?? e.touchdown_count ?? 0);
   const going = Number(e.going) || 0;
   const proof = [];
-  if (here > 0)  proof.push(`🔥 ${here} already there`);
-  if (going > 0) proof.push(`✅ ${going} locked in`);
+  if (here > 0)  proof.push(`${here} already there`);
+  if (going > 0) proof.push(`${going} locked in`);
   if (proof.length) lines.push(proof.join('  ·  '));
 
-  lines.push(`\nTap to see who's going 👉 ${eventShareUrl(e.id, opts)}`);
+  lines.push(`\nTap to see who's going ${eventShareUrl(e.id, opts)}`);
 
   return lines.join('\n');
 }

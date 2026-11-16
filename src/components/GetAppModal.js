@@ -182,7 +182,7 @@ export const GetAppModal = ({
             {isAppleActive && (
               <View style={styles.sectionWrap}>
                 <View style={styles.benefitCard}>
-                  <Text style={styles.benefitTitle}>🍎 Instant iOS Web App (Fastest & Zero Bloat)</Text>
+                  <Text style={styles.benefitTitle}>Instant iOS web app (fastest, nothing to download)</Text>
                   <Text style={styles.benefitDesc}>Add The Gruvs directly to your iPhone or iPad home screen with full fullscreen experience and instant updates.</Text>
                 </View>
 

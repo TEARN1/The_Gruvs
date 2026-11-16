@@ -447,7 +447,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
         setInterestState('matched');
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
         SoundFX.playChannel('match');
-        toast?.show("It's a match! Say hi 👋", 'success');
+        toast?.show("It's a match! Say hi", 'success');
       } else if (result === 'recorded') {
         setInterestState('sent');
         // Deliberately the SAME message whether or not this happens to
@@ -718,7 +718,7 @@ export const ViberProfileModal = ({ visible, user: propUser, userId: propUserId,
                       onPress={() => {
                         try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
                         setBdayGlitter(Date.now());
-                        toast?.show(`Sent Birthday Wishes & Sparkles to ${profile.username}! 🎂✨`, 'success');
+                        toast?.show(`Sent Birthday Wishes & Sparkles to ${profile.username}!`, 'success');
                       }}
                       style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: '#f59e0b', position: 'relative' }}
                     >

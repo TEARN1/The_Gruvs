@@ -77,7 +77,7 @@ export const GiftingModal = ({ visible, hostId, eventId, hostName, onClose, onGi
       const res = await MonetizationService.sendGift(user.id, hostId, eventId, selectedGift.id);
       if (res.success) {
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-        toast?.show(`Sent ${selectedGift.name} successfully! ⚡`, 'success');
+        toast?.show(`Sent ${selectedGift.name} successfully!`, 'success');
         setCoins(prev => prev - selectedGift.coin_cost);
         onGiftSent?.(selectedGift);
         onClose();

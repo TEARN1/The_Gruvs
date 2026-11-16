@@ -570,7 +570,7 @@ export const BusinessStoreBuilder = ({ biz, primary, textColor, muted, bg, onClo
       // Only mark live after server confirms — never set UI state speculatively
       if (ok === null) { Alert.alert('Error', 'Could not publish store. Please try again.'); return; }
       setStoreEnabled(true);
-      Alert.alert('Published! 🎉', `Your store is live at thegruvs.com/store/${storeSlug}`);
+      Alert.alert('Published!', `Your store is live at thegruvs.com/store/${storeSlug}`);
     } finally {
       setSaving(false);
     }

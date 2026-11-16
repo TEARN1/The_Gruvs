@@ -287,7 +287,7 @@ export const EditEventModal = ({ visible, onClose, event, onSaved, onDeleted, on
           const notifications = allIds.map(uid => ({
             recipient_id: uid,
             type: 'event_cancelled',
-            title: '🚫 Event Cancelled',
+            title: 'Event Cancelled',
             body: `"${event.title}" has been cancelled by the organizer.`,
             data: { event_id: event.id, event_title: event.title },
           }));

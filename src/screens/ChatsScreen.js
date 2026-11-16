@@ -82,7 +82,7 @@ const ConvoRow = React.memo(({ item, userId, primary, textColor, muted, surface,
           <View style={cs.bottomRow}>
             {isPending
               ? <Text style={[cs.preview, { color: primary, fontWeight: '800' }]} numberOfLines={1}>
-                  🔔 Wants to link up
+Wants to link up
                 </Text>
               : <Text style={[cs.preview, { color: isUnread ? textColor : muted, fontWeight: isUnread ? '700' : '400' }]} numberOfLines={1}>
                   {item.sender_id === userId ? 'You: ' : ''}{lastMsg}

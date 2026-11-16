@@ -105,7 +105,7 @@ export const SetNowPlayingModal = ({ eventId, visible, onClose }) => {
         <View style={[s.sheet, { backgroundColor: bg }]}>
           {/* Header */}
           <View style={s.header}>
-            <Text style={[s.title, { color: textColor }]}>🎵 Set Now Playing</Text>
+            <Text style={[s.title, { color: textColor }]}>Set Now Playing</Text>
             <TouchableOpacity onPress={onClose}>
               <Feather name="x" size={20} color={muted} />
             </TouchableOpacity>

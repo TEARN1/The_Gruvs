@@ -125,7 +125,7 @@ export function EcosystemPortalModal({
           {/* Sheet Header */}
           <View style={styles.header}>
             <View style={styles.headerBrand}>
-              <Text style={{ fontSize: 24 }}>{app.badge}</Text>
+              <Feather name={app.icon} size={24} color={app.color} />
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={[styles.appName, { color: textColor }]}>{app.name}</Text>

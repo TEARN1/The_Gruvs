@@ -62,7 +62,7 @@ export const RatingSection = ({ eventId, onAuthRequired }) => {
       );
       if (ok !== null) {
         setSubmitted(true);
-        toast.show('Gruv rated! Thanks for the feedback 🌟', 'success');
+        toast.show('Gruv rated! Thanks for the feedback', 'success');
       } else {
         toast.show('Failed to submit rating.', 'error');
       }

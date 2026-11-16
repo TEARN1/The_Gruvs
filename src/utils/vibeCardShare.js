@@ -23,10 +23,10 @@ export function buildVibeCardShareText(profile = {}, opts = {}) {
   const score = Number(p.vibe_score) || 0;
   const level = getVibeLevel(score);
 
-  const lines = [`🎫 ${handle} on The Gruvs`, `${level.name} · ${score} vibe pts`];
+  const lines = [`${handle} on The Gruvs`, `${level.name} · ${score} vibe pts`];
 
   const crew = Number(p.followers_count);
-  if (Number.isFinite(crew) && crew > 0) lines.push(`👥 ${crew} in their crew`);
+  if (Number.isFinite(crew) && crew > 0) lines.push(`${crew} in their crew`);
   if (p.is_verified) lines.push('✓ Verified');
 
   lines.push('— reputation earned by showing up, not posting.');

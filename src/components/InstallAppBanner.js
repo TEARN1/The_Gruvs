@@ -112,14 +112,14 @@ export const InstallAppBanner = ({ primary = '#00f2ff' }) => {
             </Text>
             <View style={styles.pillRow}>
               <View style={styles.platformBadge}>
-                <Text style={styles.platformBadgeText}>🍏 iOS</Text>
+                <Text style={styles.platformBadgeText}>iOS</Text>
               </View>
               <View style={styles.platformBadge}>
-                <Text style={styles.platformBadgeText}>🤖 Android</Text>
+                <Text style={styles.platformBadgeText}>Android</Text>
               </View>
               {canOneTap && (
                 <View style={[styles.platformBadge, { backgroundColor: `${primary}25` }]}>
-                  <Text style={[styles.platformBadgeText, { color: primary }]}>⚡ 1-Tap Ready</Text>
+                  <Text style={[styles.platformBadgeText, { color: primary }]}>1-tap ready</Text>
                 </View>
               )}
             </View>

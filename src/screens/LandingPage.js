@@ -2806,7 +2806,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           paddingHorizontal: 14, paddingVertical: 10,
           flexDirection: 'row', alignItems: 'center', gap: 10,
         }}>
-          <Feather name="alert-triangle" size={18} color="#fff" />
+          <Feather name={communityAlert.severity === 'panic' ? 'alert-octagon' : 'alert-triangle'} size={20} color="#fff" />
           <View style={{ flex: 1 }}>
             <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }} numberOfLines={1}>
               {communityAlert.title}
@@ -3187,7 +3187,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {/* Royal Journey Builder Floating Action (docked on bottom-left, balancing createFab on right) */}
       {routeEvents.length > 0 && (
         <TouchableOpacity
-          style={[styles.routeFab, { backgroundColor: primary, bottom: Math.max((insets.bottom || 0) + 76, 86) }]}
+          style={[styles.routeFab, { backgroundColor: primary, bottom: Math.max((insets.bottom || 0) + 88, 98) }]}
           onPress={() => setRouteModalVisible(true)}
           activeOpacity={0.9}
         >
@@ -3229,7 +3229,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {/* ── Scroll-to-top button (stacked cleanly above createFab) ─────────────────── */}
       {showScrollTop && (
         <TouchableOpacity
-          style={[styles.scrollTopBtn, { backgroundColor: `${primary}22`, borderColor: `${primary}60`, bottom: Math.max((insets.bottom || 0) + 76, 86) + 64 }]}
+          style={[styles.scrollTopBtn, { backgroundColor: `${primary}22`, borderColor: `${primary}60`, bottom: Math.max((insets.bottom || 0) + 88, 98) + 64 }]}
           onPress={() => {
             flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
             safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
@@ -3245,7 +3245,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       {/* ── Create event FAB (bottom right, above floating dock) ───────────────── */}
       <TouchableOpacity
         {...fx('pulse')}
-        style={[styles.createFab, { backgroundColor: primary, bottom: Math.max((insets.bottom || 0) + 76, 86) }]}
+        style={[styles.createFab, { backgroundColor: primary, bottom: Math.max((insets.bottom || 0) + 88, 98) }]} /* clear of the tab bar, not crowding its last tab */
         onPress={() => {
           safeHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
           user ? setPostModalVisible(true) : onAuthRequired();

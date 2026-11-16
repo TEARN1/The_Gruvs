@@ -87,7 +87,7 @@ export const MAP_REPORT_TYPES = [
   T('packed',         'Packed right now',   'users',          RED,   'Vibe', 2),
   T('dead',           'Quiet / dead',       'user',           SLATE, 'Vibe', 2),
   T('great_vibe',     'Great vibe',         'zap',            PINK,  'Vibe', 3),
-  T('good_music',     'Music is 🔥',         'music',          PURPLE,'Vibe', 2),
+  T('good_music',     'Great music',         'music',          PURPLE,'Vibe', 2),
   T('live_now',       'Live act on now',    'radio',          GREEN, 'Vibe', 2),
   T('winding_down',   'Winding down',       'sunset',         AMBER, 'Vibe', 2),
   T('afterparty',     'Afterparty here',    'moon',           PURPLE,'Vibe', 4),

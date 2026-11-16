@@ -654,7 +654,7 @@ export const AuthModal = ({ visible, onClose }) => {
                 <View style={styles.ecosystemPills}>
                   {ECOSYSTEM_APPS.map((app) => (
                     <View key={app.id} style={[styles.ecosystemPill, { borderColor: `${app.color}40`, backgroundColor: `${app.color}10` }]}>
-                      <Text style={{ fontSize: 11 }}>{app.badge}</Text>
+                      <Feather name={app.icon} size={11} color={app.color} />
                       <Text style={[styles.ecosystemPillText, { color: textColor }]}>{app.name}</Text>
                     </View>
                   ))}

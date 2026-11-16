@@ -111,7 +111,7 @@ export const SurveyBuilderModal = ({ visible, onClose }) => {
       });
       if (!created) { toast.show('Could not create the survey — is the surveys table migrated?', 'error'); return; }
       haptics.success();
-      toast.show('Question is live — answers drip in anonymously 🎉', 'success');
+      toast.show('Question is live — answers drip in anonymously', 'success');
       resetCompose();
       setView('list');
       load();

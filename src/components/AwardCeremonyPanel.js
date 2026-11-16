@@ -106,7 +106,7 @@ export const AwardCeremonyPanel = ({ event }) => {
         // Notify winner
         await NotificationService.send(form.recipient_user_id, {
           type: 'rating',
-          title: `🏆 You won: ${form.award_label}`,
+          title: `You won: ${form.award_label}`,
           body: `Awarded at ${event.title}`,
           eventId: event.id,
           actorId: user?.id,

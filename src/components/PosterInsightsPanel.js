@@ -50,9 +50,9 @@ export const PosterInsightsPanel = ({ eventId, eventTitle, primary, textColor, m
     if (!data) return;
     const t = data.totals;
     const top = data.topFans.slice(0, 3).map((f, i) => `${i + 1}. ${f.username ? '@' + f.username : 'A fan'} — ${f.touchdowns ? `${f.touchdowns} touch down${f.touchdowns !== 1 ? 's' : ''}, ` : ''}${f.likes} like${f.likes !== 1 ? 's' : ''}`).join('\n');
-    const msg = `📊 ${eventTitle || 'My Gruv'} — the real numbers\n`
-      + `❤️ ${t.likes} likes · ⚡ ${t.reactions} reactions · 📍 ${t.touchdowns} showed up · 👀 ${t.reach} reached\n`
-      + (top ? `\n👑 Top fans:\n${top}\n` : '')
+    const msg = `${eventTitle || 'My Gruv'} — the real numbers\n`
+      + `${t.likes} likes · ${t.reactions} reactions · ${t.touchdowns} showed up · ${t.reach} reached\n`
+      + (top ? `\nTop fans:\n${top}\n` : '')
       + `\nProof on The Gruvs — real people, not impressions.`;
     try {
       if (Platform.OS === 'web' && navigator?.clipboard) { await navigator.clipboard.writeText(msg); }
@@ -127,15 +127,15 @@ export const PosterInsightsPanel = ({ eventId, eventTitle, primary, textColor, m
                       <Text style={[pi.name, { color: textColor }]} numberOfLines={1}>{f.username ? `${f.username}` : 'A Viber'}</Text>
                       {f.isRealFan && (
                         <View style={[pi.fanChip, { backgroundColor: `${gold}1e`, borderColor: `${gold}55` }]}>
-                          <Text style={[pi.fanChipText, { color: gold }]}>👑 Real fan</Text>
+                          <Text style={[pi.fanChipText, { color: gold }]}>Real fan</Text>
                         </View>
                       )}
                     </View>
                     <Text style={[pi.meta, { color: muted }]} numberOfLines={1}>
                       {[
-                        f.touchdowns > 0 ? `📍 ${f.touchdowns} showed up` : null,
-                        f.likes > 0 ? `❤️ ${f.likes}` : null,
-                        f.reactions > 0 ? `⚡ ${f.reactions}` : null,
+                        f.touchdowns > 0 ? `${f.touchdowns} showed up` : null,
+                        f.likes > 0 ? `${f.likes}` : null,
+                        f.reactions > 0 ? `${f.reactions}` : null,
                       ].filter(Boolean).join('  ·  ')}
                     </Text>
                   </View>

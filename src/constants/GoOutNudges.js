@@ -61,7 +61,7 @@ export const GO_OUT_NUDGES = [
   { id: 35, cat: 'network', body: "The room you're not in is where it's happening.", cta: 'Find a Gruv', route: 'explore' },
 
   // ── DISCOVER (20) — mostly dynamic ─────────────────────────────────────────
-  { id: 36, cat: 'discover', body: '🔥 {event} is heating up in {city}. Don’t miss it.', cta: 'View', route: 'event', needs: ['event', 'city'] },
+  { id: 36, cat: 'discover', body: '{event} is heating up in {city}. Don’t miss it.', cta: 'View', route: 'event', needs: ['event', 'city'] },
   { id: 37, cat: 'discover', body: '{count} events near you tonight. Pick one.', cta: 'Explore', route: 'explore', needs: ['count'] },
   { id: 38, cat: 'discover', body: 'The hottest Gruv in {country} right now — tap to see.', cta: 'See it', route: 'explore', needs: ['country'] },
   { id: 39, cat: 'discover', body: "Something's turning up {minutes} min from you.", cta: 'Find it', route: 'explore', needs: ['minutes'] },
@@ -80,7 +80,7 @@ export const GO_OUT_NUDGES = [
   { id: 52, cat: 'discover', body: '{event} just crossed 100 RSVPs. Join them.', cta: 'RSVP now', route: 'event', needs: ['event'] },
   { id: 53, cat: 'discover', body: 'Your weekend plan is one tap away.', cta: 'Find events', route: 'explore' },
   { id: 54, cat: 'discover', body: 'The streets are talking. {event} is the move.', cta: 'View', route: 'event', needs: ['event'] },
-  { id: 55, cat: 'discover', body: 'Hot right now near you 👇', cta: 'Explore', route: 'explore' },
+  { id: 55, cat: 'discover', body: 'Hot right now near you', cta: 'Explore', route: 'explore' },
 
   // ── GO_OUT (20) ────────────────────────────────────────────────────────────
   { id: 56, cat: 'go_out', body: "You've been scrolling a while. Go live it.", cta: 'Find events', route: 'explore' },
@@ -131,7 +131,7 @@ export const GO_OUT_NUDGES = [
   // ── SPECIAL (5) — time-aware ───────────────────────────────────────────────
   { id: 96,  cat: 'special', body: "It's the weekend — {city} is waiting.", cta: 'Explore', route: 'explore', needs: ['city'] },
   { id: 97,  cat: 'special', body: 'Payday + a Gruv near you = sorted.', cta: 'Find events', route: 'explore' },
-  { id: 98,  cat: 'special', body: "🎂 Someone's birthday is coming — throw them a Gruv.", cta: 'Host', route: 'host' },
+  { id: 98,  cat: 'special', body: "Someone's birthday is coming — throw them a Gruv.", cta: 'Host', route: 'host' },
   { id: 99,  cat: 'special', body: 'New month, new movement. Host your first Gruv.', cta: 'Create event', route: 'host' },
   { id: 100, cat: 'special', body: "Month's almost over and you haven't gone out. Fix it tonight.", cta: 'Explore', route: 'explore' },
 ];

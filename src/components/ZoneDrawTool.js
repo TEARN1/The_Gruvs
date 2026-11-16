@@ -193,10 +193,10 @@ export function ZoneDrawTool({
             <Text style={[s.lbl, { color: muted }]}>HOST TRAFFIC PREDICTION</Text>
             <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
               {[
-                { key: 'Normal Flow', label: '🟢 Normal' },
-                { key: 'Moderate Congestion', label: '🟡 Moderate' },
-                { key: 'Heavy Congestion', label: '🟠 Heavy (+20m)' },
-                { key: 'Street Closed', label: '🔴 Street Closed' },
+                { key: 'Normal Flow', label: 'Normal' },
+                { key: 'Moderate Congestion', label: 'Moderate' },
+                { key: 'Heavy Congestion', label: 'Heavy (+20m)' },
+                { key: 'Street Closed', label: 'Street closed' },
               ].map(t => {
                 const active = trafficPrediction === t.key;
                 return (

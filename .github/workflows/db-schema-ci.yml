@@ -146,6 +146,11 @@ jobs:
       - name: Verify reel visibility + clip stats (RLS)
         run: $PSQL -f supabase/test/reels_visibility_test.sql
 
+      # Findable only for the time and audience chosen (max 2 days), rounded
+      # positions, and people you hide or block never see where you are or go.
+      - name: Verify find-me privacy (nearby, hide-from, RSVPs, check-ins)
+        run: $PSQL -f supabase/test/presence_privacy_test.sql
+
       - name: Summary
         if: always()
         run: |

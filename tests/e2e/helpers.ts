@@ -87,6 +87,21 @@ export async function goToTab(page: Page, ...names: string[]) {
       return;
     }
 
+    // Lineup left the bottom bar in the 5-tab dock; it now opens from the
+    // feed's quick tools sheet.
+    if (name === 'Lineup') {
+      const tools = page.locator('[aria-label="Explore tools and quick actions"]').first();
+      if (await tools.isVisible().catch(() => false)) {
+        await tools.click({ force: true });
+        const item = page.getByText('Lineup & Itinerary', { exact: true }).first();
+        await item.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+        if (await item.isVisible().catch(() => false)) {
+          await item.click({ force: true });
+          return;
+        }
+      }
+    }
+
     // 2. Fall back to text locator (using force if intercepted)
     const el = page.getByText(name, { exact: true }).first();
     const visible = await el.isVisible().catch(() => false);

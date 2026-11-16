@@ -115,7 +115,7 @@ export const PlayerProfileModal = ({ visible, playerId, onClose }) => {
     const name = player.known_as || player.full_name;
     try {
       await Share.share({
-        message: `${name} — ${ovr} OVR on The Gruvs 🏆\n${player.career_goals || 0} goals · ${player.career_events || player.career_apps || 0} events · ${(player.career_rating || 0)} avg rating. Scout them on The Gruvs.`,
+        message: `${name} — ${ovr} OVR on The Gruvs\n${player.career_goals || 0} goals · ${player.career_events || player.career_apps || 0} events · ${(player.career_rating || 0)} avg rating. Scout them on The Gruvs.`,
       });
     } catch { /* cancelled */ }
   };
