@@ -335,6 +335,28 @@ three renames and a reload — worst case drops from 6 hours to ~90 seconds. Tie
 > rollback mechanism. *(Minor inconsistency worth tidying: `web-deploy.yml`
 > still stages via `thegruvs_old` while `web-rollback.yml` uses release ids.)*
 
+**🔴 Gap 1b — the drift sensor is blind to filter columns.** Found 2026-11-16.
+`audit-schema.mjs` extracts every `.from('table').select('cols')` and runs the
+**select** against the live DB. It never parses `.or()`, `.eq()`, `.is()` or
+`.neq()` arguments, so a filter naming a nonexistent column is invisible to it.
+
+That is the exact shape of this repo's most expensive bugs — the signup write
+that discarded 35 users' data, the "4 bad READ-filter columns" already on
+record, and §1.4's `ProfilePage` `.or()`. The sensor built to catch silent
+drift cannot see the half of the query where drift has actually hurt.
+
+**This settles nothing about `events.user_id`, and that is the point.** Guardian
+has never flagged it, and that silence is not evidence of the column existing —
+the sensor was never looking. The §1.4 question still needs:
+
+```sql
+select column_name from information_schema.columns
+ where table_name = 'events' and column_name in ('user_id','rsvp_count');
+```
+
+Fix: extend the extractor to filter arguments. Same script, same live query, one
+more regex — and it closes the category that has cost the most.
+
 **🔴 Gap 2 — a cron job that was never registered can never be reported.** The
 watchdog flags jobs that *fail*; it cannot see a job that isn't there.
 `send_event_day_notifications` registers inside `EXCEPTION WHEN OTHERS THEN
