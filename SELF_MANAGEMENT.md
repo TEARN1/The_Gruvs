@@ -322,6 +322,19 @@ The previous release is already kept at `/var/www/thegruvs_old`, so rollback is
 three renames and a reload — worst case drops from 6 hours to ~90 seconds. Tier A.
 <!-- verify: grep -q "thegruvs_old" .github/workflows/web-deploy.yml -->
 
+> **Updated 2026-11-16 after merging main.** Main has since built
+> `web-rollback.yml`, and it is better than what this section proposed —
+> versioned release ids rather than a single `_old` directory, plus a
+> `web-deploy-production` concurrency group so a rollback cannot race a deploy.
+> **But it is `workflow_dispatch:` only.** The hand exists; nothing pulls it.
+> `web-deploy.yml` still contains zero health checks, so the 6-hour exposure
+> window is unchanged — a human still has to notice and click.
+>
+> This makes Gap 1 much cheaper than first estimated: the remaining work is a
+> post-deploy verify step that calls the rollback workflow on failure, not a
+> rollback mechanism. *(Minor inconsistency worth tidying: `web-deploy.yml`
+> still stages via `thegruvs_old` while `web-rollback.yml` uses release ids.)*
+
 **🔴 Gap 2 — a cron job that was never registered can never be reported.** The
 watchdog flags jobs that *fail*; it cannot see a job that isn't there.
 `send_event_day_notifications` registers inside `EXCEPTION WHEN OTHERS THEN
