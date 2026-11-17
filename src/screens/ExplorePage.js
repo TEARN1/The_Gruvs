@@ -13,6 +13,7 @@ import { FadeInView } from '../components/FadeInView';
 import { HotBadge } from '../components/HotBadge';
 import { isBirthdayToday } from '../utils/birthday';
 import { thumb } from '../utils/storageThumb';
+import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { GlassView } from '../components/GlassView';
@@ -160,6 +161,7 @@ const MOODS = [
 const HeroCard = ({ event, primary, onPress }) => {
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
+    if (IS_WEB_LOOP) return; // Web uses GPU-accelerated CSS keyframes below
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1.04, duration: 2000, useNativeDriver: true }),
@@ -183,10 +185,10 @@ const HeroCard = ({ event, primary, onPress }) => {
     if (!url && e.cover_image) url = e.cover_image;
     if (!url && e.image_url) url = e.image_url;
     if (!url) return null;
-    return url.includes('?') ? `${url}&w=1200&q=85` : `${url}?w=1200&q=85`;
+    return thumb.cover(url);
   };
 
-  const thumb = getMediaUrl(event);
+  const heroThumb = getMediaUrl(event);
   const catColor = event.category_color || getCategoryColor(event.category) || primary;
 
   const isWeb = Platform.OS === 'web';
@@ -209,8 +211,13 @@ const HeroCard = ({ event, primary, onPress }) => {
       {...(isWeb ? { className: 'hero-card' } : {})}
     >
       <Animated.Image
-        source={thumb ? { uri: thumb } : null}
-        style={[hero.img, { transform: [{ scale: pulse }] }]}
+        source={heroThumb ? { uri: heroThumb } : null}
+        style={[
+          hero.img,
+          isWeb
+            ? cssLoop({ '0%': { transform: 'scale(1)' }, '100%': { transform: 'scale(1.04)' } }, 2000)
+            : { transform: [{ scale: pulse }] }
+        ]}
         resizeMode="cover"
       />
       {/* Gradient overlay */}

@@ -71,28 +71,28 @@ import { getZodiacSign, daysUntilBirthday } from '../utils/birthday';
 import { DirectMessageModal }      from '../components/DirectMessageModal';
 import { CategoryPickerModal }     from '../components/CategoryPickerModal';
 import { deferred } from '../utils/deferred';
-const PostEventModal          = deferred(() => require('../components/PostEventModal').PostEventModal, 'PostEventModal');
-const EditEventModal          = deferred(() => require('../components/EditEventModal').EditEventModal, 'EditEventModal');
-const LeaderboardScreen       = deferred(() => require('./LeaderboardScreen').LeaderboardScreen, 'LeaderboardScreen');
 import { PathMapScreen }           from './lazyScreens';
-const BusinessDashboardScreen = deferred(() => require('./BusinessDashboardScreen').BusinessDashboardScreen, 'BusinessDashboardScreen');
 import { FollowListModal } from '../components/FollowListModal';
 import { WalletScreen }            from './lazyScreens';
 import { MonetizationService }     from '../services/monetizationService';
-// RoyalCouncilPage reads the mint params from here. It was using `projectDNA`
-// without importing it, so opening the Royal Council threw a ReferenceError.
 import projectDNA                  from '../services/projectDNA.json';
+import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
+import { sensoryHaptics } from '../services/sensoryHapticEngine';
+import { fx } from '../styles/webFx';
+import { cssLoop, IS_WEB as IS_WEB_FX } from '../utils/cssLoop';
+
+// ── Deferred heavy modals & sub-screens — load on first open ──
+const PostEventModal          = deferred(() => require('../components/PostEventModal').PostEventModal, 'PostEventModal');
+const EditEventModal          = deferred(() => require('../components/EditEventModal').EditEventModal, 'EditEventModal');
+const LeaderboardScreen       = deferred(() => require('./LeaderboardScreen').LeaderboardScreen, 'LeaderboardScreen');
+const BusinessDashboardScreen = deferred(() => require('./BusinessDashboardScreen').BusinessDashboardScreen, 'BusinessDashboardScreen');
 const ProviderDashboardScreen = deferred(() => require('./ProviderDashboardScreen').ProviderDashboardScreen, 'ProviderDashboardScreen');
 const TutorialCenter          = deferred(() => require('../components/TutorialCenter').TutorialCenter, 'TutorialCenter');
 const WhoWasThereModal        = deferred(() => require('../components/WhoWasThereModal').WhoWasThereModal, 'WhoWasThereModal');
 const EventTicketModal        = deferred(() => require('../components/EventTicketModal').EventTicketModal, 'EventTicketModal');
 const CreateReelModal         = deferred(() => require('../components/CreateReelModal').CreateReelModal, 'CreateReelModal');
 const GetAppModal             = deferred(() => require('../components/GetAppModal').GetAppModal, 'GetAppModal');
-import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
 const BusinessStoreBuilder    = deferred(() => require('./BusinessStoreBuilder').BusinessStoreBuilder, 'BusinessStoreBuilder');
-import { sensoryHaptics } from '../services/sensoryHapticEngine';
-import { fx } from '../styles/webFx';
-import { cssLoop, IS_WEB as IS_WEB_FX } from '../utils/cssLoop';
 
 // Panels load on first open, not at app start (see src/utils/deferred.js).
 const BusinessActivationPortal = deferred(() => require('../components/BusinessActivationPortal').BusinessActivationPortal, 'BusinessActivationPortal');

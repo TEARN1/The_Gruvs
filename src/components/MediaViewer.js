@@ -66,6 +66,15 @@ const downloadImage = async (url) => {
 // ── Single media item ────────────────────────────────────────────────────────
 const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover', onNaturalSize }) => {
   const [loadFailed, setLoadFailed] = useState(false);
+  const prevUrlRef = useRef(item?.url);
+
+  useEffect(() => {
+    if (prevUrlRef.current !== item?.url) {
+      prevUrlRef.current = item?.url;
+      setLoadFailed(false);
+    }
+  }, [item?.url]);
+
   const mediaStyle = { width: width || '100%', height: height || '100%' };
   const source = loadFailed
     ? placeholderSource
@@ -91,8 +100,11 @@ const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover', onNatu
       style={mediaStyle}
       resizeMode={resizeMode}
       onLoad={(e) => {
-        const w = e?.source?.width, h = e?.source?.height;
-        if (w > 0 && h > 0) onNaturalSize?.(w / h);
+        // ONLY notify natural aspect ratio for actual real media items, never after a load failure / fallback
+        if (!loadFailed) {
+          const w = e?.source?.width, h = e?.source?.height;
+          if (w > 20 && h > 20) onNaturalSize?.(w / h);
+        }
       }}
       onError={() => setLoadFailed(true)}
     />
@@ -141,16 +153,27 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
   const [downloadedKeys, setDownloadedKeys] = useState({});
   const flatListRef = useRef(null);
 
-  const onLayout = useCallback((e) => {
-    const w = e.nativeEvent.layout.width;
-    if (w > 0) setMeasuredWidth(w);
+  // Stabilize aspect ratio updates: debounce micro-changes (<2%) to avoid layout loops
+  const handleNaturalSize = useCallback((ratio) => {
+    if (!ratio || !isFinite(ratio) || ratio <= 0) return;
+    setNaturalRatio((prev) => {
+      if (prev && Math.abs(prev - ratio) / prev < 0.02) return prev;
+      return ratio;
+    });
   }, []);
+
+  const onLayout = useCallback((e) => {
+    const w = Math.round(e.nativeEvent.layout.width);
+    if (w > 0 && Math.abs(w - measuredWidth) > 2) setMeasuredWidth(w);
+  }, [measuredWidth]);
 
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
-    if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index);
+    if (viewableItems && viewableItems.length > 0 && viewableItems[0].index != null) {
+      setActiveIndex(viewableItems[0].index);
+    }
   }, []);
 
-  const viewabilityConfig = { itemVisiblePercentThreshold: 60 };
+  const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 60 });
 
   const handleLike = useCallback(async (key) => {
     if (!user) { onAuthRequired?.(); return; }
@@ -203,7 +226,7 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
           width={MEDIA_WIDTH}
           height={MEDIA_HEIGHT}
           resizeMode={effectiveResize}
-          onNaturalSize={fitToImage && index === 0 ? setNaturalRatio : undefined}
+          onNaturalSize={fitToImage && index === 0 ? handleNaturalSize : undefined}
         />
 
         {/* Video label */}
@@ -280,7 +303,7 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
+          viewabilityConfig={viewabilityConfigRef.current}
           keyExtractor={(_, i) => i.toString()}
           getItemLayout={(_, i) => ({ length: MEDIA_WIDTH, offset: MEDIA_WIDTH * i, index: i })}
           initialScrollIndex={initialIndex}
