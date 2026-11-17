@@ -7,8 +7,8 @@
  *
  * Usage: identical to <Image source={{ uri }} style={...} />
  */
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import Feather from '@expo/vector-icons/Feather';
 
@@ -40,6 +40,15 @@ export const SmartImage = ({
     cacheKey = source.uri;
   }
 
+  // Reset error state if the image source / URL changes
+  const prevKeyRef = useRef(cacheKey);
+  useEffect(() => {
+    if (prevKeyRef.current !== cacheKey) {
+      prevKeyRef.current = cacheKey;
+      setErrored(false);
+    }
+  }, [cacheKey]);
+
   if (!resolvedSource || errored) {
     return (
       <View style={[style, styles.fallback, { backgroundColor: fallbackColor }]}>
@@ -58,7 +67,8 @@ export const SmartImage = ({
       style={style}
       contentFit={contentFit || resizeMode}
       placeholder={placeholder}
-      transition={180}
+      // On web, avoid CSS transition flickering when styles or parent dimensions refresh
+      transition={Platform.OS === 'web' ? 0 : 150}
       cachePolicy="disk"
       onLoad={onLoad}
       onError={(e) => { setErrored(true); onError?.(e); }}

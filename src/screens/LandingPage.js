@@ -75,17 +75,10 @@ import { SuggestedFollows } from '../components/SuggestedFollows';
 import { GoOutNudge } from '../components/GoOutNudge';
 import { appInstallService } from '../services/appInstallService';
 import birthdaySpotlight from '../services/birthdaySpotlight';
-// ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
-import { PostEventModal }       from '../components/PostEventModal';
+import { deferred } from '../utils/deferred';
 import { ViberProfileModal }    from '../components/ViberProfileModal';
 import { ActivityCenterModal }  from '../components/ActivityCenterModal';
-import { EventAdminPanel }      from '../components/EventAdminPanel';
-import { EditEventModal }       from '../components/EditEventModal';
-import { RSVPConfirmModal }     from '../components/RSVPConfirmModal';
-import { ReportModal }          from '../components/ReportModal';
 import { QuickToolsSheet }      from '../components/QuickToolsSheet';
-import { EventMapView }         from '../components/EventMapView';
-import { VibeRouletteModal }    from '../components/VibeRouletteModal';
 import { PathMapScreen }        from './lazyScreens';
 import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
@@ -96,12 +89,18 @@ import { NotificationNudge } from '../components/NotificationNudge';
 import { BirthDateNudge } from '../components/BirthDateNudge';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { BorderTracer } from '../components/KasiIndustrialUI';
-import { deferred } from '../utils/deferred';
 import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 import { fx } from '../styles/webFx';
 import { markStartup } from '../utils/startupTrace';
 
-// Panels load on first open, not at app start (see src/utils/deferred.js).
+// ── Deferred heavy modals — load on first open to keep startup instant ───────
+const PostEventModal       = deferred(() => require('../components/PostEventModal').PostEventModal, 'PostEventModal');
+const EventAdminPanel      = deferred(() => require('../components/EventAdminPanel').EventAdminPanel, 'EventAdminPanel');
+const EditEventModal       = deferred(() => require('../components/EditEventModal').EditEventModal, 'EditEventModal');
+const RSVPConfirmModal     = deferred(() => require('../components/RSVPConfirmModal').RSVPConfirmModal, 'RSVPConfirmModal');
+const ReportModal          = deferred(() => require('../components/ReportModal').ReportModal, 'ReportModal');
+const EventMapView         = deferred(() => require('../components/EventMapView').EventMapView, 'EventMapView');
+const VibeRouletteModal    = deferred(() => require('../components/VibeRouletteModal').VibeRouletteModal, 'VibeRouletteModal');
 const NightlifeSensoryModal = deferred(() => require('../components/NightlifeSensoryModal').NightlifeSensoryModal, 'NightlifeSensoryModal');
 const CultureArtifactsModal = deferred(() => require('../components/CultureArtifactsModal').CultureArtifactsModal, 'CultureArtifactsModal');
 const DropRidesModal = deferred(() => require('../components/DropRidesModal').DropRidesModal, 'DropRidesModal');
@@ -370,6 +369,39 @@ const EventCard = React.memo(({
     ? new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : '';
 
+  // Memoize resolved media array so MediaViewer doesn't thrash/re-render every tick
+  const resolvedMedia = useMemo(() => {
+    let m = event.media;
+    if (!m?.length && event.media_urls?.length) {
+      m = event.media_urls.map(u => ({ url: u, type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image' }));
+    }
+    if (!m?.length && event.cover_url) m = [{ url: event.cover_url, type: 'image' }];
+    // NOTE(v6): retain cover_image/image_url fallbacks for backward compatibility
+    if (!m?.length && event.cover_image) m = [{ url: event.cover_image, type: 'image' }];
+    if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
+
+    // Auto countdown media selection
+    if (m?.length > 1 && event.event_date) {
+      const diff = new Date(event.event_date).getTime() - Date.now();
+      const daysLeft = diff <= 0 ? 0 : Math.floor(diff / 86400000);
+      let matchIdx = -1;
+      if (daysLeft === 0) {
+        matchIdx = m.findIndex(item => item.url && /countdown_0|today|countdown_today/i.test(item.url));
+      } else if (daysLeft > 0 && daysLeft <= 10) {
+        const pattern = new RegExp(`countdown_${daysLeft}|_${daysLeft}day|_${daysLeft}_day|${daysLeft}_days_left`, 'i');
+        matchIdx = m.findIndex(item => item.url && pattern.test(item.url));
+      }
+      if (matchIdx > -1) {
+        const matched = m[matchIdx];
+        m = [matched, ...m.filter((_, idx) => idx !== matchIdx)];
+      }
+    }
+    // Serve feed images downscaled (weserv) — full-res photos here were
+    // the #1 cause of slow feed load. Videos are left untouched.
+    if (m?.length) m = m.map(x => (x && x.type !== 'video' && x.url) ? { ...x, url: thumb.feed(x.url) } : x);
+    return m?.length ? m : null;
+  }, [event.media, event.media_urls, event.cover_url, event.cover_image, event.image_url, event.event_date]);
+
   const showAd = index > 0 && index % 5 === 4;
   const todayStr = (() => {
     const d = new Date();
@@ -479,37 +511,7 @@ const EventCard = React.memo(({
               fitToImage
               maxHeightRatio={1.5}
               emptyPoster={{ title, category: event.category, date: event.event_date, time: event.event_time, venue: event.venue_name, color: catColor }}
-              media={(() => {
-              let m = event.media;
-              if (!m?.length && event.media_urls?.length) {
-                m = event.media_urls.map(u => ({ url: u, type: /\.(mp4|mov|m4v|webm)/i.test(u) ? 'video' : 'image' }));
-              }
-              if (!m?.length && event.cover_url) m = [{ url: event.cover_url, type: 'image' }];
-              // NOTE(v6): retain cover_image/image_url fallbacks for backward compatibility
-              if (!m?.length && event.cover_image) m = [{ url: event.cover_image, type: 'image' }];
-              if (!m?.length && event.image_url) m = [{ url: event.image_url, type: 'image' }];
-
-              // Auto countdown media selection
-              if (m?.length > 1 && event.event_date) {
-                const diff = new Date(event.event_date).getTime() - Date.now();
-                const daysLeft = diff <= 0 ? 0 : Math.floor(diff / 86400000);
-                let matchIdx = -1;
-                if (daysLeft === 0) {
-                  matchIdx = m.findIndex(item => item.url && /countdown_0|today|countdown_today/i.test(item.url));
-                } else if (daysLeft > 0 && daysLeft <= 10) {
-                  const pattern = new RegExp(`countdown_${daysLeft}|_${daysLeft}day|_${daysLeft}_day|${daysLeft}_days_left`, 'i');
-                  matchIdx = m.findIndex(item => item.url && pattern.test(item.url));
-                }
-                if (matchIdx > -1) {
-                  const matched = m[matchIdx];
-                  m = [matched, ...m.filter((_, idx) => idx !== matchIdx)];
-                }
-              }
-              // Serve feed images downscaled (weserv) — full-res photos here were
-              // the #1 cause of slow feed load. Videos are left untouched.
-              if (m?.length) m = m.map(x => (x && x.type !== 'video' && x.url) ? { ...x, url: thumb.feed(x.url) } : x);
-              return m?.length ? m : null;
-            })()} />
+              media={resolvedMedia} />
             {/* Double-tap heart burst overlay */}
             {heartAnim && (
               <Animated.View pointerEvents="none" style={{
@@ -2912,7 +2914,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         // few hundred cards fine, so render everything and let the DOM scroll.
         disableVirtualization={Platform.OS === 'web'}
         maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 4}
-        windowSize={Platform.OS === 'web' ? 25 : 14}
+        windowSize={Platform.OS === 'web' ? 25 : 7}
         // Native: the hero card fills most of the screen, so 3 covers what's visible;
         // 7 heavy EventCards (~800-line component) cost ~1.5 s before first paint.
         initialNumToRender={Platform.OS === 'web' ? 16 : 3}

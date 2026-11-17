@@ -23,11 +23,12 @@ import { money } from '../constants/currencies';
 import { filterByViewerAge } from '../utils/contentAgeRating';
 import { viewerAgeSync } from '../utils/viewerAge';
 
-// react-native-maps is native-only — lazy require prevents web crash
+// react-native-maps is native-only and requires a valid Google Maps API key in AndroidManifest
+const HAS_GOOGLE_MAPS_KEY = Boolean(process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY);
 let RNMapView = null;
 let RNMarker = null;
 let RNCircle = null;
-if (Platform.OS !== 'web') {
+if (Platform.OS !== 'web' && HAS_GOOGLE_MAPS_KEY) {
   try {
     const maps = require('react-native-maps');
     RNMapView = maps?.default || maps;
@@ -686,7 +687,7 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
     );
   }
 
-  // ── Native Expo Go / no react-native-maps: use custom canvas map ────────
+  // ── Native Expo Go / no Google Maps API key: use custom keyless radar & list ──
   if (!RNMapView) {
     return (
       <View style={{ flex: 1, backgroundColor: background }}>
@@ -702,14 +703,14 @@ export const ScoutScreen = ({ onNavigateToEvent, onAuthRequired }) => {
           setRadiusKm={setRadiusKm}
           userCoords={userCoords}
         />
-        <View style={{ padding: 16, paddingBottom: 8 }}>
+        <View style={{ padding: 16, paddingBottom: Math.max(insets.bottom || 0, 12) + 8, borderTopWidth: 1, borderTopColor: `${primary}20`, backgroundColor: background }}>
           <TouchableOpacity
             onPress={() => setMapModalVisible(true)}
             style={{ backgroundColor: primary, borderRadius: 14, padding: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
             activeOpacity={0.85}
           >
-            <Feather name="map" size={16} color="#000" />
-            <Text style={{ color: '#000', fontWeight: '900', fontSize: 14 }}>View on Map ({filteredEvents.length})</Text>
+            <Feather name="compass" size={16} color="#000" />
+            <Text style={{ color: '#000', fontWeight: '900', fontSize: 14 }}>Open Interactive Radar Map ({filteredEvents.length})</Text>
           </TouchableOpacity>
         </View>
         <EventMapView

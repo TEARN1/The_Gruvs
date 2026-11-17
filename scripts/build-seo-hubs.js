@@ -578,18 +578,41 @@ function emptyHubNote(what) {
       </div>` : emptyHubNote(`events in ${c.name}`)}
     `;
 
+    const cityFaqJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': [
+        {
+          '@type': 'Question',
+          'name': `What events are happening in ${c.name}?`,
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': `The Gruvs lists verified upcoming concerts, nightlife, Amapiano sets, food markets, and lifestyle events in ${c.name} with dates, venues, and tickets.`,
+          },
+        },
+        {
+          '@type': 'Question',
+          'name': `Where can I find tickets and directions for ${c.name} events?`,
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': `Open any ${c.name} event on The Gruvs to view live venue coordinates, ticket prices in ZAR, and nearby accommodation via The Resident Crew.`,
+          },
+        },
+      ],
+    };
+
     const html = renderHtmlShell({
       title: `Upcoming Events in ${c.name} (${now.getFullYear()}) — The Gruvs`,
       description: `Discover upcoming events, nightlife, and festivals in ${c.name}. Dates, venues and directions on The Gruvs.`,
       canonicalUrl: `${SITE}/events/${c.slug}`,
-      jsonLd: activeList.length ? [itemListJsonLd] : [],
+      jsonLd: activeList.length ? [itemListJsonLd, cityFaqJsonLd] : [cityFaqJsonLd],
       bodyContent: body,
       breadcrumbs,
-      noindex: activeList.length === 0,
+      noindex: false,
     });
 
     writePage(`events/${c.slug}/index.html`, html);
-    if (activeList.length) generatedPages.push({ loc: `${SITE}/events/${c.slug}`, priority: '0.9', changefreq: 'daily' });
+    generatedPages.push({ loc: `${SITE}/events/${c.slug}`, priority: '0.9', changefreq: 'daily' });
   }
 
   // ── Generate Genre Hubs ───────────────────────────────────────────────────
@@ -644,18 +667,41 @@ function emptyHubNote(what) {
       </div>` : emptyHubNote(`${g.name} events`)}
     `;
 
+    const genreFaqJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': [
+        {
+          '@type': 'Question',
+          'name': `Where can I find upcoming ${g.name} events in South Africa?`,
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': `Browse verified ${g.name} concerts, DJ lineups, festivals, and weekend experiences across Johannesburg, Pretoria, Cape Town, and Durban on The Gruvs.`,
+          },
+        },
+        {
+          '@type': 'Question',
+          'name': `How do I RSVP or book tickets for ${g.name} shows on The Gruvs?`,
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': `Select any ${g.name} event card to view lineups, ticket tiers in ZAR, venue directions, and Touch Down check-in details on The Gruvs.`,
+          },
+        },
+      ],
+    };
+
     const html = renderHtmlShell({
       title: `${g.name} Events & Parties in South Africa (${now.getFullYear()}) — The Gruvs`,
       description: `Experience the top ${g.name} events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.`,
       canonicalUrl: `${SITE}/events/${g.slug}`,
-      jsonLd: activeList.length ? [itemListJsonLd] : [],
+      jsonLd: activeList.length ? [itemListJsonLd, genreFaqJsonLd] : [genreFaqJsonLd],
       bodyContent: body,
       breadcrumbs,
-      noindex: activeList.length === 0,
+      noindex: false,
     });
 
     writePage(`events/${g.slug}/index.html`, html);
-    if (activeList.length) generatedPages.push({ loc: `${SITE}/events/${g.slug}`, priority: '0.9', changefreq: 'daily' });
+    generatedPages.push({ loc: `${SITE}/events/${g.slug}`, priority: '0.9', changefreq: 'daily' });
   }
 
   // ── Generate Flagship Seasonal: Ke Dezemba 2026 ───────────────────────────
@@ -714,7 +760,7 @@ function emptyHubNote(what) {
     canonicalUrl: `${SITE}/events/ke-dezemba`,
     jsonLd: keDezembaList.length ? [keDezembaJsonLd] : [],
     bodyContent: keDezembaBody,
-    noindex: keDezembaList.length === 0,
+    noindex: false,
     breadcrumbs: [
       { name: 'Home', url: `${SITE}/` },
       { name: 'Ke Dezemba 2026', url: `${SITE}/events/ke-dezemba` },
@@ -722,7 +768,7 @@ function emptyHubNote(what) {
   });
 
   writePage('events/ke-dezemba/index.html', keDezembaHtml);
-  if (keDezembaList.length) generatedPages.push({ loc: `${SITE}/events/ke-dezemba`, priority: '0.95', changefreq: 'daily' });
+  generatedPages.push({ loc: `${SITE}/events/ke-dezemba`, priority: '0.95', changefreq: 'daily' });
 
   // ── Generate Date Horizon Hubs (This Weekend & NYE) ──────────────────────
   const dNow = new Date();
@@ -770,11 +816,11 @@ function emptyHubNote(what) {
       })),
     }],
     bodyContent: weekendBody,
-    noindex: activeWeekend.length === 0,
+    noindex: false,
     breadcrumbs: [{ name: 'Home', url: `${SITE}/` }, { name: 'This Weekend', url: `${SITE}/events/this-weekend` }],
   });
   writePage('events/this-weekend/index.html', weekendHtml);
-  if (activeWeekend.length) generatedPages.push({ loc: `${SITE}/events/this-weekend`, priority: '0.95', changefreq: 'daily' });
+  generatedPages.push({ loc: `${SITE}/events/this-weekend`, priority: '0.95', changefreq: 'daily' });
 
   // NYE 2027 Crossover Hub
   const nyeEvents = events.filter(e => e.event_date === '2026-12-31' || e.event_date === '2027-01-01');
@@ -811,11 +857,11 @@ function emptyHubNote(what) {
       })),
     }],
     bodyContent: nyeBody,
-    noindex: activeNye.length === 0,
+    noindex: false,
     breadcrumbs: [{ name: 'Home', url: `${SITE}/` }, { name: "New Year's Eve 2027", url: `${SITE}/events/nye-2027` }],
   });
   writePage('events/nye-2027/index.html', nyeHtml);
-  if (activeNye.length) generatedPages.push({ loc: `${SITE}/events/nye-2027`, priority: '0.95', changefreq: 'daily' });
+  generatedPages.push({ loc: `${SITE}/events/nye-2027`, priority: '0.95', changefreq: 'daily' });
 
   // ── 28-Category Event Business & Hustler Directory Hubs ───────────────────
   const SERVICES = [

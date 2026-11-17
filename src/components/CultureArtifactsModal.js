@@ -187,6 +187,13 @@ export function CultureArtifactsModal({
             {/* 1. KOTA BUTCHER RECEIPT */}
             {activeTab === 'butcher' && (
               <View style={{ gap: 12 }}>
+                <View style={styles.explainerCard}>
+                  <Text style={styles.explainerTitle}>WHAT THIS IS: PAID KOTA & KITCHEN ORDER RECEIPT</Text>
+                  <Text style={[styles.explainerBody, { color: muted }]}>
+                    Yes! Order #48 is your digital brown butcher-paper food receipt. Once you pay via Wallet / PayFast / PayPal in the Kota Hub, this stub buzzes your phone like a restaurant pager when your food is hot on the grill and tears off at pickup.
+                  </Text>
+                </View>
+
                 <TelemetryHUD
                   title="KITCHEN TELEMETRY"
                   label="GRILL STATUS"
@@ -230,6 +237,13 @@ export function CultureArtifactsModal({
             {/* 2. BOTTLE SPARKLER */}
             {activeTab === 'sparkler' && (
               <View style={{ gap: 12 }}>
+                <View style={styles.explainerCard}>
+                  <Text style={styles.explainerTitle}>WHAT THIS IS: VIP TABLE & BIRTHDAY SPARKLER LIGHT</Text>
+                  <Text style={[styles.explainerBody, { color: muted }]}>
+                    Not a receipt — it's an interactive party lightshow! When bottle service arrives at a VIP table or a friend celebrates a birthday toast, everyone opens this screen and lifts their phones together to light up the room in sync.
+                  </Text>
+                </View>
+
                 <TelemetryHUD
                   title="VIP TOAST TELEMETRY"
                   label="SPARKLER BURST"
@@ -278,6 +292,13 @@ export function CultureArtifactsModal({
             {/* 3. TAMPER-PROOF DRINK TOKEN */}
             {activeTab === 'drink_token' && (
               <View style={{ gap: 12 }}>
+                <View style={styles.explainerCard}>
+                  <Text style={styles.explainerTitle}>WHAT THIS IS: PREPAID / GIFTED DRINK VOUCHER</Text>
+                  <Text style={[styles.explainerBody, { color: muted }]}>
+                    When someone sends you a Birthday Drink Gift, you win a Bar Perk, or you pre-buy drinks in-app, it lands here as a live anti-screenshot bar token. Show the phone to the bartender — they swipe to claim the pour once, preventing fake screenshot reuse.
+                  </Text>
+                </View>
+
                 <TelemetryHUD
                   title="VOUCHER TELEMETRY"
                   label="WATERMARK OSCILLATION"
@@ -320,6 +341,13 @@ export function CultureArtifactsModal({
             {/* 4. TACHOMETER DECIBEL DIAL */}
             {activeTab === 'tachometer' && (
               <View style={{ gap: 12 }}>
+                <View style={styles.explainerCard}>
+                  <Text style={styles.explainerTitle}>WHAT THIS IS: SOUND-OFF & VENUE DECIBEL GAUGE</Text>
+                  <Text style={[styles.explainerBody, { color: muted }]}>
+                    Measures sound pressure levels (dB) at Stance / Spin / Car Sound-Off events and nightclub dancefloors — helps attendees pick loud high-energy stages vs chill zones.
+                  </Text>
+                </View>
+
                 <TelemetryHUD
                   title="SOUND-OFF TELEMETRY"
                   label="PEAK PRESSURE"
@@ -367,6 +395,13 @@ export function CultureArtifactsModal({
             {/* 5. SPLIT-FLAP SCOREBOARD & PENALTIES */}
             {activeTab === 'split_flap' && (
               <View style={{ gap: 12 }}>
+                <View style={styles.explainerCard}>
+                  <Text style={styles.explainerTitle}>WHAT THIS IS: LIVE SPORTS CUP & PENALTY SCOREBOARD</Text>
+                  <Text style={[styles.explainerBody, { color: muted }]}>
+                    Connects directly to Sports & Cups! Tracks live scores and sudden-death penalty shootout dots (green = scored, red = missed) for local 5-a-side & Top 32 tournaments.
+                  </Text>
+                </View>
+
                 <TelemetryHUD
                   title="MATCH CLOCK TELEMETRY"
                   label="TOURNAMENT FINAL"
@@ -381,17 +416,17 @@ export function CultureArtifactsModal({
                   </Text>
 
                   <View style={styles.scoreRow}>
-                    <View style={styles.splitFlapBox}>
-                      <Text style={styles.splitFlapTeam}>SOWETO STARS</Text>
+                    <TouchableOpacity onPress={() => setTeamAScore((s) => s + 1)} style={styles.splitFlapBox}>
+                      <Text style={styles.splitFlapTeam}>SOWETO STARS (+1)</Text>
                       <Text style={styles.splitFlapDigit}>{teamAScore}</Text>
-                    </View>
+                    </TouchableOpacity>
 
                     <Text style={{ color: muted, fontWeight: '900', fontSize: 20 }}>VS</Text>
 
-                    <View style={styles.splitFlapBox}>
-                      <Text style={styles.splitFlapTeam}>ALEX BIRDS</Text>
+                    <TouchableOpacity onPress={() => setTeamBScore((s) => s + 1)} style={styles.splitFlapBox}>
+                      <Text style={styles.splitFlapTeam}>ALEX BIRDS (+1)</Text>
                       <Text style={styles.splitFlapDigit}>{teamBScore}</Text>
-                    </View>
+                    </TouchableOpacity>
                   </View>
 
                   {/* Penalty Shootout Dot Track */}
@@ -429,6 +464,13 @@ export function CultureArtifactsModal({
             {/* 6. SCRATCH-CARD SECRET HEADLINER */}
             {activeTab === 'scratch' && (
               <View style={{ gap: 12 }}>
+                <View style={styles.explainerCard}>
+                  <Text style={styles.explainerTitle}>WHAT THIS IS: MYSTERY LINEUP & PRIZE SCRATCH-OFF</Text>
+                  <Text style={[styles.explainerBody, { color: muted }]}>
+                    Promoters hide surprise guest DJs or discount codes under interactive silver foil — drag your finger across the card to scratch off the foil and unlock the drop!
+                  </Text>
+                </View>
+
                 <TelemetryHUD
                   title="REVEAL TELEMETRY"
                   label="SCRATCH PROGRESS"
@@ -463,6 +505,13 @@ export function CultureArtifactsModal({
             {/* 7. CLOTH FESTIVAL WRISTBAND */}
             {activeTab === 'wristband' && (
               <View style={{ gap: 12 }}>
+                <View style={styles.explainerCard}>
+                  <Text style={styles.explainerTitle}>WHAT THIS IS: COLLECTIBLE DIGITAL FESTIVAL WRISTBAND</Text>
+                  <Text style={[styles.explainerBody, { color: muted }]}>
+                    Once you Touch Down or scan your paid ticket at a major festival, you earn this permanent serialized cloth wristband in your Vibe Passport as VIP proof of attendance.
+                  </Text>
+                </View>
+
                 <TelemetryHUD
                   title="WRISTBAND PROOF"
                   label="SERIAL NUMBER"
@@ -892,5 +941,23 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: '900',
+  },
+  explainerCard: {
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(0,242,255,0.28)',
+    backgroundColor: 'rgba(0,242,255,0.06)',
+    gap: 4,
+  },
+  explainerTitle: {
+    color: '#00f2ff',
+    fontSize: 10.5,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+  },
+  explainerBody: {
+    fontSize: 11.5,
+    lineHeight: 16,
   },
 });

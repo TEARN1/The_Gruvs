@@ -20,11 +20,22 @@ const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 export function storageThumb(url, width, height, quality = 70) {
   if (!url || typeof url !== 'string') return url;
   if (url.includes('images.weserv.nl')) return url; // already resized
-  if (!url.includes('/storage/v1/object/public/')) return url;
-  const ours = SUPABASE_URL
+
+  // Non-http URLs pass through
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return url;
+  if (url.startsWith('data:') || url.startsWith('blob:') || /^(localhost|127\.0\.0\.1)/.test(url)) return url;
+
+  const isSupabase = SUPABASE_URL
     ? url.startsWith(SUPABASE_URL)
     : /\.supabase\.(co|in|net)\//.test(url);
-  if (!ours) return url;
+
+  // Unoptimized raw external banners (e.g. allevents.in, eventbrite, quicket, raw /banners/)
+  // which often serve uncompressed application/octet-stream files and cause layout/render stuttering
+  const isRawExternalBanner = /allevents\.in|eventbrite|quicket/i.test(url) || url.includes('/banners/');
+
+  if (!isSupabase && !isRawExternalBanner) {
+    return url;
+  }
 
   const src = url.split('?')[0].replace(/^https?:\/\//, ''); // weserv wants scheme-less
   const params = new URLSearchParams();

@@ -28,6 +28,18 @@ const STATIC = [
     images: [
       { loc: `${SITE}/icon-512.png`, title: 'The Gruvs App Icon', caption: 'Official App Icon' },
       { loc: `${SITE}/logo.png`, title: 'The Gruvs Brand Logo', caption: 'Official Logo' },
+      { loc: `${SITE}/images/the-gruvs-app-launch-preview.jpg`, title: 'The Gruvs Mobile Platform', caption: 'Live Vibe Mapping and Discovery' },
+      { loc: `${SITE}/images/the-resident-crew-preview.jpg`, title: 'The Resident Crew Ecosystem', caption: 'Accommodation Near Event Venues' },
+      { loc: `${SITE}/images/excellency-academy-preview.jpg`, title: 'Excellency Academy Ecosystem', caption: 'Student Life and Community' },
+      { loc: `${SITE}/images/advertising/01-the-gruvs-mobile-discover.png`, title: 'The Gruvs Discover Feed', caption: 'Mobile App Discover Interface' },
+      { loc: `${SITE}/images/advertising/02-the-gruvs-mobile-lineup-events.png`, title: 'The Gruvs Event Lineup', caption: 'Mobile Event Cards and Ticketing' },
+      { loc: `${SITE}/images/advertising/03-the-gruvs-mobile-map-radar.png`, title: 'The Gruvs Live Map Radar', caption: 'Interactive Venue & Nightlife Radar' },
+      { loc: `${SITE}/images/advertising/04-the-gruvs-mobile-chats-vibeup.png`, title: 'The Gruvs Vibe Up Chat', caption: 'Direct Messaging and Crew Coordination' },
+      { loc: `${SITE}/images/advertising/05-the-gruvs-desktop-portal-hero.png`, title: 'The Gruvs Desktop Portal', caption: 'Desktop Discovery Hero' },
+      { loc: `${SITE}/images/advertising/06-the-gruvs-services-marketplace.png`, title: 'The Gruvs Services Marketplace', caption: '28 Event Hustler Categories' },
+      { loc: `${SITE}/images/advertising/07-the-gruvs-founder-ecosystem.png`, title: 'The Gruvs Founder Ecosystem', caption: 'Connected TEARN Ventures Ecosystem' },
+      { loc: `${SITE}/images/advertising/ad-the-resident-x-the-gruvs.png`, title: 'The Resident Crew x The Gruvs', caption: 'Official Cross-Platform Banner' },
+      { loc: `${SITE}/images/advertising/ad-excellency-academy-x-the-gruvs.png`, title: 'Excellency Academy x The Gruvs', caption: 'Student Vibe Passport Banner' },
     ],
   },
   {
@@ -51,6 +63,7 @@ const STATIC = [
     ],
   },
   { loc: '/get.html', changefreq: 'weekly', priority: '0.7' },
+  { loc: '/feed.xml', changefreq: 'hourly', priority: '0.8' },
   { loc: '/privacy.html', changefreq: 'yearly', priority: '0.2' },
   { loc: '/terms.html', changefreq: 'yearly', priority: '0.2' },
   { loc: '/account-deletion.html', changefreq: 'yearly', priority: '0.2' },
@@ -263,21 +276,95 @@ function buildImageSitemapXml(entries) {
   return lines.join('\n');
 }
 
+function buildSitemapIndexXml(today) {
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '  <sitemap>',
+    `    <loc>${SITE}/sitemap.xml</loc>`,
+    `    <lastmod>${today}</lastmod>`,
+    '  </sitemap>',
+    '  <sitemap>',
+    `    <loc>${SITE}/image-sitemap.xml</loc>`,
+    `    <lastmod>${today}</lastmod>`,
+    '  </sitemap>',
+    '</sitemapindex>',
+    '',
+  ];
+  return lines.join('\n');
+}
+
 (async () => {
   const distDir = path.join(__dirname, '..', 'dist');
   const publicDir = path.join(__dirname, '..', 'public');
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
 
-  const urls = [
-    ...STATIC.map(s => ({ ...s, loc: `${SITE}${s.loc}`, lastmod: today })),
-    ...HUBS.filter(hubIsIndexable).map(h => ({ ...h, loc: `${SITE}${h.loc}`, lastmod: today })),
-  ];
+  const urlMap = new Map();
+  const addUrl = (entry) => {
+    if (!entry || !entry.loc) return;
+    const existing = urlMap.get(entry.loc);
+    if (!existing) {
+      urlMap.set(entry.loc, entry);
+      return;
+    }
+    // Merge images cleanly if newly added entry provides richer image data
+    const existingImgs = Array.isArray(existing.images)
+      ? existing.images
+      : (existing.image ? [existing.image] : []);
+    const incomingImgs = Array.isArray(entry.images)
+      ? entry.images
+      : (entry.image ? [entry.image] : []);
+    const mergedImgs = [...existingImgs];
+    for (const img of incomingImgs) {
+      if (img?.loc && !mergedImgs.some(m => m?.loc === img.loc)) {
+        mergedImgs.push(img);
+      }
+    }
+    urlMap.set(entry.loc, {
+      ...existing,
+      lastmod: entry.lastmod || existing.lastmod,
+      priority: Number(entry.priority) > Number(existing.priority) ? entry.priority : existing.priority,
+      ...(mergedImgs.length > 0 ? { images: mergedImgs, image: undefined } : {}),
+    });
+  };
+
+  for (const s of STATIC) {
+    addUrl({ ...s, loc: `${SITE}${s.loc}`, lastmod: today });
+  }
+  for (const h of HUBS.filter(hubIsIndexable)) {
+    addUrl({ ...h, loc: `${SITE}${h.loc}`, lastmod: today });
+  }
+
+  // Scan public/events, public/venues, and public/services on disk so every generated HTML page is included
+  for (const folder of ['events', 'venues', 'services']) {
+    const dirPath = path.join(publicDir, folder);
+    if (!fs.existsSync(dirPath)) continue;
+    try {
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+      for (const dirent of entries) {
+        if (!dirent.isDirectory()) continue;
+        const relLoc = `/${folder}/${dirent.name}`;
+        if (!hubIsIndexable({ loc: relLoc })) continue;
+        const idxFile = path.join(dirPath, dirent.name, 'index.html');
+        if (fs.existsSync(idxFile)) {
+          addUrl({
+            loc: `${SITE}${relLoc}`,
+            lastmod: today,
+            changefreq: folder === 'services' ? 'weekly' : 'daily',
+            priority: folder === 'services' ? '0.88' : '0.85',
+          });
+        }
+      }
+    } catch {
+      /* ignore disk scan error */
+    }
+  }
 
   const { url, key } = readEnv();
 
   if (!url || !key) {
-    console.warn('[gen-sitemap] No Supabase credentials found — writing static + hub sitemap.');
+    console.warn('[gen-sitemap] No Supabase credentials found — writing static + hub + disk sitemap.');
   } else {
     try {
       const res = await fetch(
@@ -325,7 +412,7 @@ function buildImageSitemapXml(entries) {
         const slug = eventSlug(e);
 
         // 1. Semantic slug URL
-        urls.push({
+        addUrl({
           loc: `${SITE}/events/${slug}`,
           lastmod,
           changefreq,
@@ -334,7 +421,7 @@ function buildImageSitemapXml(entries) {
         });
 
         // 2. Canonical share URL
-        urls.push({
+        addUrl({
           loc: `${SITE}/share/event/${e.id}`,
           lastmod,
           changefreq,
@@ -350,7 +437,7 @@ function buildImageSitemapXml(entries) {
           const vSlug = slugify(e.venue_name.trim());
           if (vSlug && !venueSet.has(vSlug)) {
             venueSet.add(vSlug);
-            urls.push({
+            addUrl({
               loc: `${SITE}/venues/${vSlug}`,
               lastmod: today,
               changefreq: 'daily',
@@ -361,22 +448,66 @@ function buildImageSitemapXml(entries) {
       }
       console.log(`[gen-sitemap] Successfully indexed ${events.length} upcoming events and ${venueSet.size} venues with Google Image schema & semantic URLs.`);
     } catch (err) {
-      console.warn(`[gen-sitemap] Event fetch failed (${err.message}) — writing static sitemap.`);
+      console.warn(`[gen-sitemap] Event fetch failed (${err.message}) — keeping static + disk URLs.`);
+    }
+
+    // 4. Fetch public profiles with non-null username
+    try {
+      const profRes = await fetch(
+        `${url}/rest/v1/profiles?select=username,display_name,avatar_url,updated_at` +
+        `&username=not.is.null&limit=1000`,
+        { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+      );
+      if (profRes.ok) {
+        const profiles = await profRes.json();
+        let profileCount = 0;
+        for (const p of profiles) {
+          const uname = String(p.username || '').trim();
+          if (!uname) continue;
+          const profileLoc = `${SITE}/profile/${encodeURIComponent(uname)}`;
+          const lastmod = (p.updated_at || today).slice(0, 10);
+          let image;
+          if (p.avatar_url && /^https:\/\//.test(String(p.avatar_url).trim())) {
+            image = {
+              loc: String(p.avatar_url).trim(),
+              title: p.display_name || uname,
+              caption: `@${uname} on The Gruvs`,
+            };
+          }
+          addUrl({
+            loc: profileLoc,
+            lastmod,
+            changefreq: 'weekly',
+            priority: '0.70',
+            image,
+          });
+          profileCount++;
+        }
+        console.log(`[gen-sitemap] Successfully indexed ${profileCount} public profiles.`);
+      } else {
+        console.warn(`[gen-sitemap] Profile fetch skipped (HTTP ${profRes.status}).`);
+      }
+    } catch (err) {
+      console.warn(`[gen-sitemap] Profile fetch failed (${err.message}) — skipping public profiles.`);
     }
   }
 
+  const urls = Array.from(urlMap.values());
   const sitemapXml = buildXml(urls);
   const imageSitemapXml = buildImageSitemapXml(urls);
+  const sitemapIndexXml = buildSitemapIndexXml(today);
 
   if (fs.existsSync(publicDir)) {
     fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapXml, 'utf8');
     fs.writeFileSync(path.join(publicDir, 'image-sitemap.xml'), imageSitemapXml, 'utf8');
-    console.log(`[gen-sitemap] Wrote public/sitemap.xml and public/image-sitemap.xml with ${urls.length} URLs.`);
+    fs.writeFileSync(path.join(publicDir, 'sitemap-index.xml'), sitemapIndexXml, 'utf8');
+    console.log(`[gen-sitemap] Wrote public/sitemap.xml, public/image-sitemap.xml, and public/sitemap-index.xml with ${urls.length} URLs.`);
   }
 
   if (fs.existsSync(distDir)) {
     fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemapXml, 'utf8');
     fs.writeFileSync(path.join(distDir, 'image-sitemap.xml'), imageSitemapXml, 'utf8');
-    console.log(`[gen-sitemap] Wrote dist/sitemap.xml and dist/image-sitemap.xml with ${urls.length} URLs.`);
+    fs.writeFileSync(path.join(distDir, 'sitemap-index.xml'), sitemapIndexXml, 'utf8');
+    console.log(`[gen-sitemap] Wrote dist/sitemap.xml, dist/image-sitemap.xml, and dist/sitemap-index.xml with ${urls.length} URLs.`);
   }
 })();

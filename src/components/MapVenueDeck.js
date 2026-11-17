@@ -190,11 +190,37 @@ export function MapVenueDeck({
       {/* Deck Header & Grip Bar */}
       <TouchableOpacity
         style={s.gripBar}
-        activeOpacity={0.8}
-        onPress={() => transitionDeck(deckState === 'carousel' ? 'expanded' : deckState === 'expanded' ? 'carousel' : 'carousel')}
+        activeOpacity={0.85}
+        onPress={() => transitionDeck(deckState === 'peek' ? 'carousel' : deckState === 'carousel' ? 'expanded' : 'carousel')}
       >
         <View style={s.pillIndicator} />
         <View style={s.headerRow}>
+          <TouchableOpacity
+            onPress={() => transitionDeck(deckState === 'peek' ? 'carousel' : 'peek')}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: 14,
+              backgroundColor: 'rgba(16,185,129,0.16)',
+              borderWidth: 1,
+              borderColor: 'rgba(16,185,129,0.40)',
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={deckState === 'peek' ? 'Open Live Now deck' : 'Collapse Live Now deck'}
+          >
+            <Feather
+              name={deckState === 'peek' ? 'chevron-up' : 'chevron-down'}
+              size={15}
+              color="#10b981"
+            />
+            <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '900', letterSpacing: 0.4 }}>
+              {deckState === 'peek' ? 'OPEN' : 'HIDE'}
+            </Text>
+          </TouchableOpacity>
           <View style={s.pulseStat}>
             <View {...fx('beat')} style={s.radarGreenDot} />
             <Text style={[s.pulseStatText, { color: '#10b981' }]}>
@@ -205,16 +231,6 @@ export function MapVenueDeck({
               {events.length} Hotspots in view
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={() => transitionDeck(deckState === 'peek' ? 'carousel' : 'peek')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Feather
-              name={deckState === 'peek' ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={muted}
-            />
-          </TouchableOpacity>
         </View>
       </TouchableOpacity>
 
@@ -476,8 +492,9 @@ const s = StyleSheet.create({
   headerRow: {
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    gap: 10,
   },
   pulseStat: {
     flexDirection: 'row',

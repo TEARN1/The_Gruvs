@@ -70,29 +70,29 @@ import { getZodiacSign, daysUntilBirthday } from '../utils/birthday';
 // ── Static imports — avoids "unknown module" chunk failures on web ──
 import { DirectMessageModal }      from '../components/DirectMessageModal';
 import { CategoryPickerModal }     from '../components/CategoryPickerModal';
-import { PostEventModal }          from '../components/PostEventModal';
-import { EditEventModal }          from '../components/EditEventModal';
-import { LeaderboardScreen }       from './LeaderboardScreen';
+import { deferred } from '../utils/deferred';
 import { PathMapScreen }           from './lazyScreens';
-import { BusinessDashboardScreen } from './BusinessDashboardScreen';
 import { FollowListModal } from '../components/FollowListModal';
 import { WalletScreen }            from './lazyScreens';
 import { MonetizationService }     from '../services/monetizationService';
-// RoyalCouncilPage reads the mint params from here. It was using `projectDNA`
-// without importing it, so opening the Royal Council threw a ReferenceError.
 import projectDNA                  from '../services/projectDNA.json';
-import { ProviderDashboardScreen } from './ProviderDashboardScreen';
-import { TutorialCenter }          from '../components/TutorialCenter';
-import { WhoWasThereModal }        from '../components/WhoWasThereModal';
-import { EventTicketModal }        from '../components/EventTicketModal';
-import { CreateReelModal }         from '../components/CreateReelModal';
-import { GetAppModal }            from '../components/GetAppModal';
 import { ControlledGlitterBurst } from '../components/ControlledGlitterBurst';
-import { BusinessStoreBuilder } from './BusinessStoreBuilder';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
-import { deferred } from '../utils/deferred';
 import { fx } from '../styles/webFx';
 import { cssLoop, IS_WEB as IS_WEB_FX } from '../utils/cssLoop';
+
+// ── Deferred heavy modals & sub-screens — load on first open ──
+const PostEventModal          = deferred(() => require('../components/PostEventModal').PostEventModal, 'PostEventModal');
+const EditEventModal          = deferred(() => require('../components/EditEventModal').EditEventModal, 'EditEventModal');
+const LeaderboardScreen       = deferred(() => require('./LeaderboardScreen').LeaderboardScreen, 'LeaderboardScreen');
+const BusinessDashboardScreen = deferred(() => require('./BusinessDashboardScreen').BusinessDashboardScreen, 'BusinessDashboardScreen');
+const ProviderDashboardScreen = deferred(() => require('./ProviderDashboardScreen').ProviderDashboardScreen, 'ProviderDashboardScreen');
+const TutorialCenter          = deferred(() => require('../components/TutorialCenter').TutorialCenter, 'TutorialCenter');
+const WhoWasThereModal        = deferred(() => require('../components/WhoWasThereModal').WhoWasThereModal, 'WhoWasThereModal');
+const EventTicketModal        = deferred(() => require('../components/EventTicketModal').EventTicketModal, 'EventTicketModal');
+const CreateReelModal         = deferred(() => require('../components/CreateReelModal').CreateReelModal, 'CreateReelModal');
+const GetAppModal             = deferred(() => require('../components/GetAppModal').GetAppModal, 'GetAppModal');
+const BusinessStoreBuilder    = deferred(() => require('./BusinessStoreBuilder').BusinessStoreBuilder, 'BusinessStoreBuilder');
 
 // Panels load on first open, not at app start (see src/utils/deferred.js).
 const BusinessActivationPortal = deferred(() => require('../components/BusinessActivationPortal').BusinessActivationPortal, 'BusinessActivationPortal');
@@ -3504,8 +3504,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
                 </View>
                 <Text style={{ color: muted, fontSize: 11, fontWeight: '700' }}>{xp} XP</Text>
               </View>
-              <View style={styles.progressBarBg}>
-                <View style={{ width: `${pct}%`, height: '100%', backgroundColor: primary, borderRadius: 3 }} />
+              <View style={[styles.progressBarBg, { height: 8, width: '100%', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden', marginTop: 4 }]}>
+                <View style={{ width: `${Math.min(100, Math.max(0, pct))}%`, height: 8, backgroundColor: primary, borderRadius: 4 }} />
               </View>
               {level < 100 && (
                 <Text style={{ color: muted, fontSize: 10, marginTop: 4 }}>{xpEnd - xp} XP to Level {level + 1}</Text>
@@ -4807,6 +4807,13 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  progressBarBg: {
+    height: 8,
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
   },
 });
 

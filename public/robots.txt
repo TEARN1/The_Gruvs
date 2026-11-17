@@ -8,9 +8,11 @@ Allow: /press
 Allow: /events/
 Allow: /venues/
 Allow: /services/
+Allow: /profile/
 Allow: /feed.xml
 Allow: /sitemap.xml
 Allow: /image-sitemap.xml
+Allow: /sitemap-index.xml
 Disallow: /*?token=*
 Disallow: /*?session=*
 Disallow: /*?code=*
@@ -22,6 +24,7 @@ Allow: /press
 Allow: /events/
 Allow: /venues/
 Allow: /services/
+Allow: /profile/
 Allow: /*.js$
 Allow: /*.css$
 
@@ -44,3 +47,4 @@ Allow: /
 
 Sitemap: https://thegruvs.com/sitemap.xml
 Sitemap: https://thegruvs.com/image-sitemap.xml
+Sitemap: https://thegruvs.com/sitemap-index.xml

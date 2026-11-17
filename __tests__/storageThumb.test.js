@@ -49,6 +49,15 @@ describe('storageThumb', () => {
     const twice = storageThumb(once, 80, 80);
     expect(twice).toBe(once); // weserv URL passes straight through
   });
+
+  it('routes raw external ticketing/banner URLs (e.g. allevents.in) through weserv to fix stutter and content-type issues', () => {
+    const bannerUrl = 'https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998';
+    const result = storageThumb(bannerUrl, 900, null, 62);
+    expect(result).toContain('images.weserv.nl');
+    expect(result).toContain('w=900');
+    expect(result).toContain('output=webp');
+    expect(result).toContain('cdn-az.allevents.in');
+  });
 });
 
 describe('thumb presets', () => {

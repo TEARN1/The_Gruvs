@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, Modal, FlatList, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Animated, Alert, Linking,
+  ActivityIndicator, Animated, Alert, Linking, DeviceEventEmitter,
 } from 'react-native';
 import { SmartImage } from './SmartImage';
 import { VibeCardBubble } from './VibeCardBubble';
@@ -407,7 +407,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
     try {
       const newMsg = await MessageManager.send(user.id, recipient.id, caption || `Sticker ${emoji || '🔥'}`, {
         messageType: 'sticker',
-        media_url: stickerUrl,
+        mediaUrl: stickerUrl,
         emoji,
       });
       if (newMsg) {
@@ -620,8 +620,22 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
       });
     presenceRef.current = presence;
 
+    const callLogSub = DeviceEventEmitter.addListener('gruvs_call_logged', (loggedMsg) => {
+      if (!active || !loggedMsg) return;
+      const matchesThread =
+        (loggedMsg.sender_id === user.id && loggedMsg.recipient_id === recipient.id) ||
+        (loggedMsg.sender_id === recipient.id && loggedMsg.recipient_id === user.id);
+      if (!matchesThread) return;
+      setMessages(prev =>
+        prev.some(m => m.id === loggedMsg.id)
+          ? prev
+          : [...prev, loggedMsg]
+      );
+    });
+
     return () => {
       active = false;
+      callLogSub?.remove?.();
       supabase.removeChannel(broadcast);
       supabase.removeChannel(channel);
       if (presenceRef.current) {
@@ -780,16 +794,19 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
     try {
       const today = new Date().toISOString().split('T')[0];
       const cols = 'id, title, event_date, venue_name, cover_url, cover_image, image_url';
-      const [hosted, rsvps] = await Promise.all([
+      const [hosted, rsvps, upcoming] = await Promise.all([
         supabase.from('events').select(cols)
           .eq('author_id', user.id).gte('event_date', today)
           .order('event_date', { ascending: true }).limit(25),
         supabase.from('event_rsvps').select(`events:event_id(${cols})`)
           .eq('user_id', user?.id).eq('status', 'going').limit(25),
+        supabase.from('events').select(cols)
+          .gte('event_date', today)
+          .order('event_date', { ascending: true }).limit(30),
       ]);
       const going = (rsvps.data || []).map(r => r.events).filter(Boolean);
       const seen = new Set();
-      const merged = [...(hosted.data || []), ...going]
+      const merged = [...(hosted.data || []), ...going, ...(upcoming.data || [])]
         .filter(e => e && !seen.has(e.id) && seen.add(e.id));
       setPickerEvents(merged);
     } catch { setPickerEvents([]); }
@@ -1784,8 +1801,8 @@ const dm = StyleSheet.create({
   headerName: { fontSize: 15, fontWeight: '800' },
   headerSub: { fontSize: 11, fontWeight: '600', marginTop: 2 },
   bubble: { marginBottom: 6 },
-  bubbleMine: { alignItems: 'flex-end', paddingRight: 16 },
-  bubbleTheirs: { alignItems: 'flex-start', paddingLeft: 16 },
+  bubbleMine: { alignSelf: 'flex-end', alignItems: 'flex-end', paddingRight: 16 },
+  bubbleTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start', paddingLeft: 16 },
   bubbleInner: { maxWidth: '78%', borderRadius: 18, padding: 12 },
   bodyText: { fontSize: 14, lineHeight: 20 },
   timeText: { fontSize: 10, marginTop: 2 },
