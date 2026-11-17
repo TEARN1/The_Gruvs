@@ -482,7 +482,156 @@ export function setTournamentSeo(tournament) {
   }
 }
 
-// ── 5. Teardown & Reset ─────────────────────────────────────────────────────
+// ── 5. Founder & Leadership SEO ─────────────────────────────────────────────
+/**
+ * Sets executive Founder & CEO profile schema and meta tags.
+ */
+export function setFounderSeo(customBio = null) {
+  if (!canDom()) return;
+  try {
+    const title = 'Asemahle Nkwali — Founder & CEO | The Gruvs Ecosystem';
+    const desc = customBio || 'Official executive profile of Asemahle Nkwali, Founder & CEO of The Gruvs, The Resident Crew, and Excellency Academy. Building high-authority event technology, verified co-living, and engineering craftsmanship across South Africa.';
+    const url = `${SITE}/founder`;
+    const image = `${SITE}/images/asemahle-nkwali-ceo-the-gruvs.jpg`;
+
+    document.title = title;
+    setMeta('name', 'description', desc);
+    setLink('canonical', url);
+    setLink('alternate', url, { hreflang: 'en-ZA' });
+    setLink('alternate', url, { hreflang: 'x-default' });
+
+    // Open Graph Profile
+    setMeta('property', 'og:site_name', APP_NAME);
+    setMeta('property', 'og:title', title);
+    setMeta('property', 'og:description', desc);
+    setMeta('property', 'og:image', image);
+    setMeta('property', 'og:url', url);
+    setMeta('property', 'og:type', 'profile');
+    setMeta('property', 'og:locale', 'en_ZA');
+    setMeta('property', 'profile:first_name', 'Asemahle');
+    setMeta('property', 'profile:last_name', 'Nkwali');
+    setMeta('property', 'profile:username', 'asemahlenkwali');
+
+    // Twitter Card
+    setMeta('name', 'twitter:card', 'summary_large_image');
+    setMeta('name', 'twitter:site', '@thegruvs');
+    setMeta('name', 'twitter:creator', '@thegruvs');
+    setMeta('name', 'twitter:title', title);
+    setMeta('name', 'twitter:description', desc);
+    setMeta('name', 'twitter:image', image);
+
+    const ld = {
+      '@context': 'https://schema.org',
+      '@type': 'ProfilePage',
+      '@id': `${url}#webpage`,
+      url,
+      name: title,
+      description: desc,
+      mainEntity: {
+        '@type': 'Person',
+        '@id': `${SITE}/#founder`,
+        name: 'Asemahle "TEARN" Nkwali',
+        alternateName: ['Asemahle Nkwali', 'TEARN!', 'TEARN'],
+        jobTitle: 'Founder & CEO',
+        worksFor: {
+          '@type': 'Organization',
+          '@id': `${SITE}/#parent-org`,
+          name: 'TEARN Ventures',
+          url: SITE,
+        },
+        image: [
+          image,
+          `${SITE}/images/asemahle-nkwali-founder-keynote.jpg`,
+        ],
+        url,
+        knowsAbout: [
+          'Technology',
+          'South African Nightlife',
+          'Community Safety',
+          'Enterprise Software',
+          'Event Discovery',
+          'Urban Culture',
+          'PropTech',
+          'Systems Architecture',
+        ],
+        sameAs: [
+          url,
+          'https://www.linkedin.com/in/asemahle-nkwali',
+          'https://twitter.com/thegruvs',
+          'https://instagram.com/thegruvs',
+        ],
+      },
+    };
+
+    injectJsonLd(LD_ID, ld);
+    removeJsonLd(LD_FAQ_ID);
+  } catch {
+    /* silent catch */
+  }
+}
+
+// ── 6. Press & Media Kit SEO ────────────────────────────────────────────────
+/**
+ * Sets corporate Newsroom & Press Kit structured data and meta tags.
+ */
+export function setPressSeo() {
+  if (!canDom()) return;
+  try {
+    const title = 'Press & Media Kit — The Gruvs | Official Corporate Newsroom';
+    const desc = 'Official Press & Media Kit for The Gruvs, founded by Asemahle "TEARN" Nkwali. Download official brand assets, logos, founder portraits, and access third-person corporate boilerplates.';
+    const url = `${SITE}/press`;
+    const image = `${SITE}/images/the-gruvs-app-launch-preview.jpg`;
+
+    document.title = title;
+    setMeta('name', 'description', desc);
+    setLink('canonical', url);
+    setLink('alternate', url, { hreflang: 'en-ZA' });
+    setLink('alternate', url, { hreflang: 'x-default' });
+
+    setMeta('property', 'og:site_name', APP_NAME);
+    setMeta('property', 'og:title', title);
+    setMeta('property', 'og:description', desc);
+    setMeta('property', 'og:image', image);
+    setMeta('property', 'og:url', url);
+    setMeta('property', 'og:type', 'website');
+    setMeta('property', 'og:locale', 'en_ZA');
+
+    setMeta('name', 'twitter:card', 'summary_large_image');
+    setMeta('name', 'twitter:site', '@thegruvs');
+    setMeta('name', 'twitter:title', title);
+    setMeta('name', 'twitter:description', desc);
+    setMeta('name', 'twitter:image', image);
+
+    const ld = {
+      '@context': 'https://schema.org',
+      '@type': 'AboutPage',
+      '@id': `${url}#webpage`,
+      url,
+      name: title,
+      description: desc,
+      publisher: { '@id': `${SITE}/#parent-org` },
+      mainEntity: {
+        '@type': 'Organization',
+        '@id': `${SITE}/#parent-org`,
+        name: 'TEARN Ventures',
+        url: SITE,
+        founder: {
+          '@type': 'Person',
+          '@id': `${SITE}/#founder`,
+          name: 'Asemahle "TEARN" Nkwali',
+          jobTitle: 'Founder & CEO',
+        },
+      },
+    };
+
+    injectJsonLd(LD_ID, ld);
+    removeJsonLd(LD_FAQ_ID);
+  } catch {
+    /* silent catch */
+  }
+}
+
+// ── 7. Teardown & Reset ─────────────────────────────────────────────────────
 /** Remove event-specific markup when leaving the screen */
 export function clearEventSeo() {
   if (!canDom()) return;
@@ -502,6 +651,8 @@ export default {
   setProfileSeo,
   setServiceSeo,
   setTournamentSeo,
+  setFounderSeo,
+  setPressSeo,
   clearEventSeo,
   clearSeo,
 };

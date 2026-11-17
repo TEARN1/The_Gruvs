@@ -41,4 +41,5 @@ Disallow: /auth/callback
 
 # Sitemaps
 Sitemap: https://thegruvs.com/sitemap.xml
+Sitemap: https://thegruvs.com/image-sitemap.xml
 Sitemap: https://thegruvs.com/sitemap-events.xml

@@ -8,6 +8,8 @@ import {
   setProfileSeo,
   setServiceSeo,
   setTournamentSeo,
+  setFounderSeo,
+  setPressSeo,
   clearEventSeo,
 } from '../src/utils/seo';
 
@@ -233,6 +235,51 @@ describe('SEO Engine — Schema.org & Meta Tags', () => {
     expect(ldData.sport).toBe('Soccer');
     expect(ldData.competitor).toHaveLength(2);
     expect(ldData.competitor[0].name).toBe('Soweto Stars');
+  });
+
+  test('setFounderSeo generates high-authority ProfilePage and Person Schema.org JSON-LD', () => {
+    setFounderSeo();
+
+    expect(global.document.title).toContain('Asemahle Nkwali');
+    expect(global.document.title).toContain('Founder & CEO');
+
+    const canonical = global.document.querySelector('link[rel="canonical"]');
+    expect(canonical).not.toBeNull();
+    expect(canonical.getAttribute('href')).toBe('https://thegruvs.com/founder');
+
+    const ldScript = global.document.getElementById('gruvs-seo-jsonld');
+    expect(ldScript).not.toBeNull();
+    const ldData = JSON.parse(ldScript.textContent);
+
+    expect(ldData['@type']).toBe('ProfilePage');
+    expect(ldData.mainEntity['@type']).toBe('Person');
+    expect(ldData.mainEntity.name).toBe('Asemahle "TEARN" Nkwali');
+    expect(ldData.mainEntity.jobTitle).toBe('Founder & CEO');
+    expect(ldData.mainEntity['@id']).toBe('https://thegruvs.com/#founder');
+    expect(ldData.mainEntity.worksFor['@id']).toBe('https://thegruvs.com/#parent-org');
+    expect(ldData.mainEntity.worksFor.name).toBe('TEARN Ventures');
+    expect(ldData.mainEntity.knowsAbout).toContain('Technology');
+    expect(ldData.mainEntity.sameAs).toContain('https://www.linkedin.com/in/asemahle-nkwali');
+    expect(ldData.mainEntity.sameAs).not.toContain('https://github.com/thegruvs');
+  });
+
+  test('setPressSeo generates corporate Newsroom AboutPage Schema.org JSON-LD', () => {
+    setPressSeo();
+
+    expect(global.document.title).toContain('Press & Media Kit');
+
+    const canonical = global.document.querySelector('link[rel="canonical"]');
+    expect(canonical).not.toBeNull();
+    expect(canonical.getAttribute('href')).toBe('https://thegruvs.com/press');
+
+    const ldScript = global.document.getElementById('gruvs-seo-jsonld');
+    expect(ldScript).not.toBeNull();
+    const ldData = JSON.parse(ldScript.textContent);
+
+    expect(ldData['@type']).toBe('AboutPage');
+    expect(ldData.mainEntity['@type']).toBe('Organization');
+    expect(ldData.mainEntity.name).toBe('TEARN Ventures');
+    expect(ldData.mainEntity.founder.name).toBe('Asemahle "TEARN" Nkwali');
   });
 
   test('clearEventSeo cleanly tears down JSON-LD and resets title', () => {
