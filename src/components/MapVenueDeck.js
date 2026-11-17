@@ -331,9 +331,12 @@ export function MapVenueDeck({
                     onPress={() => handleSave(ev)}
                     style={s.bookmarkBtn}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${isSaved ? 'Remove bookmark' : 'Bookmark'}: ${ev.title || 'event'}`}
+                    accessibilityState={{ selected: !!isSaved }}
                   >
                     <Feather
-                      name={isSaved ? 'bookmark' : 'bookmark'}
+                      name="bookmark"
                       size={17}
                       color={isSaved ? primary : muted}
                     />
