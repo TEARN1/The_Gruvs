@@ -22,6 +22,23 @@ export const ThemeProvider = ({ children }) => {
   const [neuralOverride, setNeuralOverride] = useState(null);
   const [ready, setReady] = useState(false);
 
+  // Profile sync — the signed-in user's saved theme overrides the local one.
+  const syncFromProfile = useCallback(async (userId) => {
+    if (!userId) return;
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('theme_id')
+      .eq('id', userId)
+      .maybeSingle();
+    const match = findThemeById(prof?.theme_id);
+    if (!match) return;
+    setNeuralOverride(null);
+    setGender(match.gender);
+    setThemeIndex(match.index);
+    setCurrentTheme(match.theme);
+    AsyncStorage?.setItem(STORAGE_KEY, JSON.stringify({ gender: match.gender, index: match.index })).catch(() => {});
+  }, []);
+
   // Load persisted preference on mount. Local AsyncStorage first (fast, offline),
   // then the user's profile (source of truth so the aura follows them app ⇆ web).
   useEffect(() => {
@@ -44,30 +61,22 @@ export const ThemeProvider = ({ children }) => {
         setReady(true);
       }
 
-      // Profile sync — overrides local if the signed-in user has a saved theme.
       // getSession() reads the locally stored login; getUser() made a network
       // round-trip (queued behind the login restore) just to learn our own id.
       try {
         const { data: { session } = {} } = await supabase.auth.getSession();
-        const user = session?.user;
-        if (user?.id) {
-          const { data: prof } = await supabase
-            .from('profiles')
-            .select('theme_id')
-            .eq('id', user.id)
-            .maybeSingle();
-          const match = findThemeById(prof?.theme_id);
-          if (match) {
-            setNeuralOverride(null);
-            setGender(match.gender);
-            setThemeIndex(match.index);
-            setCurrentTheme(match.theme);
-            AsyncStorage?.setItem(STORAGE_KEY, JSON.stringify({ gender: match.gender, index: match.index })).catch(() => {});
-          }
-        }
+        await syncFromProfile(session?.user?.id);
       } catch { /* not signed in / offline — local pref already applied */ }
     })();
-  }, []);
+
+    // Also sync on sign-in: on a fresh install the user is signed out at mount,
+    // so their saved theme only applied after the NEXT restart (default teal
+    // until then).
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') syncFromProfile(session?.user?.id).catch(() => {});
+    });
+    return () => sub?.subscription?.unsubscribe();
+  }, [syncFromProfile]);
 
   // Sync currentTheme whenever gender/index/neuralOverride changes
   useEffect(() => {
