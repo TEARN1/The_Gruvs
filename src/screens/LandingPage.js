@@ -237,7 +237,7 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
             onPress={() => { onClose(); onSelectEvent && onSelectEvent(spot); }}
             activeOpacity={0.75}
             accessibilityRole="button"
-            accessibilityLabel={`Trending: ${spot.description || spot.title || 'Trending Gruv'}, ${spot.rsvp_count || spot.going || 0} vibing`}
+            accessibilityLabel={`Trending: ${spot.title || spot.description || 'Trending Gruv'}, ${spot.rsvp_count || spot.going || 0} vibing`}
           >
             <Image
               source={typeof spot.image === 'string' ? { uri: spot.image } : (spot.image || require('../../assets/events/pixel.jpg'))}
@@ -249,7 +249,7 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
                   <Feather name="trending-up" size={10} color={i < 3 ? primary : muted} />
                 </View>
                 <Text style={[tm.spotName, { color: textColor }]} numberOfLines={1}>
-                  {spot.description || spot.title || 'Trending Gruv'}
+                  {spot.title || spot.description || 'Trending Gruv'}
                 </Text>
               </View>
               <View style={tm.metaRow}>
@@ -1162,6 +1162,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [loading, setLoading] = useState(true);
   const [ridesModalVisible, setRidesModalVisible] = useState(false);
   const [selectedCat, setSelectedCat] = useState('all');
+  // An empty feed under a category chip means "nothing in THIS category",
+  // not "nothing upcoming" — say which, so people know to switch back to All.
+  const catEmpty = selectedCat !== 'all' && !!CATEGORY_CONFIG[selectedCat];
+  const catEmptyLabel = catEmpty ? CATEGORY_CONFIG[selectedCat].label : '';
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -1922,11 +1926,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // When a trending spot is tapped — scroll to the matching event in the feed
   const handleTrendingPress = (spot) => {
-    const matchTitle = spot.description || spot.title || '';
-    const match = events.find(e =>
-      e.title?.toLowerCase().includes(matchTitle.toLowerCase().slice(0, 10)) ||
-      e.id === spot.event_id
-    );
+    const matchTitle = spot.title || spot.description || '';
+    const match = events.find(e => e.id === spot.event_id)
+      || (matchTitle ? events.find(e => e.title?.toLowerCase().includes(matchTitle.toLowerCase().slice(0, 10))) : null);
     if (match) {
       const idx = events.indexOf(match);
       setHighlightedId(match.id);
@@ -2615,7 +2617,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 </View>
                 <View style={styles.trendBody}>
                   <Text style={styles.trendName} numberOfLines={2}>
-                    {spot.description || spot.title || 'Trending Gruv'}
+                    {spot.title || spot.description || 'Trending Gruv'}
                   </Text>
                   <View style={styles.trendMetaRow}>
                     <Feather name="zap" size={10} color="rgba(255,255,255,0.8)" />
@@ -2960,10 +2962,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 <View style={[styles.emptyIconGlow, { backgroundColor: primary }]} />
               </View>
               <Text style={[styles.emptyTitle, { color: textColor }]}>
-                {feedMode === 'following' ? 'Your Crew is Quiet' : feedMode === 'mine' ? 'No Gruvs Yet' : feedMode === 'upcoming' ? 'Nothing Upcoming Yet' : 'The Kingdom is Quiet'}
+                {catEmpty ? `No ${catEmptyLabel} Gruvs Yet` : feedMode === 'following' ? 'Your Crew is Quiet' : feedMode === 'mine' ? 'No Gruvs Yet' : feedMode === 'upcoming' ? 'Nothing Upcoming Yet' : 'The Kingdom is Quiet'}
               </Text>
               <Text style={[styles.emptyText, { color: muted }]}>
-                {feedMode === 'following'
+                {catEmpty
+                  ? `Nothing in ${catEmptyLabel} right now. Try All, or drop the first one.`
+                  : feedMode === 'following'
                   ? "You aren't following anyone who has posted recently, or they haven't dropped any Gruvs yet."
                   : feedMode === 'mine'
                   ? "You haven't posted any Gruvs yet. Drop your first and every event you create shows up right here."
