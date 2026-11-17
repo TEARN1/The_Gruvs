@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from './src/icons/MaterialCommunityIcons';
 
 import { setDriftReporter } from './src/utils/resilience';
 import { shouldEnterSafeMode, shouldEnterSafeModeSync, clearCrashLog } from './src/utils/bootGuard';
@@ -47,6 +48,20 @@ setDriftReporter((label, err, kind) =>
 );
 
 markStartup('App module evaluated');
+
+// Icons are drawn as a private-use font character. Inside a button, Android
+// merged that character into the button's spoken label, so screen readers
+// read ", Clubs" instead of "Clubs" (found on Vibe Card: 11 of 24
+// buttons). Hide every icon from accessibility; the button's own text or
+// accessibilityLabel is what gets read.
+const A11Y_HIDDEN_ICON = {
+  accessible: false,
+  importantForAccessibility: 'no-hide-descendants',
+  accessibilityElementsHidden: true,
+};
+[Feather, MaterialCommunityIcons].forEach((Icon) => {
+  Icon.defaultProps = { ...Icon.defaultProps, ...A11Y_HIDDEN_ICON };
+});
 
 export default function App() {
   markStartup('App first render');
