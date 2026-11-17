@@ -1238,6 +1238,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  // loadData is memoised without these in its deps, so it read stale copies:
+  // a stale loadingMore=true made every pull-to-refresh return early with
+  // `refreshing` still on (spinner stuck at the top of The Drop forever).
+  const loadingMoreRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  loadingMoreRef.current = loadingMore;
+  hasMoreRef.current = hasMore;
   const PAGE_SIZE = 10;
 
   // Modals
@@ -1483,10 +1490,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     : JSON.stringify(profile?.interests || []);
 
   const loadData = useCallback(async (isRefreshing = false) => {
-    if (loadingMore || (!hasMore && !isRefreshing)) {
-      if (isRefreshing) setLoading(false);
-      return;
-    }
+    // A refresh always runs (the seq check below discards an older load-more);
+    // only load-more is skipped while one is in flight or the feed is exhausted.
+    if (!isRefreshing && (loadingMoreRef.current || !hasMoreRef.current)) return;
+    if (!isRefreshing) loadingMoreRef.current = true;
 
     if (isRefreshing) {
       pageRef.current = 0;
@@ -1593,6 +1600,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       logError('Feed.load', err, { mode: feedMode, page: currentPage });
       toast.show('Failed to load gruvs. Check your connection.', 'error');
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
       if (isCurrent()) {
         setLoading(false);
