@@ -578,9 +578,11 @@ export const AuthModal = ({ visible, onClose }) => {
             // `auto`, i.e. its content size, so `flex:1` alone will NOT shrink it
             // below a tall form. Without this the scroller grows to the content
             // and never scrolls (the exact bug). Verified headless at 390x620.
+            // Never use behavior="height" on Android when windowSoftInputMode="adjustResize"
+            // is active — it double-subtracts the keyboard and squashes the modal.
             const wrapProps = isWeb
               ? { style: { flex: 1, minHeight: 0, width: '100%' } }
-              : { behavior: Platform.OS === 'ios' ? 'padding' : 'height', style: { width: '100%', alignItems: 'center' } };
+              : { behavior: Platform.OS === 'ios' ? 'padding' : undefined, style: { flex: 1, width: '100%' } };
             // On web, RN's ScrollView adds touch/responder handlers that can eat the
             // tap that focuses an input on mobile browsers -> keyboard never opens.
             // Use a plain scrollable View on web; the browser scrolls natively.
@@ -590,7 +592,7 @@ export const AuthModal = ({ visible, onClose }) => {
             // inner wrapper below, NOT here, so it can never clip.
             const scrollerProps = isWeb
               ? { style: { flex: 1, minHeight: 0, width: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch' } }
-              : { showsVerticalScrollIndicator: false, contentContainerStyle: styles.scrollContent, keyboardShouldPersistTaps: 'always' };
+              : { style: { flex: 1, width: '100%' }, showsVerticalScrollIndicator: false, contentContainerStyle: styles.scrollContent, keyboardShouldPersistTaps: 'handled' };
             // The known-good "center when it fits, scroll-from-top when it doesn't"
             // pattern: an inner box with min-height:100% + justify-center. Short
             // form → fills the viewport and centres. Tall form (Step 2 on a phone)
@@ -1041,10 +1043,10 @@ const styles = StyleSheet.create({
   // justifyContent is flex-start (NOT center): the card centres itself with
   // marginVertical:'auto', which — unlike justify-content:center — never clips
   // the top when the form is taller than the screen. padding gives the gutter.
-  scrollContent: { flexGrow: 1, justifyContent: 'flex-start', alignItems: 'center', padding: 20 },
-  card: { width: '100%', maxWidth: 440, borderRadius: 24, borderWidth: 1, overflow: 'hidden', paddingBottom: 30 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 14 },
+  card: { width: '100%', maxWidth: 440, borderRadius: 24, borderWidth: 1, overflow: 'hidden', paddingBottom: 22 },
   glowBar: { height: 4, width: '100%', opacity: 0.9 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: HM, paddingTop: 25, paddingBottom: 20 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: HM, paddingTop: 18, paddingBottom: 14 },
   title: { fontSize: 20, fontWeight: '900', letterSpacing: 1 },
   tabRow: { flexDirection: 'row', marginHorizontal: HM, borderWidth: 1, borderRadius: 30, overflow: 'hidden', marginBottom: 20 },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center' },

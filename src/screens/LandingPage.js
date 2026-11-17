@@ -75,17 +75,18 @@ import { SuggestedFollows } from '../components/SuggestedFollows';
 import { GoOutNudge } from '../components/GoOutNudge';
 import { appInstallService } from '../services/appInstallService';
 import birthdaySpotlight from '../services/birthdaySpotlight';
-// ── Static imports (no lazy — avoids "unknown module" chunk failures on web) ──
-import { PostEventModal }       from '../components/PostEventModal';
+// ── Deferred heavy modals — load on first open to keep startup instant ───────
+import { deferred } from '../utils/deferred';
+const PostEventModal       = deferred(() => require('../components/PostEventModal').PostEventModal, 'PostEventModal');
 import { ViberProfileModal }    from '../components/ViberProfileModal';
 import { ActivityCenterModal }  from '../components/ActivityCenterModal';
-import { EventAdminPanel }      from '../components/EventAdminPanel';
-import { EditEventModal }       from '../components/EditEventModal';
-import { RSVPConfirmModal }     from '../components/RSVPConfirmModal';
-import { ReportModal }          from '../components/ReportModal';
+const EventAdminPanel      = deferred(() => require('../components/EventAdminPanel').EventAdminPanel, 'EventAdminPanel');
+const EditEventModal       = deferred(() => require('../components/EditEventModal').EditEventModal, 'EditEventModal');
+const RSVPConfirmModal     = deferred(() => require('../components/RSVPConfirmModal').RSVPConfirmModal, 'RSVPConfirmModal');
+const ReportModal          = deferred(() => require('../components/ReportModal').ReportModal, 'ReportModal');
 import { QuickToolsSheet }      from '../components/QuickToolsSheet';
-import { EventMapView }         from '../components/EventMapView';
-import { VibeRouletteModal }    from '../components/VibeRouletteModal';
+const EventMapView         = deferred(() => require('../components/EventMapView').EventMapView, 'EventMapView');
+const VibeRouletteModal    = deferred(() => require('../components/VibeRouletteModal').VibeRouletteModal, 'VibeRouletteModal');
 import { PathMapScreen }        from './lazyScreens';
 import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
@@ -96,7 +97,6 @@ import { NotificationNudge } from '../components/NotificationNudge';
 import { BirthDateNudge } from '../components/BirthDateNudge';
 import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { BorderTracer } from '../components/KasiIndustrialUI';
-import { deferred } from '../utils/deferred';
 import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 import { fx } from '../styles/webFx';
 
@@ -2876,9 +2876,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         // matter how far you scroll — "I only see 5 events"). Browsers handle a
         // few hundred cards fine, so render everything and let the DOM scroll.
         disableVirtualization={Platform.OS === 'web'}
-        maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 8}
-        windowSize={Platform.OS === 'web' ? 25 : 14}
-        initialNumToRender={Platform.OS === 'web' ? 16 : 7}
+        maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 5}
+        windowSize={Platform.OS === 'web' ? 25 : 7}
+        initialNumToRender={Platform.OS === 'web' ? 16 : 5}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>

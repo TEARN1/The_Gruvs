@@ -14,7 +14,7 @@
  * startCall is a friendly no-op.
  */
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated, PanResponder, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated, PanResponder, Dimensions, DeviceEventEmitter } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { PeerSession, isCallSupported, ringChannelName, ringUser } from '../services/webrtcCall';
@@ -132,23 +132,40 @@ export function CallProvider({ children }) {
   // Only the CALLER writes it: one entry per call in the shared thread, no
   // duplicate from each end. A missed/declined/cancelled call still logs so the
   // callee can see they were rung.
-  const postCallSummary = useCallback(async () => {
+  const postCallSummary = useCallback(async (overridePeer = null, overrideVideo = null) => {
     const startedAt = callStartRef.current;
-    const other = peerRef.current;
+    const other = overridePeer || peerRef.current;
     const wasConnected = connectedRef.current;
-    const video = videoRef.current;
+    const video = overrideVideo !== null ? !!overrideVideo : videoRef.current;
     const role = roleRef.current;
     callStartRef.current = null; callMetaRef.current = null; connectedRef.current = false;
     if (role !== 'caller' || !user?.id || !other?.id) return;
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     let body;
     if (wasConnected && startedAt) {
       const secs = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
       const mm = Math.floor(secs / 60), ss = secs % 60;
-      body = `${video ? '📹 Video call' : '📞 Voice call'} · ${mm}:${String(ss).padStart(2, '0')}`;
+      body = `${video ? '📹 Video call' : '📞 Voice call'} · ${timeStr} (${mm}:${String(ss).padStart(2, '0')})`;
     } else {
-      body = video ? '📹 Missed video call' : '📞 Missed voice call';
+      body = `${video ? '📹 Missed video call' : '📞 Missed voice call'} · ${timeStr}`;
     }
-    try { await MessageManager.send(user.id, other.id, body); } catch { /* a missing log must never surface */ }
+    try {
+      const sentMsg = await MessageManager.send(user.id, other.id, body);
+      if (sentMsg) {
+        DeviceEventEmitter.emit('gruvs_call_logged', sentMsg);
+        const broadcastKey = `dm_fast_${[user.id, other.id].sort().join('_')}`;
+        try {
+          const ch = supabase.channel(broadcastKey);
+          ch.subscribe((st) => {
+            if (st === 'SUBSCRIBED') {
+              ch.send({ type: 'broadcast', event: 'msg', payload: sentMsg }).finally(() => {
+                setTimeout(() => supabase.removeChannel(ch), 400);
+              });
+            }
+          });
+        } catch {}
+      }
+    } catch { /* a missing log must never surface */ }
   }, [user?.id]);
 
   const endCallLocal = useCallback(() => {
@@ -186,8 +203,23 @@ export function CallProvider({ children }) {
 
   // Start an outgoing call. targetPeer: { id, username, avatar_url }.
   const startCall = useCallback(async (targetPeer, video) => {
-    if (!supported) { showToast('Calls aren\'t available on this device yet.', 'info'); return; }
     if (!user?.id || !targetPeer?.id) return;
+    if (!supported) {
+      // Ring the peer and log a missed-call message + notification so they see we tried reaching them at this time.
+      peerRef.current = targetPeer;
+      roleRef.current = 'caller';
+      videoRef.current = !!video;
+      connectedRef.current = false;
+      ringUser({
+        fromId: user.id,
+        toId: targetPeer.id,
+        fromProfile: { id: user.id, username: profile?.username, avatar_url: profile?.avatar_url },
+        video: !!video,
+      });
+      await postCallSummary(targetPeer, !!video);
+      showToast(`Call notification & chat log sent to @${targetPeer.username || 'viber'}.`, 'info');
+      return;
+    }
     if (callRef.current) { showToast('You\'re already in a call.', 'info'); return; }
     peerRef.current = targetPeer; setPeer(targetPeer);
     roleRef.current = 'caller'; videoRef.current = !!video; connectedRef.current = false;
@@ -211,12 +243,11 @@ export function CallProvider({ children }) {
     try {
       await session.call(!!video);
     } catch (e) {
-      setCall(null); setLocalStream(null);
       try { session.destroy(); } catch {}
-      callRef.current = null;
+      endCallLocal();
       setPermGuide({ reason: e?.mediaError || 'unknown', needVideo: !!video });
     }
-  }, [supported, user?.id, profile?.username, profile?.avatar_url, buildSession, showToast]);
+  }, [supported, user?.id, profile?.username, profile?.avatar_url, buildSession, showToast, postCallSummary, endCallLocal]);
 
   const acceptCall = useCallback(async () => {
     if (ringTimerRef.current) { clearTimeout(ringTimerRef.current); ringTimerRef.current = null; }

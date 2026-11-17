@@ -137,8 +137,8 @@ export const MainNavigator = () => {
         setFeedRefreshKey((k) => k + 1);
       } else {
         setCurrentTab(tab);
-        screenOpacity.setValue(0.25);
-        Animated.timing(screenOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+        screenOpacity.setValue(0.88);
+        Animated.timing(screenOpacity, { toValue: 1, duration: 80, useNativeDriver: true }).start();
       }
     },
     [currentTab, screenOpacity]

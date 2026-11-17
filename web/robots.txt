@@ -3,6 +3,8 @@
 
 User-agent: *
 Allow: /
+Allow: /profile/
+Allow: /sitemap-index.xml
 
 # Allow all major crawlers full access
 User-agent: Googlebot
@@ -40,6 +42,7 @@ Disallow: /_/
 Disallow: /auth/callback
 
 # Sitemaps
+Sitemap: https://thegruvs.com/sitemap-index.xml
 Sitemap: https://thegruvs.com/sitemap.xml
 Sitemap: https://thegruvs.com/image-sitemap.xml
 Sitemap: https://thegruvs.com/sitemap-events.xml

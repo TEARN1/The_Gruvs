@@ -30,8 +30,15 @@ const SPORT_CATEGORIES = [
   { key: 'padel', label: 'Padel / Tennis', icon: 'circle', color: '#a3e635' },
   { key: 'netball', label: 'Netball', icon: 'disc', color: '#ec4899' },
   { key: 'rugby', label: 'Rugby 7s', icon: 'shield', color: '#f59e0b' },
-  { key: 'esports', label: 'Esports & Gaming', icon: 'cpu', color: '#8b5cf6' },
-  { key: 'running', label: 'Running Club', icon: 'zap', color: '#06b6d4' },
+  { key: 'cricket', label: 'Cricket', icon: 'award', color: '#38bdf8' },
+  { key: 'boxing', label: 'Boxing & MMA', icon: 'zap', color: '#ef4444' },
+  { key: 'athletics', label: 'Track & Marathon', icon: 'wind', color: '#06b6d4' },
+  { key: 'volleyball', label: 'Volleyball', icon: 'sun', color: '#facc15' },
+  { key: 'swimming', label: 'Swimming & Aquatics', icon: 'droplet', color: '#60a5fa' },
+  { key: 'cycling', label: 'Cycling & MTB', icon: 'navigation', color: '#34d399' },
+  { key: 'pool', label: 'Pool & Snooker', icon: 'crosshair', color: '#fb7185' },
+  { key: 'chess', label: 'Chess & Mind', icon: 'grid', color: '#c084fc' },
+  { key: 'esports', label: 'Esports & FIFA', icon: 'cpu', color: '#8b5cf6' },
 ];
 
 const INITIAL_TOURNAMENTS = [
@@ -176,11 +183,44 @@ export function SportTournamentHub({
   const [predictionGlitters, setPredictionGlitters] = useState({});
 
   const filteredTournaments = useMemo(() => {
-    return tournaments.filter((t) => t.sport === selectedSport);
+    const exact = tournaments.filter((t) => t.sport === selectedSport);
+    if (exact.length > 0) return exact;
+    const sportMeta = SPORT_CATEGORIES.find((s) => s.key === selectedSport) || SPORT_CATEGORIES[0];
+    return [
+      {
+        id: `auto_${selectedSport}`,
+        title: `Gauteng ${sportMeta.label} Open Series`,
+        sport: selectedSport,
+        format: 'Top 16 Knockout',
+        entryFee: 'R 200 / squad',
+        prizePool: 'R 10,000 + Sponsor Pot',
+        venue: 'City Sports Arena · This Weekend',
+        teamsRegistered: 10,
+        teamsMax: 16,
+        status: 'filling',
+        date: 'Saturday, 11:00',
+        verified: true,
+      },
+    ];
   }, [tournaments, selectedSport]);
 
   const filteredTeams = useMemo(() => {
-    return teams.filter((t) => t.sport === selectedSport);
+    const exact = teams.filter((t) => t.sport === selectedSport);
+    if (exact.length > 0) return exact;
+    const sportMeta = SPORT_CATEGORIES.find((s) => s.key === selectedSport) || SPORT_CATEGORIES[0];
+    return [
+      {
+        id: `auto_team_${selectedSport}`,
+        name: `Midrand ${sportMeta.label.split(' ')[0]} Club`,
+        sport: selectedSport,
+        captain: 'Tshepo R.',
+        suburb: 'Ivory Park / Midrand',
+        membersCount: 8,
+        winRate: '74%',
+        vibeRating: 'Verified Squad',
+        fairVerified: true,
+      },
+    ];
   }, [teams, selectedSport]);
 
   const handleCreateTeam = () => {
@@ -267,7 +307,7 @@ export function SportTournamentHub({
           </ScrollView>
 
           {/* Main Navigation Tabs */}
-          <View style={styles.tabBar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 40 }} contentContainerStyle={styles.tabBar}>
             {[
               { key: 'tournaments', label: 'Tournaments', icon: 'award' },
               { key: 'teams', label: 'Squads', icon: 'users' },
@@ -295,7 +335,7 @@ export function SportTournamentHub({
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </ScrollView>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingBottom: 20 }}>
             {/* TAB 1: TOURNAMENTS */}
@@ -358,19 +398,38 @@ export function SportTournamentHub({
                       <TouchableOpacity
                         onPress={() => {
                           try { haptics.medium(); } catch {}
-                          toast(`Squad entry submitted for ${tourn.title}!`, 'success');
+                          toast(`Squad entry submitted for ${tourn.title}! Prize Escrow & Split-Flap Scoreboard synced.`, 'success');
                         }}
                         style={[styles.enterCupBtn, { backgroundColor: primary }]}
                         activeOpacity={0.8}
                       >
                         <Feather name="shield" size={14} color="#000" />
                         <Text style={{ color: '#000', fontWeight: '900', fontSize: 12 }}>
-                          Enter Team Into Cup
+                          Enter Team Into Cup (Escrow Entry)
                         </Text>
                       </TouchableOpacity>
                     </View>
                   ))
                 )}
+
+                {/* Sports Monetization Engine Card */}
+                <View style={[styles.fairPlayCard, { borderColor: '#f59e0b50', backgroundColor: 'rgba(245,158,11,0.08)' }]}>
+                  <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: '900' }}>
+                    MONETIZE SPORTS: PRIZES, FAN PASSES & SPONSORSHIPS
+                  </Text>
+                  <Text style={{ color: muted, fontSize: 11, lineHeight: 16 }}>
+                    • Squad Escrow Pots: Entry fees lock safely until both captains confirm the score (10% organizer + platform fee).{'\n'}
+                    • Spectator Day Passes (R25): Sell digital crowd passes & food combos straight from the cup card.{'\n'}
+                    • Sponsor a Court / Trophy: Local brands buy R1,500+ branding banners on the Split-Flap Scoreboard.
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => toast('Court & Trophy Sponsorship inquiry opened! Check Business Studio.', 'info')}
+                    style={[styles.smallActionBtn, { alignSelf: 'flex-start', paddingVertical: 7, paddingHorizontal: 12, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.18)' }]}
+                  >
+                    <Feather name="star" size={12} color="#f59e0b" />
+                    <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '900' }}>Sponsor This League / Court</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
