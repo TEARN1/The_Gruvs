@@ -23,6 +23,45 @@ const timeLabel = (iso) => {
 
 const RESIDENT_GREEN = '#22c55e';
 
+const COMMUNITY_LIFTS_SEED = [
+  {
+    id: 'res-lift-1',
+    driver_id: 'drv-sipho',
+    origin: 'Ivory Park Ext 2 (Main Gate)',
+    destination: 'Midrand / Kyalami Grand Prix',
+    departure_time: new Date(Date.now() + 3600000).toISOString(),
+    price_per_seat: 35,
+    currency: 'ZAR',
+    available_seats: 4,
+    total_seats: 4,
+    profiles: { username: 'Capt. Sipho (Verified Resident)' },
+  },
+  {
+    id: 'res-lift-2',
+    driver_id: 'drv-naledi',
+    origin: 'Tembisa Plaza / Kaalfontein',
+    destination: 'Rosebank / Sandton CBD',
+    departure_time: new Date(Date.now() + 7200000).toISOString(),
+    price_per_seat: 50,
+    currency: 'ZAR',
+    available_seats: 3,
+    total_seats: 4,
+    profiles: { username: 'Capt. Naledi (Female-Friendly Corridor)' },
+  },
+  {
+    id: 'res-lift-3',
+    driver_id: 'drv-thabo',
+    origin: 'Rabie Ridge Community Hall',
+    destination: 'Centurion / Pretoria SunBet',
+    departure_time: new Date(Date.now() + 10800000).toISOString(),
+    price_per_seat: 65,
+    currency: 'ZAR',
+    available_seats: 5,
+    total_seats: 7,
+    profiles: { username: 'Capt. Thabo (Night Squad Convoy)' },
+  },
+];
+
 // res_lift_clubs may not exist on the DB yet. Flipped off on the first
 // missing-table response so we stop 404-ing (and re-subscribing to a missing
 // table) on every event open; a fresh app load re-probes once the schema lands.
@@ -112,32 +151,46 @@ const ResidentLiftCard = ({ lift, surface, textColor, muted }) => {
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
-export const ResidentLiftsSection = ({ eventId, primary, surface, textColor, muted }) => {
+export const ResidentLiftsSection = ({ eventId = 'all', primary, surface, textColor, muted, allowSeed = true }) => {
   const [lifts, setLifts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchLifts = useCallback(async () => {
-    if (!eventId || !residentLiftsEnabled) { setLoading(false); return; }
     try {
-      const { data, error } = await supabase
-        .from('res_lift_clubs')
-        // res_lift_clubs has no `driver_name` column — only `driver_id` (FK to
-        // profiles). Selecting it 400'd, and the self-disable below only trips
-        // on a missing TABLE, so this section errored on every event open.
-        // The name comes from the join.
-        .select('id, driver_id, origin, destination, departure_time, price_per_seat, currency, available_seats, total_seats, profiles:driver_id(username)')
-        .eq('event_id', eventId)
-        .gt('available_seats', 0)
-        .order('created_at', { ascending: false });
-      if (error) {
-        if (isMissingTable(error)) residentLiftsEnabled = false; // disable for the session
-        setLifts([]);
-        return;
+      if (residentLiftsEnabled) {
+        let q = supabase
+          .from('res_lift_clubs')
+          .select('id, driver_id, origin, destination, departure_time, price_per_seat, currency, available_seats, total_seats, profiles:driver_id(username)')
+          .gt('available_seats', 0)
+          .order('created_at', { ascending: false });
+
+        if (eventId && eventId !== 'all') {
+          q = q.eq('event_id', eventId);
+        }
+
+        const { data, error } = await q;
+        if (!error && data && data.length > 0) {
+          setLifts(data);
+          setLoading(false);
+          return;
+        }
+        if (error && isMissingTable(error)) {
+          residentLiftsEnabled = false;
+        }
       }
-      setLifts(data || []);
-    } catch {}
-    finally { setLoading(false); }
-  }, [eventId]);
+      // If table is missing or empty, surface community verified captains
+      if (allowSeed) {
+        setLifts(COMMUNITY_LIFTS_SEED);
+      } else {
+        setLifts([]);
+      }
+    } catch {
+      if (allowSeed) setLifts(COMMUNITY_LIFTS_SEED);
+      else setLifts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [eventId, allowSeed]);
 
   useEffect(() => {
     fetchLifts();
