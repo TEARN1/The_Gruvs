@@ -495,7 +495,7 @@ const EventCard = React.memo(({
               </TouchableOpacity>
             </View>
           ) : (
-          <View style={[styles.imgSection, { backgroundColor: '#000' }, isWeb && { minHeight: 0 }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
+          <View style={[styles.imgSection, { backgroundColor: '#11161b' }, isWeb && { minHeight: 0 }, isWeb && isPast && { filter: 'grayscale(100%)' }]}>
             <MediaViewer
               eventId={event.id}
               // Show the WHOLE image — flyer OR photo. The frame adopts the image's

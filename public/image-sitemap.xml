@@ -559,6 +559,14 @@
     </image:image>
   </url>
   <url>
+    <loc>https://thegruvs.com/profile/The%20Gruvs</loc>
+    <image:image>
+      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/avatar_1779117952962.png</image:loc>
+      <image:title>The gruvs</image:title>
+      <image:caption>@The Gruvs on The Gruvs</image:caption>
+    </image:image>
+  </url>
+  <url>
     <loc>https://thegruvs.com/profile/sinomercy</loc>
     <image:image>
       <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/7a138d94-9ed4-471e-9044-7a699d5767f3/avatar_1782814366043.jpg</image:loc>
@@ -580,14 +588,6 @@
       <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/ca6dc96f-1643-44f4-9e3e-700e53779a77/avatar_1783076798496.jpg</image:loc>
       <image:title>nqobileboholo</image:title>
       <image:caption>@nqobii on The Gruvs</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/profile/The%20Gruvs</loc>
-    <image:image>
-      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/avatar_1779117952962.png</image:loc>
-      <image:title>The gruvs</image:title>
-      <image:caption>@The Gruvs on The Gruvs</image:caption>
     </image:image>
   </url>
   <url>

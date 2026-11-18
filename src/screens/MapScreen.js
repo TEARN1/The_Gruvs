@@ -39,6 +39,7 @@ import { logError } from '../utils/logError';
 import { shouldRefetch, padBbox, bboxRadiusM, bboxCenter } from '../utils/mapViewport';
 import { LocationService } from '../services/locationService';
 import { searchPlaces } from '../services/geocoding';
+import { directionsUrl } from '../utils/directions';
 import { useToast } from '../components/ToastNotification';
 import { pickConciergeMove } from '../services/concierge';
 import { MapNudge } from '../components/MapNudge';
@@ -219,6 +220,10 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   const [showWeather, setShowWeather] = useState(false);
   const [searchQuery, setSearchBar] = useState('');
   const [searching, setSearchBusy] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchPin, setSearchPin] = useState(null); // { lat, lng, title, subtitle }
+  const debounceTimerRef = useRef(null);
 
   // What the active renderer (web MapLibre GL vs native MapLibre) can do.
   const caps = mapCapabilities();
@@ -507,18 +512,95 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
     }
   };
 
+  const handleQueryChange = (text) => {
+    setSearchBar(text);
+    if (!text || text.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(async () => {
+      const q = text.trim().toLowerCase();
+      // 1. Instant local venue/event matches from loaded events
+      const localMatches = (eventsRef.current || [])
+        .filter((e) => {
+          const t = (e.title || '').toLowerCase();
+          const v = (e.venue_name || '').toLowerCase();
+          const s = (e.suburb || '').toLowerCase();
+          return t.includes(q) || v.includes(q) || s.includes(q);
+        })
+        .slice(0, 3)
+        .map((e) => ({
+          id: `event_${e.id}`,
+          type: 'venue',
+          title: e.venue_name || e.title,
+          subtitle: [e.suburb, e.city || 'Johannesburg'].filter(Boolean).join(', ') || e.title,
+          lat: e.lat ?? e.latitude,
+          lon: e.lon ?? e.longitude,
+        }));
+
+      // 2. Geocoded places / addresses via geocoder
+      try {
+        const near = bboxCenter(fetchedBboxRef.current) || centerRef.current;
+        const places = await searchPlaces(text, {
+          limit: 4,
+          near: near ? { lat: near.lat, lon: near.lng } : undefined,
+        });
+
+        const addressMatches = (places || []).map((p) => ({
+          id: `place_${p.placeId || Math.random()}`,
+          type: 'place',
+          title: p.road || p.suburb || p.displayName?.split(',')[0] || text,
+          subtitle: p.displayName || [p.suburb, p.city, p.country].filter(Boolean).join(', '),
+          lat: p.lat,
+          lon: p.lon,
+        }));
+
+        const combined = [...localMatches, ...addressMatches];
+        setSuggestions(combined);
+        setShowSuggestions(combined.length > 0);
+      } catch {
+        if (localMatches.length > 0) {
+          setSuggestions(localMatches);
+          setShowSuggestions(true);
+        }
+      }
+    }, 280);
+  };
+
+  const handleSelectSuggestion = (item) => {
+    if (!item || !Number.isFinite(item.lat) || !Number.isFinite(item.lon)) return;
+    setCenter({ lat: item.lat, lng: item.lon });
+    setSearchPin({
+      lat: item.lat,
+      lng: item.lon,
+      title: item.title,
+      subtitle: item.subtitle,
+    });
+    setSearchBar(item.title);
+    setShowSuggestions(false);
+    haptics?.selection?.();
+  };
+
+  const clearSearch = () => {
+    setSearchBar('');
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setSearchPin(null);
+  };
+
   const handleSearch = async () => {
     if (!searchQuery.trim() || searching) return;
+    setShowSuggestions(false);
+    if (suggestions.length > 0) {
+      handleSelectSuggestion(suggestions[0]);
+      return;
+    }
     setSearchBusy(true);
     setFollowMe(false);
     try {
-      // Goes through the shared geocoder rather than calling Nominatim raw.
-      // geocoding.js exists precisely so map search resolves places the same way
-      // event posting does: a serial ≥1.1s queue (Nominatim's policy is ~1 req/s
-      // and this screen has a button you can hammer), a result cache, and the
-      // on-device geocoder first on native. The raw call here also set a
-      // User-Agent header, which browsers silently drop — so it was claiming an
-      // identity Nominatim never saw.
       const near = bboxCenter(fetchedBboxRef.current) || centerRef.current;
       const [place] = await searchPlaces(searchQuery, {
         limit: 1,
@@ -526,7 +608,13 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       });
       if (place && Number.isFinite(place.lat) && Number.isFinite(place.lon)) {
         setCenter({ lat: place.lat, lng: place.lon });
-        setSearchBar('');
+        setSearchPin({
+          lat: place.lat,
+          lng: place.lon,
+          title: place.road || place.suburb || place.displayName?.split(',')[0] || searchQuery,
+          subtitle: place.displayName,
+        });
+        setSearchBar(place.road || place.suburb || searchQuery);
       } else {
         toast('Location not found.', 'info');
       }
@@ -661,16 +749,30 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
 
   const communityPois = React.useMemo(() => {
     const POI_TYPES = new Set(['police_nearby', 'atm', 'medical_point', 'station', 'taxi_rank', 'safe_spot']);
-    return reports
+    const list = reports
       .filter(r => POI_TYPES.has(r.kind) && r.status === 'confirmed')
       .map(r => ({
         lat: r.lat, lng: r.lon,
         icon: MAP_REPORT_BY_KEY[r.kind]?.icon === 'shield' ? '🛡️' :
               MAP_REPORT_BY_KEY[r.kind]?.icon === 'plus-square' ? '🏥' :
               MAP_REPORT_BY_KEY[r.kind]?.icon === 'dollar-sign' ? '💰' :
-              MAP_REPORT_BY_KEY[r.kind]?.icon === 'navigation' ? '🚕' : '📍'
+              MAP_REPORT_BY_KEY[r.kind]?.icon === 'navigation' ? '🚕' : '📍',
+        title: MAP_REPORT_BY_KEY[r.kind]?.label || 'Report',
+        id: r.id,
       }));
-  }, [reports]);
+
+    if (searchPin && Number.isFinite(searchPin.lat) && Number.isFinite(searchPin.lng)) {
+      list.push({
+        lat: searchPin.lat,
+        lng: searchPin.lng,
+        icon: '📍',
+        title: searchPin.title,
+        id: 'search_pin_dest',
+      });
+    }
+
+    return list;
+  }, [reports, searchPin]);
 
   const cycleStyle = () => {
     const next = mapStyle === 'dark' ? 'light' : mapStyle === 'light' ? 'liberty' : 'dark';
@@ -687,7 +789,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             <Feather name="search" size={17} color={primary} style={{ marginLeft: 12, marginRight: 8 }} />
             <TextInput
               value={searchQuery}
-              onChangeText={setSearchBar}
+              onChangeText={handleQueryChange}
               placeholder="Search spots, vibes, areas..."
               placeholderTextColor={muted}
               onSubmitEditing={handleSearch}
@@ -696,7 +798,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
             {searching ? (
               <ActivityIndicator size="small" color={primary} style={{ marginRight: 10 }} />
             ) : searchQuery.length > 0 ? (
-              <TouchableOpacity onPress={() => setSearchBar('')} style={{ padding: 8 }}>
+              <TouchableOpacity onPress={clearSearch} style={{ padding: 8 }}>
                 <Feather name="x" size={16} color={muted} />
               </TouchableOpacity>
             ) : null}
@@ -724,6 +826,44 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               <Feather name="layers" size={18} color={primary} />
             </TouchableOpacity>
           </View>
+
+          {/* Autocomplete Suggestions Dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <View style={[cs.suggestionsBox, { backgroundColor: `${bg}fa`, borderColor: `${primary}45` }]}>
+              <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled style={{ maxHeight: 240 }}>
+                {suggestions.map((item, idx) => (
+                  <TouchableOpacity
+                    key={item.id || idx}
+                    onPress={() => handleSelectSuggestion(item)}
+                    style={[
+                      cs.suggestionRow,
+                      { borderBottomColor: `${muted}20` },
+                      idx === suggestions.length - 1 && { borderBottomWidth: 0 },
+                    ]}
+                  >
+                    <View style={[cs.suggestionIconWrap, { backgroundColor: item.type === 'venue' ? `${primary}20` : 'rgba(255,255,255,0.08)' }]}>
+                      <Feather
+                        name={item.type === 'venue' ? 'music' : 'map-pin'}
+                        size={14}
+                        color={item.type === 'venue' ? primary : '#fff'}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[cs.suggestionTitle, { color: textColor }]} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      {item.subtitle ? (
+                        <Text style={[cs.suggestionSubtitle, { color: muted }]} numberOfLines={1}>
+                          {item.subtitle}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Feather name="arrow-up-right" size={14} color={muted} style={{ marginLeft: 8 }} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
 
           {/* Quick Filter Pill Strip */}
@@ -958,6 +1098,52 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
               textColor={textColor}
               muted={muted}
             />
+          )}
+
+          {/* Active Search Result Pin Card */}
+          {searchPin && !drawing && (
+            <View style={[cs.searchPinCard, { backgroundColor: `${bg}f2`, borderColor: `${primary}55` }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: primary }} />
+                    <Text style={{ color: primary, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>SELECTED LOCATION</Text>
+                  </View>
+                  <Text style={[cs.searchPinTitle, { color: textColor }]} numberOfLines={1}>
+                    {searchPin.title}
+                  </Text>
+                  {searchPin.subtitle ? (
+                    <Text style={[cs.searchPinSubtitle, { color: muted }]} numberOfLines={2}>
+                      {searchPin.subtitle}
+                    </Text>
+                  ) : null}
+                </View>
+                <TouchableOpacity onPress={() => setSearchPin(null)} style={{ padding: 4 }}>
+                  <Feather name="x" size={18} color={muted} />
+                </TouchableOpacity>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const url = directionsUrl({ lat: searchPin.lat, lng: searchPin.lng, label: searchPin.title }, userLoc, Platform.OS);
+                    if (url) Linking.openURL(url);
+                  }}
+                  style={[cs.searchPinDirectionsBtn, { backgroundColor: primary }]}
+                >
+                  <Feather name="navigation" size={14} color="#000" />
+                  <Text style={{ color: '#000', fontWeight: '800', fontSize: 13 }}>Directions</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setCenter({ lat: searchPin.lat, lng: searchPin.lng });
+                    mapApiRef.current?.flyTo?.({ center: [searchPin.lng, searchPin.lat], zoom: 15 });
+                  }}
+                  style={[cs.searchPinRecenterBtn, { borderColor: `${primary}45`, backgroundColor: `${primary}15` }]}
+                >
+                  <Feather name="crosshair" size={15} color={primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
           )}
         </View>
 
@@ -1516,6 +1702,85 @@ const cs = StyleSheet.create({
     height: 48,
     paddingHorizontal: 4,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
+  },
+  suggestionsBox: {
+    marginHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginTop: -4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  suggestionIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  suggestionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  suggestionSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  searchPinCard: {
+    position: 'absolute',
+    bottom: 96,
+    left: 16,
+    right: 16,
+    maxWidth: 520,
+    alignSelf: 'center',
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    zIndex: 60,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
+  },
+  searchPinTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  searchPinSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  searchPinDirectionsBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  searchPinRecenterBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchInput: {
     flex: 1,

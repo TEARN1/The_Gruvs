@@ -29,9 +29,9 @@ export function storageThumb(url, width, height, quality = 70) {
     ? url.startsWith(SUPABASE_URL)
     : /\.supabase\.(co|in|net)\//.test(url);
 
-  // Unoptimized raw external banners (e.g. allevents.in, eventbrite, quicket, raw /banners/)
-  // which often serve uncompressed application/octet-stream files and cause layout/render stuttering
-  const isRawExternalBanner = /allevents\.in|eventbrite|quicket/i.test(url) || url.includes('/banners/');
+  // Unoptimized raw external banners (e.g. allevents.in, eventbrite, quicket, livenation, ticketmaster, raw /banners/)
+  // which often serve uncompressed application/octet-stream files or multi-MB PNGs and cause layout/render stuttering
+  const isRawExternalBanner = /allevents\.in|eventbrite|quicket|livenation|ticketmaster|computicket|ticketpros/i.test(url) || url.includes('/banners/') || /\.png(\?|$)/i.test(url);
 
   if (!isSupabase && !isRawExternalBanner) {
     return url;
