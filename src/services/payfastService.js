@@ -1,59 +1,49 @@
 import { supabase } from './supabase';
 
 /**
- * PayFast checkout — client side.
+ * PayFast checkout for paid event tickets.
  *
- * The app sends ONLY which event and tier. The payfast-checkout edge function
- * works out who is paying (from the session) and what it costs (from the
- * event), records the order, and returns a signed PayFast URL. payfast-itn
- * then issues the ticket only if PayFast confirms the exact amount.
- *
- * There is deliberately NO client-side fallback. The old one built an unsigned
- * URL to PayFast's public sandbox demo merchant whenever the edge function was
- * unreachable, so buyers "paid" play money and got nothing.
+ * The payfast-checkout edge function decides everything that matters: who is
+ * paying (from the sign-in), what it costs (from the event's tiers) and the
+ * signed PayFast link. The app only says which event and tier. There is no
+ * fallback built in the browser: an unsigned link would carry a price the
+ * buyer could change, and payfast-itn would never issue a ticket for it.
  */
 
-// Human messages for the edge function's error codes.
-const MESSAGES = {
+// What the edge function's error codes mean to a buyer.
+const CHECKOUT_ERRORS = {
   auth_required: 'Sign in to buy a ticket.',
-  payments_not_configured: "Ticket payments aren't switched on yet.",
-  event_unavailable: 'This event is no longer available.',
-  tier_not_for_sale: "This ticket isn't for sale.",
-  amount_below_minimum: 'This ticket is below the minimum card payment (R5).',
+  event_unavailable: 'This event is no longer on sale.',
+  tier_not_for_sale: 'This ticket type is not on sale.',
+  amount_below_minimum: 'PayFast needs a price of at least R5.',
+  payments_not_configured: 'Online payment is not set up yet. Please try again later.',
 };
 
-async function errorCode(error) {
-  // supabase-js FunctionsHttpError keeps the Response on `context`.
+async function readError(error) {
   try {
     const body = await error?.context?.json?.();
-    return body?.error || null;
+    if (body?.error && CHECKOUT_ERRORS[body.error]) return CHECKOUT_ERRORS[body.error];
   } catch {
-    return null;
+    // fall through
   }
+  return 'Could not start the payment. Please try again.';
 }
 
 export const PayFastService = {
   /**
-   * Start PayFast checkout for a paid tier. Resolves { paymentUrl, paymentId, sandbox }.
-   * Throws an Error with a user-facing message on any failure.
+   * Starts a PayFast payment for one paid tier of an event.
+   * Returns { paymentUrl, paymentId, sandbox }.
    */
   async checkoutEventTicket({ event, tier }) {
-    if (!event?.id || tier?.id == null) throw new Error('Pick a ticket first.');
-
-    let data;
-    let error;
-    try {
-      ({ data, error } = await supabase.functions.invoke('payfast-checkout', {
-        body: { eventId: event.id, tierId: String(tier.id) },
-      }));
-    } catch {
-      throw new Error("Couldn't reach checkout. Check your connection and try again.");
+    if (!event?.id || tier?.id === undefined || tier?.id === null) {
+      throw new Error('Choose a ticket type first.');
     }
-    if (error || !data?.paymentUrl) {
-      const code = (await errorCode(error)) || data?.error;
-      throw new Error(MESSAGES[code] || "Couldn't start checkout. Please try again.");
-    }
-    return { paymentUrl: data.paymentUrl, paymentId: data.paymentId, sandbox: !!data.sandbox };
+    const { data, error } = await supabase.functions.invoke('payfast-checkout', {
+      body: { eventId: event.id, tierId: String(tier.id) },
+    });
+    if (error) throw new Error(await readError(error));
+    if (!data?.paymentUrl) throw new Error('Could not start the payment. Please try again.');
+    return { paymentUrl: data.paymentUrl, paymentId: data.paymentId, sandbox: Boolean(data.sandbox) };
   },
 };
 
