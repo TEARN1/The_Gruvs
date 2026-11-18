@@ -7,6 +7,13 @@ test.describe('Calendar Page', () => {
     await page.goto('/');
     await waitForApp(page);
     await goToTab(page, 'Lineup', 'Calendar');
+    // In launch mode the Calendar tab is hidden from the bar (HIDDEN_TABS) and
+    // opened from Quick Tools → "Lineup & Itinerary" instead.
+    const lineup = page.getByText('Lineup & Itinerary', { exact: true });
+    if (!(await lineup.isVisible().catch(() => false))) {
+      await page.getByRole('button', { name: 'Explore tools and quick actions' }).first().click().catch(() => {});
+    }
+    if (await lineup.isVisible({ timeout: 3_000 }).catch(() => false)) await lineup.click();
     await page.waitForTimeout(800);
   });
 
