@@ -108,13 +108,19 @@ describe('Phase 1: Shared Data Spine & Hustler Directory Registry', () => {
     expect(SmartAlertEngine.isFollowing('Soweto Stars FC', 'team')).toBe(false);
   });
 
-  test('SmartAlertEngine returns fashion recommendations for event dress code', async () => {
+  test('SmartAlertEngine shows no invented vendors when there are no real matches', async () => {
     const recommendations = await SmartAlertEngine.getFashionMatchesForEvent({
       id: 'fashion_ev',
       category: 'fashion',
       dress_code: 'All-Black Chic',
     });
-    expect(recommendations.length).toBeGreaterThan(0);
-    expect(recommendations[0].matchReason).toContain('All-Black Chic');
+    expect(Array.isArray(recommendations)).toBe(true);
+    recommendations.forEach((r) => expect(r.matchReason).toContain('All-Black Chic'));
+  });
+
+  test('SmartAlertEngine shows no invented event leads when there are none', async () => {
+    const leads = await SmartAlertEngine.scanUpcomingLeads('bakkie_haulers');
+    expect(Array.isArray(leads)).toBe(true);
+    expect(leads.find((l) => String(l.eventId).startsWith('lead_ev_'))).toBeUndefined();
   });
 });

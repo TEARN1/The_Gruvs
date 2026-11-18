@@ -38,7 +38,7 @@ export const SmartAlertEngine = {
           'service_nodes',
           () => supabase
             .from('service_nodes')
-            .select('id, name, description, category, hourly_rate, currency, rating, cover_image, profile_id')
+            .select('id, name, title, description, category, price, price_min, rating, media, user_id')
             .in('category', ['fashion_designers', 'streetwear_popups', 'makeup_artists_mua', 'mobile_barbers'])
             .eq('is_active', true)
             .limit(10),
@@ -48,13 +48,13 @@ export const SmartAlertEngine = {
         if (!error && Array.isArray(data) && data.length > 0) {
           return data.map((provider) => ({
             id: provider.id,
-            name: provider.name,
+            name: provider.name || provider.title,
             category: provider.category,
             tagline: provider.description || 'Custom event attire & styling',
-            priceLabel: provider.hourly_rate ? `From R${provider.hourly_rate}` : 'Custom Quote',
-            coverImage: provider.cover_image,
+            priceLabel: (provider.price_min || provider.price) ? `From R${provider.price_min || provider.price}` : 'Custom Quote',
+            coverImage: Array.isArray(provider.media) ? provider.media[0] : undefined,
             matchReason: rawDressCode ? `Matches "${rawDressCode}" dress code` : `Fits ${event.category || 'event'} style`,
-            providerId: provider.profile_id,
+            providerId: provider.user_id,
           }));
         }
       }
@@ -62,33 +62,8 @@ export const SmartAlertEngine = {
       logError('SmartAlertEngine.getFashionMatchesForEvent', e);
     }
 
-    // Curated fallback matches for immediate offline experience
-    return [
-      {
-        id: 'fashion_node_1',
-        name: 'Kasi Drip Bespoke',
-        category: 'fashion_designers',
-        tagline: 'Custom tailored event blazers & modern African prints',
-        priceLabel: 'From R950',
-        matchReason: rawDressCode ? `Matches "${rawDressCode}" dress code` : 'Tailored event fit',
-      },
-      {
-        id: 'fashion_node_2',
-        name: 'Street Heritage Pop-Up',
-        category: 'streetwear_popups',
-        tagline: 'Limited edition graphic hoodies, cargo wear & sneakers',
-        priceLabel: 'From R450',
-        matchReason: 'Vibe check & event footwear',
-      },
-      {
-        id: 'fashion_node_3',
-        name: 'GlowGlam Express MUA',
-        category: 'makeup_artists_mua',
-        tagline: 'Red carpet glam makeup, lash installation & braids',
-        priceLabel: 'From R350',
-        matchReason: 'Event-ready glam',
-      },
-    ];
+    // No invented vendors: with no real matches, show none.
+    return [];
   },
 
   // ── Engine 2: 90-Day Upcoming Event Lead Radar ──────────────────────────
@@ -108,7 +83,7 @@ export const SmartAlertEngine = {
       if (isSupabaseEnabled) {
         let query = supabase
           .from('events')
-          .select('id, title, event_date, date_time, category, location, venue_name, expected_attendance, cover_url')
+          .select('id, title, event_date, date_time, category, location, venue_name, capacity, max_attendees, cover_url')
           .gte('date_time', minTime)
           .lte('date_time', maxTime)
           .order('date_time', { ascending: true })
@@ -127,7 +102,7 @@ export const SmartAlertEngine = {
               daysAway,
               location: ev.venue_name || ev.location || 'Local Venue',
               category: ev.category,
-              expectedGuests: ev.expected_attendance || '200+',
+              expectedGuests: ev.capacity || ev.max_attendees || null,
               pitchOpportunity: `Organizers actively booking gear & crew for ${daysAway} days ahead`,
               recommendedRole: providerCategory || 'Vendor / Gear Partner',
             };
@@ -138,31 +113,8 @@ export const SmartAlertEngine = {
       logError('SmartAlertEngine.scanUpcomingLeads', e);
     }
 
-    // High quality demo leads if database is empty or offline
-    return [
-      {
-        eventId: 'lead_ev_1',
-        eventTitle: 'Soweto Summer Groove Fest',
-        eventDate: new Date(now + 42 * 86400000).toISOString().split('T')[0],
-        daysAway: 42,
-        location: 'Zone 6 Venue, Soweto',
-        category: 'music',
-        expectedGuests: '1,500+',
-        pitchOpportunity: 'Open for spit braai caterers, stage sound, and bakkie logistics',
-        recommendedRole: providerCategory || 'Gear & Food Vendor',
-      },
-      {
-        eventId: 'lead_ev_2',
-        eventTitle: 'Pretoria Amapiano Explosion',
-        eventDate: new Date(now + 65 * 86400000).toISOString().split('T')[0],
-        daysAway: 65,
-        location: 'Tshwane Events Centre',
-        category: 'nightlife',
-        expectedGuests: '3,000+',
-        pitchOpportunity: 'Calling drum kit rentals, Pioneer CDJ-3000 setups, and VIP shuttles',
-        recommendedRole: providerCategory || 'Sound / Backline Partner',
-      },
-    ];
+    // No invented events: with no real leads, show none.
+    return [];
   },
 
   // ── Engine 3: Kasi Soccer & Lineup Alerts ────────────────────────────────
