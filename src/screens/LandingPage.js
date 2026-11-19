@@ -36,6 +36,7 @@ import { collapseTourStops } from '../services/tours';
 import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
+import { CategoryCover } from '../components/EventPoster';
 import { priceLabel } from '../constants/currencies';
 import { ReelsObservers } from '../services/reelsDataFlow';
 import { FONT } from '../constants/DesignTokens';
@@ -239,10 +240,9 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
             accessibilityRole="button"
             accessibilityLabel={`Trending: ${spot.title || spot.description || 'Trending Gruv'}, ${spot.rsvp_count || spot.going || 0} vibing`}
           >
-            <Image
-              source={typeof spot.image === 'string' ? { uri: spot.image } : (spot.image || require('../../assets/events/pixel.jpg'))}
-              style={tm.thumb}
-            />
+            {spot.image
+              ? <Image source={typeof spot.image === 'string' ? { uri: spot.image } : spot.image} style={tm.thumb} />
+              : <View style={[tm.thumb, { overflow: 'hidden' }]}><CategoryCover color={getCategoryColor(spot.category) || primary} /></View>}
             <View style={{ flex: 1 }}>
               <View style={tm.rankRow}>
                 <View style={[tm.rankBadge, { backgroundColor: i < 3 ? `${primary}25` : 'rgba(255,255,255,0.06)' }]}>
@@ -1310,6 +1310,26 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [activeHashtag, setActiveHashtag] = useState(null);
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // An event opened from another tab (Explore, Calendar, Notifications) lands
+  // here as targetEvent. It was accepted but never used, so those taps only
+  // switched to The Drop without opening anything. Open it, fetching the full
+  // row when we were handed only an id (e.g. a Trending spot).
+  useEffect(() => {
+    if (!targetEvent) return undefined;
+    let alive = true;
+    const id = targetEvent.id || targetEvent.event_id;
+    (async () => {
+      let ev = targetEvent.id && targetEvent.title ? targetEvent : null;
+      if (!ev && id) {
+        const { data } = await supabase.from('events').select('*').eq('id', id).maybeSingle();
+        ev = data || null;
+      }
+      if (alive && ev) setSelectedEvent(ev);
+      onTargetHandled?.();
+    })().catch(() => onTargetHandled?.());
+    return () => { alive = false; };
+  }, [targetEvent, onTargetHandled]);
   const [feedMode, setFeedMode] = useState('upcoming'); // 'upcoming' | 'all' | 'following' | 'mine'
   const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
   const fetchedCheckinIds = useRef(new Set());
@@ -2606,10 +2626,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 onPress={() => handleTrendingPress(spot)}
                 activeOpacity={0.85}
               >
-                <Image
-                  source={spot.image ? { uri: thumb.thumbnail(spot.image) } : { uri: '' }}
-                  style={styles.trendImg}
-                />
+                {spot.image
+                  ? <Image source={{ uri: thumb.thumbnail(spot.image) }} style={styles.trendImg} />
+                  : <CategoryCover category={spot.category} color={getCategoryColor(spot.category) || primary} />}
                 <View style={[styles.trendOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
                 {/* Rank badge */}
                 <View style={[styles.trendRank, { backgroundColor: i < 3 ? `${primary}cc` : 'rgba(0,0,0,0.55)', width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }]}>

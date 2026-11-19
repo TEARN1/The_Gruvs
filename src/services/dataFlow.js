@@ -1198,6 +1198,7 @@ export const TrendingManager = {
           image: e.media?.[0]?.url || null,
           rsvp_count: e.going || 0,
           vibe_count: e.vibe_count || 0,
+          category: e.category || null,
           heat: Math.round(ScoreEngine.heatScore(e)),
           rank: i + 1,
         }));

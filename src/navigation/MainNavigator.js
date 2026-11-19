@@ -55,6 +55,7 @@ import { backStack } from '../utils/backStack';
 import { feature } from '../constants/launchConfig';
 import { appInstallService } from '../services/appInstallService';
 import { useNotifications } from '../hooks/useNotifications';
+import { scheduleLearnTips } from '../services/learnTips';
 
 import { ALL_TABS, TABS, WIDE_BREAKPOINT, getTabLabel } from './navigationConfig';
 import { TabBar } from './TabBar';
@@ -272,6 +273,8 @@ export const MainNavigator = () => {
     if (type === 'event' && data?.event_id) {
       setTargetEvent({ id: data.event_id });
       setCurrentTab('feed');
+    } else if (type === 'tab' && ['feed', 'explore', 'map', 'chats', 'profile'].includes(data?.tab)) {
+      setCurrentTab(data.tab);
     } else if (type === 'chats') {
       setCurrentTab('chats');
     } else {
@@ -280,6 +283,14 @@ export const MainNavigator = () => {
   }, []);
 
   useNotifications({ onNavigate: handleNotifNavigate });
+
+  // A week of learn-the-app tips, once per install — only if notifications
+  // are already allowed (it never prompts). Re-checked on each sign-in, so it
+  // starts the first launch after the user allows notifications.
+  useEffect(() => {
+    if (!authUser?.id) return;
+    scheduleLearnTips();
+  }, [authUser?.id]);
 
   // Deep-linking route handler
   useEffect(() => {
