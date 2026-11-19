@@ -1,0 +1,59 @@
+name: Weekly Email Digest
+
+on:
+  schedule:
+    # Every Thursday at 07:00 UTC (09:00 South African Standard Time)
+    - cron: '0 7 * * 4'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode'
+        required: true
+        default: 'dry-run'
+        type: choice
+        options:
+          - 'dry-run'
+          - 'live-send'
+          - 'test-email'
+      test_recipient:
+        description: 'Test recipient email (only used if mode is test-email)'
+        required: false
+        default: ''
+
+jobs:
+  dispatch-digest:
+    name: Send 2-Week Upcoming Events Digest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline || npm install
+
+      - name: Execute Weekly Digest
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://feevvddvrjmfbhffccbf.supabase.co' }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM || 'The Gruvs <vibes@thegruvs.com>' }}
+          EXPO_PUBLIC_APP_URL: ${{ secrets.APP_URL || 'https://thegruvs.com' }}
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.mode }}" = "live-send" ]; then
+            echo "🚀 Executing live weekly email dispatch..."
+            node scripts/send-weekly-digest.mjs --send
+          elif [ "${{ github.event.inputs.mode }}" = "test-email" ]; then
+            echo "✉️ Sending test email to ${{ github.event.inputs.test_recipient }}..."
+            node scripts/send-weekly-digest.mjs --test-email "${{ github.event.inputs.test_recipient }}"
+          else
+            echo "🔍 Running dry-run verification..."
+            node scripts/send-weekly-digest.mjs --dry-run
+          fi
