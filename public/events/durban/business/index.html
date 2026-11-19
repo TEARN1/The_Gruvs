@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -340,11 +393,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Maritime, Trade & Logistics Summits in Durban — The Gruvs",
+  "description": "Port of Durban symposiums, AfCFTA trade round-tables, and manufacturing conferences at Durban ICC.",
+  "url": "https://thegruvs.com/events/durban/business",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -368,8 +468,8 @@
       <p class="hero-lead">Port of Durban symposiums, AfCFTA trade round-tables, and manufacturing conferences at Durban ICC.</p>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; Port Logistics Round-Table" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305" data-title="africa trade &amp; port logistics round-table" data-venue="durban icc" data-city="durban" data-date="2026-12-10">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; Port Logistics Round-Table" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 10 Dec 2026 · 09:00</div>
         <h3 class="event-title">Africa Trade &amp; Port Logistics Round-Table</h3>
@@ -381,8 +481,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-manufacturing-and-export-excellence-conference-durban-icc-367074d0-4117-4c3e-970d-152383357166">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Manufacturing &amp; Export Excellence Conference" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-manufacturing-and-export-excellence-conference-durban-icc-367074d0-4117-4c3e-970d-152383357166" data-title="durban manufacturing &amp; export excellence conference" data-venue="durban icc" data-city="durban" data-date="2027-01-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Manufacturing &amp; Export Excellence Conference" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 25 Jan 2027 · 08:30</div>
         <h3 class="event-title">Durban Manufacturing &amp; Export Excellence Conference</h3>
@@ -394,8 +494,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-port-supply-chain-and-maritime-tech-forum-durban-icc-durban-a5ca2a52-f8ce-47d9-abc8-0d2fc5059ce0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Supply Chain &amp; Maritime Tech Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-port-supply-chain-and-maritime-tech-forum-durban-icc-durban-a5ca2a52-f8ce-47d9-abc8-0d2fc5059ce0" data-title="durban port supply chain &amp; maritime tech forum" data-venue="durban icc" data-city="durban" data-date="2027-02-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Supply Chain &amp; Maritime Tech Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 18 Feb 2027 · 08:30</div>
         <h3 class="event-title">Durban Port Supply Chain &amp; Maritime Tech Forum</h3>
@@ -407,8 +507,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-ocean-economy-and-maritime-trade-summit-durban-icc-durban-fbc77e61-f8ec-4e13-8307-0a957812427d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Ocean Economy &amp; Maritime Trade Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-ocean-economy-and-maritime-trade-summit-durban-icc-durban-fbc77e61-f8ec-4e13-8307-0a957812427d" data-title="durban ocean economy &amp; maritime trade summit" data-venue="durban icc" data-city="durban" data-date="2027-03-23">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Ocean Economy &amp; Maritime Trade Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 23 Mar 2027 · 08:30</div>
         <h3 class="event-title">Durban Ocean Economy &amp; Maritime Trade Summit</h3>
@@ -420,8 +520,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-port-logistics-and-rail-freight-conclave-durban-icc-durban-4bad0dfb-95ab-44d0-8c43-c6b968d7f9d1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Logistics &amp; Rail Freight Conclave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-port-logistics-and-rail-freight-conclave-durban-icc-durban-4bad0dfb-95ab-44d0-8c43-c6b968d7f9d1" data-title="durban port logistics &amp; rail freight conclave" data-venue="durban icc" data-city="durban" data-date="2027-04-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Logistics &amp; Rail Freight Conclave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 21 Apr 2027 · 08:30</div>
         <h3 class="event-title">Durban Port Logistics &amp; Rail Freight Conclave</h3>
@@ -433,8 +533,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-afcfta-implementation-forum-durban-icc-durban-918a5b41-1620-4add-b69f-3141a149a4fb">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; AfCFTA Implementation Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-afcfta-implementation-forum-durban-icc-durban-918a5b41-1620-4add-b69f-3141a149a4fb" data-title="africa trade &amp; afcfta implementation forum" data-venue="durban icc" data-city="durban" data-date="2027-05-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; AfCFTA Implementation Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 06 May 2027 · 09:00</div>
         <h3 class="event-title">Africa Trade &amp; AfCFTA Implementation Forum</h3>

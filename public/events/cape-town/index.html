@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -1124,11 +1177,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events in Cape Town (2026) — The Gruvs",
+  "description": "Discover upcoming events, nightlife, and festivals in Cape Town. Dates, venues and directions on The Gruvs.",
+  "url": "https://thegruvs.com/events/cape-town",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -1152,6 +1252,17 @@
       <h1 class="hero-title">Events in <span class="brand-accent">Cape Town</span></h1>
       <p class="hero-lead">Camps Bay sundowners, Shimmy Beach raves, Kirstenbosch concerts, and nightlife in Cape Town. Browse what's listed, with dates, venues and directions.</p>
 
+      <div class="explore-chips">
+        <a class="explore-chip" href="https://thegruvs.com/events/cape-town/this-weekend">This Weekend</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/cape-town/free">Free Events</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/cape-town/december-2026">Dec 2026</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/cape-town/january-2027">Jan 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/cape-town/february-2027">Feb 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/cape-town/march-2027">Mar 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/cape-town/april-2027">Apr 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/cape-town/may-2027">May 2027</a>
+      </div>
+
       <div class="resident-banner">
         <div class="resident-banner-text">
           <h3>Need Accommodation in Cape Town?</h3>
@@ -1160,10 +1271,43 @@
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
+      
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (41)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
+
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Sunset White &amp; Gold Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369" data-title="shimmy sunset white &amp; gold rave" data-venue="shimmy beach club" data-city="cape town" data-date="2026-12-05">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Sunset White &amp; Gold Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 05 Dec 2026 · 15:00</div>
         <h3 class="event-title">Shimmy Sunset White &amp; Gold Rave</h3>
@@ -1175,8 +1319,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Tech &amp; Venture Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c" data-title="western cape tech &amp; venture showcase" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2026-12-09">
+      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Tech &amp; Venture Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 09 Dec 2026 · 10:00</div>
         <h3 class="event-title">Western Cape Tech &amp; Venture Showcase</h3>
@@ -1188,8 +1332,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-soul-and-afro-jazz-kirstenbosch-national-6ba678aa-a7dd-4409-8959-45bcf06e0672">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Soul &amp; Afro-Jazz" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-soul-and-afro-jazz-kirstenbosch-national-6ba678aa-a7dd-4409-8959-45bcf06e0672" data-title="kirstenbosch summer sunset: soul &amp; afro-jazz" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2026-12-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Soul &amp; Afro-Jazz" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Soul &amp; Afro-Jazz</h3>
@@ -1201,8 +1345,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-sunset-electronic-odyssey-cabo-beach-club-cape-town-ff3c3e23-08b5-44d4-9ac8-f6f8a13cd06e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Sunset Electronic Odyssey" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-sunset-electronic-odyssey-cabo-beach-club-cape-town-ff3c3e23-08b5-44d4-9ac8-f6f8a13cd06e" data-title="cabo beach sunset electronic odyssey" data-venue="cabo beach club" data-city="cape town" data-date="2026-12-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Sunset Electronic Odyssey" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 18 Dec 2026 · 16:00</div>
         <h3 class="event-title">Cabo Beach Sunset Electronic Odyssey</h3>
@@ -1214,8 +1358,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-hospitality-and-tourism-leaders-forum-cape-town-international-f6724a55-91e6-4c65-9bca-6a4b527a333f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Hospitality &amp; Tourism Leaders Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-hospitality-and-tourism-leaders-forum-cape-town-international-f6724a55-91e6-4c65-9bca-6a4b527a333f" data-title="africa hospitality &amp; tourism leaders forum" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2026-12-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Hospitality &amp; Tourism Leaders Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 18 Dec 2026 · 09:00</div>
         <h3 class="event-title">Africa Hospitality &amp; Tourism Leaders Forum</h3>
@@ -1227,8 +1371,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/christmas-eve-waterfront-moonlight-ball-grand-africa-cafe-and-beach-80257bd5-bf54-45b6-b86b-bd0575efd8fd">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Eve Waterfront Moonlight Ball" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/christmas-eve-waterfront-moonlight-ball-grand-africa-cafe-and-beach-80257bd5-bf54-45b6-b86b-bd0575efd8fd" data-title="christmas eve waterfront moonlight ball" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2026-12-24">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Eve Waterfront Moonlight Ball" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 24 Dec 2026 · 19:00</div>
         <h3 class="event-title">Christmas Eve Waterfront Moonlight Ball</h3>
@@ -1240,8 +1384,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-nye-white-and-silver-gala-cabo-beach-club-cape-town-6fdfd2bd-318e-4919-b47b-6e5d8a29985e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club NYE White &amp; Silver Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-nye-white-and-silver-gala-cabo-beach-club-cape-town-6fdfd2bd-318e-4919-b47b-6e5d8a29985e" data-title="cabo beach club nye white &amp; silver gala" data-venue="cabo beach club" data-city="cape town" data-date="2026-12-31">
+      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club NYE White &amp; Silver Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 31 Dec 2026 · 18:00</div>
         <h3 class="event-title">Cabo Beach Club NYE White &amp; Silver Gala</h3>
@@ -1253,8 +1397,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/new-year-s-day-sunrise-beach-rave-grand-africa-cafe-and-beach-cape-d899b580-b176-4035-9c0f-cd6454aa6cc8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="New Year's Day Sunrise Beach Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/new-year-s-day-sunrise-beach-rave-grand-africa-cafe-and-beach-cape-d899b580-b176-4035-9c0f-cd6454aa6cc8" data-title="new year's day sunrise beach rave" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-01-01">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="New Year's Day Sunrise Beach Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 01 Jan 2027 · 06:00</div>
         <h3 class="event-title">New Year's Day Sunrise Beach Rave</h3>
@@ -1266,8 +1410,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-summer-sessions-deep-oceanic-cabo-beach-club-cape-town-efa30e41-ac9e-4f77-b548-16c58f3598c9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Summer Sessions: Deep Oceanic" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-summer-sessions-deep-oceanic-cabo-beach-club-cape-town-efa30e41-ac9e-4f77-b548-16c58f3598c9" data-title="cabo summer sessions: deep oceanic" data-venue="cabo beach club" data-city="cape town" data-date="2027-01-02">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Summer Sessions: Deep Oceanic" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 02 Jan 2027 · 14:00</div>
         <h3 class="event-title">Cabo Summer Sessions: Deep Oceanic</h3>
@@ -1279,8 +1423,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-indie-and-folk-harmony-kirstenbosch-7e9c72da-04a4-4072-85a1-3ab8259f8d8d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Indie &amp; Folk Harmony" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-indie-and-folk-harmony-kirstenbosch-7e9c72da-04a4-4072-85a1-3ab8259f8d8d" data-title="kirstenbosch summer sunset: indie &amp; folk harmony" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-01-10">
+      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Indie &amp; Folk Harmony" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 10 Jan 2027 · 16:30</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Indie &amp; Folk Harmony</h3>
@@ -1292,8 +1436,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-startup-kickoff-and-angel-day-cape-town-international-7c2e110d-2696-4713-9afc-b2e9f8b02f38">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Startup Kickoff &amp; Angel Day" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-startup-kickoff-and-angel-day-cape-town-international-7c2e110d-2696-4713-9afc-b2e9f8b02f38" data-title="silicon cape startup kickoff &amp; angel day" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-01-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Startup Kickoff &amp; Angel Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 18 Jan 2027 · 10:00</div>
         <h3 class="event-title">Silicon Cape Startup Kickoff &amp; Angel Day</h3>
@@ -1305,8 +1449,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/shimmy-electronic-summer-wave-shimmy-beach-club-cape-town-c2d2a397-2656-452f-a3b2-f54f6ee8a946">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Electronic Summer Wave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/shimmy-electronic-summer-wave-shimmy-beach-club-cape-town-c2d2a397-2656-452f-a3b2-f54f6ee8a946" data-title="shimmy electronic summer wave" data-venue="shimmy beach club" data-city="cape town" data-date="2027-01-23">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Electronic Summer Wave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 23 Jan 2027 · 16:00</div>
         <h3 class="event-title">Shimmy Electronic Summer Wave</h3>
@@ -1318,8 +1462,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-cape-reggae-fest-kirstenbosch-national-91f58764-adbb-4184-a15b-3e09615297ae">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Cape Reggae Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-cape-reggae-fest-kirstenbosch-national-91f58764-adbb-4184-a15b-3e09615297ae" data-title="kirstenbosch summer sunset: cape reggae fest" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-01-24">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Cape Reggae Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 24 Jan 2027 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Cape Reggae Fest</h3>
@@ -1331,8 +1475,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/healthcare-innovation-and-medtech-expo-cape-town-international-83ce472d-8bb9-416b-aab3-de376d7077d7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Healthcare Innovation &amp; MedTech Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/healthcare-innovation-and-medtech-expo-cape-town-international-83ce472d-8bb9-416b-aab3-de376d7077d7" data-title="healthcare innovation &amp; medtech expo" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-01-28">
+      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Healthcare Innovation &amp; MedTech Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 28 Jan 2027 · 09:00</div>
         <h3 class="event-title">Healthcare Innovation &amp; MedTech Expo</h3>
@@ -1344,8 +1488,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-sessions-cabo-beach-club-cape-town-56bd516a-9c18-44ea-b531-8d3a05f89afd">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Sessions" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-sessions-cabo-beach-club-cape-town-56bd516a-9c18-44ea-b531-8d3a05f89afd" data-title="cabo beach club sunset sessions" data-venue="cabo beach club" data-city="cape town" data-date="2027-01-30">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Sessions" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 30 Jan 2027 · 15:00</div>
         <h3 class="event-title">Cabo Beach Club Sunset Sessions</h3>
@@ -1357,8 +1501,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/african-venture-capital-and-private-equity-summit-cape-town-d97ef501-2628-4954-bfac-b97d28dbc2c3">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Venture Capital &amp; Private Equity Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/african-venture-capital-and-private-equity-summit-cape-town-d97ef501-2628-4954-bfac-b97d28dbc2c3" data-title="african venture capital &amp; private equity summit" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-02-04">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Venture Capital &amp; Private Equity Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 04 Feb 2027 · 09:00</div>
         <h3 class="event-title">African Venture Capital &amp; Private Equity Summit</h3>
@@ -1370,8 +1514,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-afro-tech-cabo-beach-club-cape-town-7ea4c6c8-3754-492d-b606-a1e1d6b7c993">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Afro-Tech" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-afro-tech-cabo-beach-club-cape-town-7ea4c6c8-3754-492d-b606-a1e1d6b7c993" data-title="cabo beach club sunset afro-tech" data-venue="cabo beach club" data-city="cape town" data-date="2027-02-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Afro-Tech" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Feb 2027 · 15:00</div>
         <h3 class="event-title">Cabo Beach Club Sunset Afro-Tech</h3>
@@ -1383,8 +1527,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-afro-soul-romance-kirstenbosch-national-658ed054-5ca4-47e3-bbe2-f8e2da9127ae">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Afro-Soul Romance" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-afro-soul-romance-kirstenbosch-national-658ed054-5ca4-47e3-bbe2-f8e2da9127ae" data-title="kirstenbosch summer sunset: afro-soul romance" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-02-07">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Afro-Soul Romance" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 07 Feb 2027 · 16:30</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Afro-Soul Romance</h3>
@@ -1396,8 +1540,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/shimmy-valentine-sunset-cruise-and-rave-shimmy-beach-club-cape-town-f22be4c7-5fa4-4a17-8bb8-b78c3fa01c22">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Valentine Sunset Cruise &amp; Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/shimmy-valentine-sunset-cruise-and-rave-shimmy-beach-club-cape-town-f22be4c7-5fa4-4a17-8bb8-b78c3fa01c22" data-title="shimmy valentine sunset cruise &amp; rave" data-venue="shimmy beach club" data-city="cape town" data-date="2027-02-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Valentine Sunset Cruise &amp; Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 13 Feb 2027 · 16:00</div>
         <h3 class="event-title">Shimmy Valentine Sunset Cruise &amp; Rave</h3>
@@ -1409,8 +1553,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/valentine-candlelit-beach-dinner-and-acoustic-night-grand-africa-cafe-e5c3cd90-a39b-4a80-88e9-2d899f3fa224">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Valentine Candlelit Beach Dinner &amp; Acoustic Night" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/valentine-candlelit-beach-dinner-and-acoustic-night-grand-africa-cafe-e5c3cd90-a39b-4a80-88e9-2d899f3fa224" data-title="valentine candlelit beach dinner &amp; acoustic night" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-02-14">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Valentine Candlelit Beach Dinner &amp; Acoustic Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 14 Feb 2027 · 18:30</div>
         <h3 class="event-title">Valentine Candlelit Beach Dinner &amp; Acoustic Night</h3>
@@ -1422,8 +1566,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-jazz-in-the-park-kirstenbosch-national-429b93d8-c7b6-4c95-9731-b43b17324f2f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Jazz in the Park" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-jazz-in-the-park-kirstenbosch-national-429b93d8-c7b6-4c95-9731-b43b17324f2f" data-title="kirstenbosch summer sunset: jazz in the park" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-02-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Jazz in the Park" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 21 Feb 2027 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Jazz in the Park</h3>
@@ -1435,8 +1579,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-melodic-grooves-cabo-beach-club-cape-town-d8676075-55f3-41f7-bcf7-294b541e949e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Melodic Grooves" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-melodic-grooves-cabo-beach-club-cape-town-d8676075-55f3-41f7-bcf7-294b541e949e" data-title="cabo beach club sunset melodic grooves" data-venue="cabo beach club" data-city="cape town" data-date="2027-02-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Melodic Grooves" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 27 Feb 2027 · 15:00</div>
         <h3 class="event-title">Cabo Beach Club Sunset Melodic Grooves</h3>
@@ -1448,8 +1592,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-house-groove-cabo-beach-club-cape-town-98321a41-9d16-455e-abf0-6d34cacdd930">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset House Groove" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-house-groove-cabo-beach-club-cape-town-98321a41-9d16-455e-abf0-6d34cacdd930" data-title="cabo beach club sunset house groove" data-venue="cabo beach club" data-city="cape town" data-date="2027-03-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset House Groove" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Mar 2027 · 15:00</div>
         <h3 class="event-title">Cabo Beach Club Sunset House Groove</h3>
@@ -1461,8 +1605,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-cape-town-philharmonic-pop-classics-e3f253f0-5635-4447-976a-a2976a0c5cbb">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Cape Town Philharmonic Pop Classics" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-cape-town-philharmonic-pop-classics-e3f253f0-5635-4447-976a-a2976a0c5cbb" data-title="kirstenbosch summer sunset: cape town philharmonic pop classics" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-03-07">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Cape Town Philharmonic Pop Classics" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 07 Mar 2027 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Cape Town Philharmonic Pop Classics</h3>
@@ -1474,8 +1618,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ai-in-healthcare-and-life-sciences-congress-cape-town-international-30a0bcb3-6b5b-4b54-8a9a-99a2bdb6aa01">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="AI in Healthcare &amp; Life Sciences Congress" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ai-in-healthcare-and-life-sciences-congress-cape-town-international-30a0bcb3-6b5b-4b54-8a9a-99a2bdb6aa01" data-title="ai in healthcare &amp; life sciences congress" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-03-09">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="AI in Healthcare &amp; Life Sciences Congress" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 09 Mar 2027 · 09:00</div>
         <h3 class="event-title">AI in Healthcare &amp; Life Sciences Congress</h3>
@@ -1487,8 +1631,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/shimmy-electronic-horizon-festival-shimmy-beach-club-cape-town-8edbe348-8350-45b4-80f5-36200fc2cb08">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Electronic Horizon Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/shimmy-electronic-horizon-festival-shimmy-beach-club-cape-town-8edbe348-8350-45b4-80f5-36200fc2cb08" data-title="shimmy electronic horizon festival" data-venue="shimmy beach club" data-city="cape town" data-date="2027-03-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Electronic Horizon Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 13 Mar 2027 · 14:00</div>
         <h3 class="event-title">Shimmy Electronic Horizon Festival</h3>
@@ -1500,8 +1644,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-investor-demo-day-2027-cape-town-international-3f3952b6-50a3-4de1-986c-0e390f1957dc">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Investor Demo Day 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-investor-demo-day-2027-cape-town-international-3f3952b6-50a3-4de1-986c-0e390f1957dc" data-title="silicon cape investor demo day 2027" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-03-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Investor Demo Day 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 16 Mar 2027 · 14:00</div>
         <h3 class="event-title">Silicon Cape Investor Demo Day 2027</h3>
@@ -1513,8 +1657,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/human-rights-day-sunset-concert-kirstenbosch-kirstenbosch-national-3373c182-f782-4e63-9a06-4b3a85928810">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Human Rights Day Sunset Concert Kirstenbosch" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/human-rights-day-sunset-concert-kirstenbosch-kirstenbosch-national-3373c182-f782-4e63-9a06-4b3a85928810" data-title="human rights day sunset concert kirstenbosch" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-03-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Human Rights Day Sunset Concert Kirstenbosch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 21 Mar 2027 · 16:00</div>
         <h3 class="event-title">Human Rights Day Sunset Concert Kirstenbosch</h3>
@@ -1526,8 +1670,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/grand-africa-cafe-autumn-beach-party-grand-africa-cafe-and-beach-cape-e3ef95c3-0ae3-4cb2-a3a1-b71e45ece555">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Grand Africa Café Autumn Beach Party" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/grand-africa-cafe-autumn-beach-party-grand-africa-cafe-and-beach-cape-e3ef95c3-0ae3-4cb2-a3a1-b71e45ece555" data-title="grand africa café autumn beach party" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-03-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Grand Africa Café Autumn Beach Party" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 21 Mar 2027 · 15:00</div>
         <h3 class="event-title">Grand Africa Café Autumn Beach Party</h3>
@@ -1539,8 +1683,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-finale-cabo-beach-club-cape-town-bca6612d-7036-4c36-b9a2-47b0f6102fda">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Finale" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-finale-cabo-beach-club-cape-town-bca6612d-7036-4c36-b9a2-47b0f6102fda" data-title="cabo beach club sunset finale" data-venue="cabo beach club" data-city="cape town" data-date="2027-03-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Finale" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 27 Mar 2027 · 15:00</div>
         <h3 class="event-title">Cabo Beach Club Sunset Finale</h3>
@@ -1552,8 +1696,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/shimmy-easter-sunset-ocean-rave-shimmy-beach-club-cape-town-2b57b362-203d-45fd-95e5-cd3a777f8884">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Easter Sunset Ocean Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/shimmy-easter-sunset-ocean-rave-shimmy-beach-club-cape-town-2b57b362-203d-45fd-95e5-cd3a777f8884" data-title="shimmy easter sunset ocean rave" data-venue="shimmy beach club" data-city="cape town" data-date="2027-04-03">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Easter Sunset Ocean Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 03 Apr 2027 · 15:00</div>
         <h3 class="event-title">Shimmy Easter Sunset Ocean Rave</h3>
@@ -1565,8 +1709,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/easter-monday-sunset-chill-at-grand-africa-grand-africa-cafe-and-6c195d90-f9a4-4301-9157-55f8a1334b9f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Easter Monday Sunset Chill at Grand Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/easter-monday-sunset-chill-at-grand-africa-grand-africa-cafe-and-6c195d90-f9a4-4301-9157-55f8a1334b9f" data-title="easter monday sunset chill at grand africa" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-04-05">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Easter Monday Sunset Chill at Grand Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 05 Apr 2027 · 15:00</div>
         <h3 class="event-title">Easter Monday Sunset Chill at Grand Africa</h3>
@@ -1578,8 +1722,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-sunset-electronic-odyssey-cabo-beach-club-cape-town-6b4eef1f-aae6-4b27-ab52-3a4450666b85">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Sunset Electronic Odyssey" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-sunset-electronic-odyssey-cabo-beach-club-cape-town-6b4eef1f-aae6-4b27-ab52-3a4450666b85" data-title="cabo beach sunset electronic odyssey" data-venue="cabo beach club" data-city="cape town" data-date="2027-04-10">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Sunset Electronic Odyssey" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 10 Apr 2027 · 16:00</div>
         <h3 class="event-title">Cabo Beach Sunset Electronic Odyssey</h3>
@@ -1591,8 +1735,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-autumn-sunset-contemporary-folk-kirstenbosch-national-a2b3acd8-34f0-4a61-814a-a25f041e24c9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Autumn Sunset: Contemporary Folk" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-autumn-sunset-contemporary-folk-kirstenbosch-national-a2b3acd8-34f0-4a61-814a-a25f041e24c9" data-title="kirstenbosch autumn sunset: contemporary folk" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-04-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Autumn Sunset: Contemporary Folk" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 18 Apr 2027 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Autumn Sunset: Contemporary Folk</h3>
@@ -1604,8 +1748,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-venture-capital-lp-gp-symposium-2027-cape-town-international-235aaeb4-4219-4137-8318-ac40ab26d55e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Venture Capital LP-GP Symposium 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-venture-capital-lp-gp-symposium-2027-cape-town-international-235aaeb4-4219-4137-8318-ac40ab26d55e" data-title="africa venture capital lp-gp symposium 2027" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-04-20">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Venture Capital LP-GP Symposium 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 20 Apr 2027 · 09:00</div>
         <h3 class="event-title">Africa Venture Capital LP-GP Symposium 2027</h3>
@@ -1617,8 +1761,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-sessions-cabo-beach-club-cape-town-2aa88ff5-7835-457d-81f8-74702032463b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Sessions" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-sessions-cabo-beach-club-cape-town-2aa88ff5-7835-457d-81f8-74702032463b" data-title="cabo beach club sunset sessions" data-venue="cabo beach club" data-city="cape town" data-date="2027-04-24">
+      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Sessions" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 24 Apr 2027 · 15:00</div>
         <h3 class="event-title">Cabo Beach Club Sunset Sessions</h3>
@@ -1630,8 +1774,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/shimmy-autumn-sunset-session-shimmy-beach-club-cape-town-91f27c56-bba1-4c6d-88b0-675fe7fd7e14">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Autumn Sunset Session" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/shimmy-autumn-sunset-session-shimmy-beach-club-cape-town-91f27c56-bba1-4c6d-88b0-675fe7fd7e14" data-title="shimmy autumn sunset session" data-venue="shimmy beach club" data-city="cape town" data-date="2027-05-02">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Autumn Sunset Session" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 02 May 2027 · 15:00</div>
         <h3 class="event-title">Shimmy Autumn Sunset Session</h3>
@@ -1643,8 +1787,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/mother-s-day-sunset-botanical-concert-kirstenbosch-national-botanical-0382c409-c933-4a43-abc1-baa053423cb5">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Mother's Day Sunset Botanical Concert" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/mother-s-day-sunset-botanical-concert-kirstenbosch-national-botanical-0382c409-c933-4a43-abc1-baa053423cb5" data-title="mother's day sunset botanical concert" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-05-09">
+      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Mother's Day Sunset Botanical Concert" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 09 May 2027 · 15:30</div>
         <h3 class="event-title">Mother's Day Sunset Botanical Concert</h3>
@@ -1656,8 +1800,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-beats-cabo-beach-club-cape-town-bf3ca358-e906-49c3-b9e6-3be1af3780fc">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Beats" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-beats-cabo-beach-club-cape-town-bf3ca358-e906-49c3-b9e6-3be1af3780fc" data-title="cabo beach club sunset beats" data-venue="cabo beach club" data-city="cape town" data-date="2027-05-15">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Beats" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 15 May 2027 · 15:00</div>
         <h3 class="event-title">Cabo Beach Club Sunset Beats</h3>
@@ -1669,8 +1813,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape FinTech &amp; WealthTech Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1" data-title="silicon cape fintech &amp; wealthtech showcase" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-05-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape FinTech &amp; WealthTech Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 18 May 2027 · 10:00</div>
         <h3 class="event-title">Silicon Cape FinTech &amp; WealthTech Showcase</h3>
@@ -1682,8 +1826,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/grand-africa-cafe-cozy-beach-sunset-grand-africa-cafe-and-beach-cape-54d7f2e7-3582-4225-b436-a6ce46f1df31">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Grand Africa Café Cozy Beach Sunset" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/grand-africa-cafe-cozy-beach-sunset-grand-africa-cafe-and-beach-cape-54d7f2e7-3582-4225-b436-a6ce46f1df31" data-title="grand africa café cozy beach sunset" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-05-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Grand Africa Café Cozy Beach Sunset" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 22 May 2027 · 16:00</div>
         <h3 class="event-title">Grand Africa Café Cozy Beach Sunset</h3>
@@ -1695,6 +1839,11 @@
       </div>
     </a>
   
+      </div>
+
+      <div class="hub-guide-box">
+        <h2>Insider Guide to Cape Town Events & Nightlife</h2>
+        <p>Cape Town pairs world-class electronic music and beachfront glamour with serene botanical concerts. Catch golden-hour Afro-Tech at Cabo Beach Club and Shimmy Beach, summer sunset picnics at Kirstenbosch, and venture capital showcases at the CTICC.</p>
       </div>
     
   </div>

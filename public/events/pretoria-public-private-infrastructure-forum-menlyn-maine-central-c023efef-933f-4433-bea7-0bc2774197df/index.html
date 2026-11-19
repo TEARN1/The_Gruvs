@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -273,6 +326,10 @@
     "name": "The Gruvs",
     "url": "https://thegruvs.com",
     "logo": "https://thegruvs.com/logo.png"
+  },
+  "performer": {
+    "@type": "PerformingGroup",
+    "name": "Pretoria Public-Private Infrastructure Forum"
   }
 }
 </script>
@@ -346,11 +403,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Pretoria Public-Private Infrastructure Forum — Menlyn Maine Central Square · Pretoria | The Gruvs",
+  "description": "Pretoria Public-Private Infrastructure Forum taking place on Tue, 15 Dec 2026 · 08:30 at Menlyn Maine Central Square · Pretoria. Book tickets and connect on The Gruvs.",
+  "url": "https://thegruvs.com/events/pretoria-public-private-infrastructure-forum-menlyn-maine-central-c023efef-933f-4433-bea7-0bc2774197df",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -374,7 +478,7 @@
 
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; align-items: start; margin-top: 16px;">
         <div>
-          <img src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Public-Private Infrastructure Forum" style="width:100%; border-radius:18px; border:1px solid var(--surface-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
+          <img src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Public-Private Infrastructure Forum" fetchpriority="high" decoding="async" width="800" height="450" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:18px; border:1px solid var(--surface-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
           
           <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;">
             <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Pretoria%20Public-Private%20Infrastructure%20Forum&dates=20261215T083000/20261215T235900&details=Convening%20municipal%20stakeholders%2C%20engineering%20contractors%2C%20and%20private%20financiers%20to%20deliberate%20on%20water%2C%20energy%2C%20and%20smart%20transit%20infrastructure%20deployment%20for%20the%20capital.&location=Menlyn%20Maine%20Central%20Square%20%C2%B7%20Pretoria&sprop=website:https://thegruvs.com" target="_blank" rel="noopener" style="flex:1; min-width:140px; text-align:center; background:#1a2327; border:1px solid #00f2ff44; color:#00f2ff; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none;">
@@ -421,6 +525,17 @@
               <span style="color:var(--muted); font-size:13px;">Claim this listing to update times, add tickets, and connect.</span>
             </div>
             <a href="https://thegruvs.com/?claim=c023efef-933f-4433-bea7-0bc2774197df" class="resident-btn" style="background:transparent; border:1px solid var(--primary); color:var(--primary); padding:6px 14px; font-size:13px;">Claim Listing →</a>
+          </div>
+
+          <div style="margin-top:24px;">
+            <strong style="color:#fff; font-size:13px; text-transform:uppercase; letter-spacing:0.6px;">Explore Related Hubs</strong>
+            <div class="explore-chips" style="margin-top:10px;">
+              <a class="explore-chip" href="https://thegruvs.com/events/pretoria">More in Pretoria</a>
+              <a class="explore-chip" href="https://thegruvs.com/venues/menlyn-maine-central-square">All at Menlyn Maine Central Square</a>
+              <a class="explore-chip" href="https://thegruvs.com/events/business">Business & Tech Summits</a>
+              <a class="explore-chip" href="https://thegruvs.com/events/december-2026">December 2026</a>
+              <a class="explore-chip" href="https://thegruvs.com/events/free">Free Events</a>
+            </div>
           </div>
         </div>
       </div>

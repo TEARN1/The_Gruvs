@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -424,11 +477,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events in Gqeberha (Port Elizabeth) (2026) — The Gruvs",
+  "description": "Discover upcoming events, nightlife, and festivals in Gqeberha (Port Elizabeth). Dates, venues and directions on The Gruvs.",
+  "url": "https://thegruvs.com/events/gqeberha",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -452,6 +552,8 @@
       <h1 class="hero-title">Events in <span class="brand-accent">Gqeberha (Port Elizabeth)</span></h1>
       <p class="hero-lead">Boardwalk concerts, ocean-view food markets, and Eastern Cape live events. Browse what's listed, with dates, venues and directions.</p>
 
+      
+
       <div class="resident-banner">
         <div class="resident-banner-text">
           <h3>Need Accommodation in Gqeberha (Port Elizabeth)?</h3>
@@ -460,10 +562,43 @@
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
+      
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (6)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
+
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/gqeberha-coastal-summer-sunset-festival-the-boardwalk-gqeberha-da77cea8-8e2a-43ea-893c-565eb364049f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Coastal Summer Sunset Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gqeberha-coastal-summer-sunset-festival-the-boardwalk-gqeberha-da77cea8-8e2a-43ea-893c-565eb364049f" data-title="gqeberha coastal summer sunset festival" data-venue="the boardwalk gqeberha" data-city="gqeberha" data-date="2026-12-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Coastal Summer Sunset Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 27 Dec 2026 · 15:00</div>
         <h3 class="event-title">Gqeberha Coastal Summer Sunset Festival</h3>
@@ -475,8 +610,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gqeberha-beachfront-sunday-vibes-the-boardwalk-gqeberha-gqeberha-fca9327d-d23d-437c-85a9-2f069d74c3ef">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Beachfront Sunday Vibes" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gqeberha-beachfront-sunday-vibes-the-boardwalk-gqeberha-gqeberha-fca9327d-d23d-437c-85a9-2f069d74c3ef" data-title="gqeberha beachfront sunday vibes" data-venue="the boardwalk gqeberha" data-city="gqeberha" data-date="2027-01-31">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Beachfront Sunday Vibes" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 31 Jan 2027 · 13:00</div>
         <h3 class="event-title">Gqeberha Beachfront Sunday Vibes</h3>
@@ -488,8 +623,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gqeberha-boardwalk-sunset-social-the-boardwalk-gqeberha-gqeberha-6d503643-2dab-4215-9ccf-75420e88cb9f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Boardwalk Sunset Social" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gqeberha-boardwalk-sunset-social-the-boardwalk-gqeberha-gqeberha-6d503643-2dab-4215-9ccf-75420e88cb9f" data-title="gqeberha boardwalk sunset social" data-venue="the boardwalk gqeberha" data-city="gqeberha" data-date="2027-02-28">
+      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Boardwalk Sunset Social" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 28 Feb 2027 · 14:00</div>
         <h3 class="event-title">Gqeberha Boardwalk Sunset Social</h3>
@@ -501,8 +636,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gqeberha-oceanfront-autumn-breeze-fest-the-boardwalk-gqeberha-gqeberha-08c3c700-3f57-4404-abeb-5a751da745a6">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Oceanfront Autumn Breeze Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gqeberha-oceanfront-autumn-breeze-fest-the-boardwalk-gqeberha-gqeberha-08c3c700-3f57-4404-abeb-5a751da745a6" data-title="gqeberha oceanfront autumn breeze fest" data-venue="the boardwalk gqeberha" data-city="gqeberha" data-date="2027-03-28">
+      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Oceanfront Autumn Breeze Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 28 Mar 2027 · 12:00</div>
         <h3 class="event-title">Gqeberha Oceanfront Autumn Breeze Fest</h3>
@@ -514,8 +649,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gqeberha-boardwalk-freedom-sunset-fest-the-boardwalk-gqeberha-gqeberha-2af033d1-a255-40ab-b74c-97456e7deaa2">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Boardwalk Freedom Sunset Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gqeberha-boardwalk-freedom-sunset-fest-the-boardwalk-gqeberha-gqeberha-2af033d1-a255-40ab-b74c-97456e7deaa2" data-title="gqeberha boardwalk freedom sunset fest" data-venue="the boardwalk gqeberha" data-city="gqeberha" data-date="2027-04-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Boardwalk Freedom Sunset Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 27 Apr 2027 · 13:00</div>
         <h3 class="event-title">Gqeberha Boardwalk Freedom Sunset Fest</h3>
@@ -527,8 +662,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gqeberha-boardwalk-africa-day-showcase-the-boardwalk-gqeberha-gqeberha-d669726e-d22a-4daa-8e11-a511378e83d1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Boardwalk Africa Day Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gqeberha-boardwalk-africa-day-showcase-the-boardwalk-gqeberha-gqeberha-d669726e-d22a-4daa-8e11-a511378e83d1" data-title="gqeberha boardwalk africa day showcase" data-venue="the boardwalk gqeberha" data-city="gqeberha" data-date="2027-05-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Boardwalk Africa Day Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 25 May 2027 · 12:00</div>
         <h3 class="event-title">Gqeberha Boardwalk Africa Day Showcase</h3>
@@ -540,6 +675,11 @@
       </div>
     </a>
   
+      </div>
+
+      <div class="hub-guide-box">
+        <h2>Insider Guide to Gqeberha (Port Elizabeth) Events & Nightlife</h2>
+        <p>Explore verified concerts, nightlife, business conferences, and cultural festivals in Gqeberha (Port Elizabeth). Check live venue coordinates, ticket prices in ZAR, and RSVP directly on The Gruvs.</p>
       </div>
     
   </div>

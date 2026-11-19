@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -350,26 +403,6 @@
       "position": 6,
       "item": {
         "@type": "Event",
-        "name": "Shimmy Sunset White & Gold Rave",
-        "startDate": "2026-12-05T15:00:00+02:00",
-        "location": {
-          "@type": "Place",
-          "name": "Shimmy Beach Club",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Cape Town",
-            "addressCountry": "ZA"
-          }
-        },
-        "image": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80",
-        "url": "https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 7,
-      "item": {
-        "@type": "Event",
         "name": "Pretoria's Vintage & Christmas Gift Market",
         "startDate": "2026-12-05T09:00:00+02:00",
         "location": {
@@ -387,27 +420,27 @@
     },
     {
       "@type": "ListItem",
-      "position": 8,
+      "position": 7,
       "item": {
         "@type": "Event",
-        "name": "Altitude Beach Dezemba Fest",
-        "startDate": "2026-12-06T13:00:00+02:00",
+        "name": "Shimmy Sunset White & Gold Rave",
+        "startDate": "2026-12-05T15:00:00+02:00",
         "location": {
           "@type": "Place",
-          "name": "Altitude Beach",
+          "name": "Shimmy Beach Club",
           "address": {
             "@type": "PostalAddress",
-            "addressLocality": "Johannesburg",
+            "addressLocality": "Cape Town",
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80",
-        "url": "https://thegruvs.com/events/altitude-beach-dezemba-fest-altitude-beach-johannesburg-ce770e88-47ee-492e-9cfb-284fdfbb9550"
+        "image": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80",
+        "url": "https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369"
       }
     },
     {
       "@type": "ListItem",
-      "position": 9,
+      "position": 8,
       "item": {
         "@type": "Event",
         "name": "Brooks Campus Run: Summer Race",
@@ -423,6 +456,26 @@
         },
         "image": "https://cdn-az.allevents.in/events8/banners/a11d1e7886e9264767ba00b6bc8f8053175004fe674cf51c77dec47d8b540573-rimg-w1200-h628-dcf8f8f8-gmir?v=1787602769",
         "url": "https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 9,
+      "item": {
+        "@type": "Event",
+        "name": "Altitude Beach Dezemba Fest",
+        "startDate": "2026-12-06T13:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Altitude Beach",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80",
+        "url": "https://thegruvs.com/events/altitude-beach-dezemba-fest-altitude-beach-johannesburg-ce770e88-47ee-492e-9cfb-284fdfbb9550"
       }
     },
     {
@@ -510,26 +563,6 @@
       "position": 14,
       "item": {
         "@type": "Event",
-        "name": "Konka Summer Anthem Weekend",
-        "startDate": "2026-12-11T20:00:00+02:00",
-        "location": {
-          "@type": "Place",
-          "name": "Konka Soweto",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Soweto",
-            "addressCountry": "ZA"
-          }
-        },
-        "image": "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80",
-        "url": "https://thegruvs.com/events/konka-summer-anthem-weekend-konka-soweto-soweto-f62d8757-30f7-4a92-936a-703f02e84e43"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 15,
-      "item": {
-        "@type": "Event",
         "name": "+LIVE+ at Time Square (Night 1)",
         "startDate": "2026-12-11T20:00:00+02:00",
         "location": {
@@ -543,6 +576,26 @@
         },
         "image": "https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589",
         "url": "https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 15,
+      "item": {
+        "@type": "Event",
+        "name": "Konka Summer Anthem Weekend",
+        "startDate": "2026-12-11T20:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Konka Soweto",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Soweto",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80",
+        "url": "https://thegruvs.com/events/konka-summer-anthem-weekend-konka-soweto-soweto-f62d8757-30f7-4a92-936a-703f02e84e43"
       }
     },
     {
@@ -570,26 +623,6 @@
       "position": 17,
       "item": {
         "@type": "Event",
-        "name": "Durban All-White Beach Extravaganza",
-        "startDate": "2026-12-12T14:00:00+02:00",
-        "location": {
-          "@type": "Place",
-          "name": "Moses Mabhida Stadium Peoples Park",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Durban",
-            "addressCountry": "ZA"
-          }
-        },
-        "image": "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80",
-        "url": "https://thegruvs.com/events/durban-all-white-beach-extravaganza-moses-mabhida-stadium-peoples-249e43a1-b95e-4316-ab80-1fe997288cb9"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 18,
-      "item": {
-        "@type": "Event",
         "name": "J. Cole: The Fall-Off Tour",
         "startDate": "2026-12-12T18:00:00+02:00",
         "location": {
@@ -607,7 +640,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 19,
+      "position": 18,
       "item": {
         "@type": "Event",
         "name": "+LIVE+ at Time Square (Night 2)",
@@ -627,7 +660,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 20,
+      "position": 19,
       "item": {
         "@type": "Event",
         "name": "Candlelight: Christmas Classics (Sandton)",
@@ -643,6 +676,26 @@
         },
         "image": "https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373",
         "url": "https://thegruvs.com/events/candlelight-christmas-classics-sandton-nh-johannesburg-sandton-sandton-71babd28-4ed8-457a-9b57-f2b669d39dd9"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 20,
+      "item": {
+        "@type": "Event",
+        "name": "Durban All-White Beach Extravaganza",
+        "startDate": "2026-12-12T14:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Moses Mabhida Stadium Peoples Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Durban",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80",
+        "url": "https://thegruvs.com/events/durban-all-white-beach-extravaganza-moses-mabhida-stadium-peoples-249e43a1-b95e-4316-ab80-1fe997288cb9"
       }
     },
     {
@@ -1154,11 +1207,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Ke Dezemba 2026 Events & Parties in Gauteng — The Gruvs",
+  "description": "Find all December 2026 Ke Dezemba festivals, street bashes, and crossover parties across Midrand, Soweto, Pretoria, and Johannesburg.",
+  "url": "https://thegruvs.com/events/ke-dezemba",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -1192,8 +1292,8 @@
 
     <div class="event-grid">
       
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Year-End Business &amp; Tech Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d" data-title="southern africa year-end business &amp; tech gala" data-venue="sandton convention centre" data-city="johannesburg" data-date="2026-12-02">
+      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Year-End Business &amp; Tech Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 02 Dec 2026 · 18:30</div>
         <h3 class="event-title">Southern Africa Year-End Business &amp; Tech Gala</h3>
@@ -1205,8 +1305,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Township Economy &amp; Retail Entrepreneurship Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1" data-title="township economy &amp; retail entrepreneurship expo" data-venue="zone 6 venue" data-city="soweto" data-date="2026-12-03">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Township Economy &amp; Retail Entrepreneurship Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 03 Dec 2026 · 09:00</div>
         <h3 class="event-title">Township Economy &amp; Retail Entrepreneurship Expo</h3>
@@ -1218,8 +1318,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/amfihart-26-5-jaar-van-amfihart-f9ebe47a-8398-4f60-a190-d04cda9977b9">
-      <img class="event-img" src="https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1784615984067_y6dljqt351.jpg" alt="AmfiHart '26 (5 Jaar van AMFIHART)" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/amfihart-26-5-jaar-van-amfihart-f9ebe47a-8398-4f60-a190-d04cda9977b9" data-title="amfihart '26 (5 jaar van amfihart)" data-venue="" data-city="" data-date="2026-12-04">
+      <img class="event-img" src="https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1784615984067_y6dljqt351.jpg" alt="AmfiHart '26 (5 Jaar van AMFIHART)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 04 Dec 2026 · 12:00</div>
         <h3 class="event-title">AmfiHart '26 (5 Jaar van AMFIHART)</h3>
@@ -1231,8 +1331,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee">
-      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/3711961c9db20223afe846b6884b652aa1a803af3720cc6b270be1ba7bd44f4c-rimg-w1200-h1698-dce8e8e8-gmir?v=1788283398" alt="Bearfest SA 2026" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee" data-title="bearfest sa 2026" data-venue="die windpomp male resort" data-city="pretoria" data-date="2026-12-04">
+      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/3711961c9db20223afe846b6884b652aa1a803af3720cc6b270be1ba7bd44f4c-rimg-w1200-h1698-dce8e8e8-gmir?v=1788283398" alt="Bearfest SA 2026" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 04 Dec 2026 · 14:00</div>
         <h3 class="event-title">Bearfest SA 2026</h3>
@@ -1244,8 +1344,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ke-dezemba-amapiano-explosive-launch-zone-6-venue-soweto-c9cb2e2e-29eb-4057-8d84-84e41b11c6d3">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Ke Dezemba Amapiano Explosive Launch" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ke-dezemba-amapiano-explosive-launch-zone-6-venue-soweto-c9cb2e2e-29eb-4057-8d84-84e41b11c6d3" data-title="ke dezemba amapiano explosive launch" data-venue="zone 6 venue" data-city="soweto" data-date="2026-12-04">
+      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Ke Dezemba Amapiano Explosive Launch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 04 Dec 2026 · 18:00</div>
         <h3 class="event-title">Ke Dezemba Amapiano Explosive Launch</h3>
@@ -1257,21 +1357,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Sunset White &amp; Gold Rave" loading="lazy" />
-      <div class="event-body">
-        <div class="event-date">Sat, 05 Dec 2026 · 15:00</div>
-        <h3 class="event-title">Shimmy Sunset White &amp; Gold Rave</h3>
-        <p class="event-venue">Shimmy Beach Club · Cape Town</p>
-        <div class="event-footer">
-          <span class="event-price">From R300</span>
-          <span class="btn-view">Get Tickets →</span>
-        </div>
-      </div>
-    </a>
-  
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb">
-      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/6a701facb33f52d20b32f8a7b8d8c87ae2d684b0a7590ba7a4b8710b5ed6f4f8-rimg-w1200-h600-dcf8f8f8-gmir?v=1787823323" alt="Pretoria's Vintage &amp; Christmas Gift Market" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb" data-title="pretoria's vintage &amp; christmas gift market" data-venue="irene village mall" data-city="centurion" data-date="2026-12-05">
+      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/6a701facb33f52d20b32f8a7b8d8c87ae2d684b0a7590ba7a4b8710b5ed6f4f8-rimg-w1200-h600-dcf8f8f8-gmir?v=1787823323" alt="Pretoria's Vintage &amp; Christmas Gift Market" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 05 Dec 2026 · 09:00</div>
         <h3 class="event-title">Pretoria's Vintage &amp; Christmas Gift Market</h3>
@@ -1283,21 +1370,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-dezemba-fest-altitude-beach-johannesburg-ce770e88-47ee-492e-9cfb-284fdfbb9550">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Dezemba Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369" data-title="shimmy sunset white &amp; gold rave" data-venue="shimmy beach club" data-city="cape town" data-date="2026-12-05">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Sunset White &amp; Gold Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
-        <div class="event-date">Sun, 06 Dec 2026 · 13:00</div>
-        <h3 class="event-title">Altitude Beach Dezemba Fest</h3>
-        <p class="event-venue">Altitude Beach · Johannesburg</p>
+        <div class="event-date">Sat, 05 Dec 2026 · 15:00</div>
+        <h3 class="event-title">Shimmy Sunset White &amp; Gold Rave</h3>
+        <p class="event-venue">Shimmy Beach Club · Cape Town</p>
         <div class="event-footer">
-          <span class="event-price">Tickets Available</span>
+          <span class="event-price">From R300</span>
           <span class="btn-view">Get Tickets →</span>
         </div>
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/a11d1e7886e9264767ba00b6bc8f8053175004fe674cf51c77dec47d8b540573-rimg-w1200-h628-dcf8f8f8-gmir?v=1787602769" alt="Brooks Campus Run: Summer Race" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1" data-title="brooks campus run: summer race" data-venue="the campus" data-city="sandton" data-date="2026-12-06">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/a11d1e7886e9264767ba00b6bc8f8053175004fe674cf51c77dec47d8b540573-rimg-w1200-h628-dcf8f8f8-gmir?v=1787602769" alt="Brooks Campus Run: Summer Race" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 06 Dec 2026 · 07:00</div>
         <h3 class="event-title">Brooks Campus Run: Summer Race</h3>
@@ -1309,8 +1396,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/the-gruvs-ivory-park-johannesburg-27d1e69c-0053-4cd6-a073-3f23436da830">
-      <img class="event-img" src="https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1780011368056_tiw7mxa5o0p.jpg" alt="The gruvs" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-dezemba-fest-altitude-beach-johannesburg-ce770e88-47ee-492e-9cfb-284fdfbb9550" data-title="altitude beach dezemba fest" data-venue="altitude beach" data-city="johannesburg" data-date="2026-12-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Dezemba Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 06 Dec 2026 · 13:00</div>
+        <h3 class="event-title">Altitude Beach Dezemba Fest</h3>
+        <p class="event-venue">Altitude Beach · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/the-gruvs-ivory-park-johannesburg-27d1e69c-0053-4cd6-a073-3f23436da830" data-title="the gruvs" data-venue="ivory park" data-city="johannesburg" data-date="2026-12-08">
+      <img class="event-img" src="https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1780011368056_tiw7mxa5o0p.jpg" alt="The gruvs" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 08 Dec 2026 · 08:00</div>
         <h3 class="event-title">The gruvs</h3>
@@ -1322,8 +1422,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gauteng Commercial Real Estate &amp; Investment Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57" data-title="gauteng commercial real estate &amp; investment summit" data-venue="the marc sandton" data-city="johannesburg" data-date="2026-12-08">
+      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gauteng Commercial Real Estate &amp; Investment Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 08 Dec 2026 · 08:30</div>
         <h3 class="event-title">Gauteng Commercial Real Estate &amp; Investment Summit</h3>
@@ -1335,8 +1435,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Tech &amp; Venture Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c" data-title="western cape tech &amp; venture showcase" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2026-12-09">
+      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Tech &amp; Venture Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 09 Dec 2026 · 10:00</div>
         <h3 class="event-title">Western Cape Tech &amp; Venture Showcase</h3>
@@ -1348,8 +1448,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; Port Logistics Round-Table" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305" data-title="africa trade &amp; port logistics round-table" data-venue="durban icc" data-city="durban" data-date="2026-12-10">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; Port Logistics Round-Table" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 10 Dec 2026 · 09:00</div>
         <h3 class="event-title">Africa Trade &amp; Port Logistics Round-Table</h3>
@@ -1361,21 +1461,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-summer-anthem-weekend-konka-soweto-soweto-f62d8757-30f7-4a92-936a-703f02e84e43">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka Summer Anthem Weekend" loading="lazy" />
-      <div class="event-body">
-        <div class="event-date">Fri, 11 Dec 2026 · 20:00</div>
-        <h3 class="event-title">Konka Summer Anthem Weekend</h3>
-        <p class="event-venue">Konka Soweto · Soweto</p>
-        <div class="event-footer">
-          <span class="event-price">From R350</span>
-          <span class="btn-view">Get Tickets →</span>
-        </div>
-      </div>
-    </a>
-  
-    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 1)" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2" data-title="+live+ at time square (night 1)" data-venue="time square south africa" data-city="pretoria" data-date="2026-12-11">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 1)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 11 Dec 2026 · 20:00</div>
         <h3 class="event-title">+LIVE+ at Time Square (Night 1)</h3>
@@ -1387,8 +1474,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3">
-      <img class="event-img" src="https://cdn2.allevents.in/thumbs/thumb6a33b7d965639.jpg" alt="Fatboy Slim - Johannesburg 2026" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-summer-anthem-weekend-konka-soweto-soweto-f62d8757-30f7-4a92-936a-703f02e84e43" data-title="konka summer anthem weekend" data-venue="konka soweto" data-city="soweto" data-date="2026-12-11">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka Summer Anthem Weekend" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 11 Dec 2026 · 20:00</div>
+        <h3 class="event-title">Konka Summer Anthem Weekend</h3>
+        <p class="event-venue">Konka Soweto · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">From R350</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3" data-title="fatboy slim - johannesburg 2026" data-venue="james and ethel gray park" data-city="johannesburg" data-date="2026-12-12">
+      <img class="event-img" src="https://cdn2.allevents.in/thumbs/thumb6a33b7d965639.jpg" alt="Fatboy Slim - Johannesburg 2026" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 12:00</div>
         <h3 class="event-title">Fatboy Slim - Johannesburg 2026</h3>
@@ -1400,21 +1500,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-all-white-beach-extravaganza-moses-mabhida-stadium-peoples-249e43a1-b95e-4316-ab80-1fe997288cb9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban All-White Beach Extravaganza" loading="lazy" />
-      <div class="event-body">
-        <div class="event-date">Sat, 12 Dec 2026 · 14:00</div>
-        <h3 class="event-title">Durban All-White Beach Extravaganza</h3>
-        <p class="event-venue">Moses Mabhida Stadium Peoples Park · Durban</p>
-        <div class="event-footer">
-          <span class="event-price">Tickets Available</span>
-          <span class="btn-view">Get Tickets →</span>
-        </div>
-      </div>
-    </a>
-  
-    <a class="event-card" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" alt="J. Cole: The Fall-Off Tour" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659" data-title="j. cole: the fall-off tour" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-12">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" alt="J. Cole: The Fall-Off Tour" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 18:00</div>
         <h3 class="event-title">J. Cole: The Fall-Off Tour</h3>
@@ -1426,8 +1513,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 2)" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843" data-title="+live+ at time square (night 2)" data-venue="time square south africa" data-city="pretoria" data-date="2026-12-12">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 2)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 20:00</div>
         <h3 class="event-title">+LIVE+ at Time Square (Night 2)</h3>
@@ -1439,8 +1526,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/candlelight-christmas-classics-sandton-nh-johannesburg-sandton-sandton-71babd28-4ed8-457a-9b57-f2b669d39dd9">
-      <img class="event-img" src="https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373" alt="Candlelight: Christmas Classics (Sandton)" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/candlelight-christmas-classics-sandton-nh-johannesburg-sandton-sandton-71babd28-4ed8-457a-9b57-f2b669d39dd9" data-title="candlelight: christmas classics (sandton)" data-venue="nh johannesburg sandton" data-city="sandton" data-date="2026-12-12">
+      <img class="event-img" src="https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373" alt="Candlelight: Christmas Classics (Sandton)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 20:30</div>
         <h3 class="event-title">Candlelight: Christmas Classics (Sandton)</h3>
@@ -1452,8 +1539,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/m/u/n/38f72e26-d769-4675-9001-82c2204da85a.png" alt="Limp Bizkit in Johannesburg" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-all-white-beach-extravaganza-moses-mabhida-stadium-peoples-249e43a1-b95e-4316-ab80-1fe997288cb9" data-title="durban all-white beach extravaganza" data-venue="moses mabhida stadium peoples park" data-city="durban" data-date="2026-12-12">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban All-White Beach Extravaganza" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 12 Dec 2026 · 14:00</div>
+        <h3 class="event-title">Durban All-White Beach Extravaganza</h3>
+        <p class="event-venue">Moses Mabhida Stadium Peoples Park · Durban</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298" data-title="limp bizkit in johannesburg" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-13">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/m/u/n/38f72e26-d769-4675-9001-82c2204da85a.png" alt="Limp Bizkit in Johannesburg" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 16:00</div>
         <h3 class="event-title">Limp Bizkit in Johannesburg</h3>
@@ -1465,8 +1565,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Symphony" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624" data-title="sunbet arena afro-tech symphony" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2026-12-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Symphony" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 19:00</div>
         <h3 class="event-title">SunBet Arena Afro-Tech Symphony</h3>
@@ -1478,8 +1578,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-soul-and-afro-jazz-kirstenbosch-national-6ba678aa-a7dd-4409-8959-45bcf06e0672">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Soul &amp; Afro-Jazz" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-soul-and-afro-jazz-kirstenbosch-national-6ba678aa-a7dd-4409-8959-45bcf06e0672" data-title="kirstenbosch summer sunset: soul &amp; afro-jazz" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2026-12-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Soul &amp; Afro-Jazz" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Soul &amp; Afro-Jazz</h3>
@@ -1491,8 +1591,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Midrand SME Cloud &amp; Digital Mastery Workshop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b" data-title="midrand sme cloud &amp; digital mastery workshop" data-venue="gallagher convention centre" data-city="midrand" data-date="2026-12-14">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Midrand SME Cloud &amp; Digital Mastery Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 14 Dec 2026 · 09:30</div>
         <h3 class="event-title">Midrand SME Cloud &amp; Digital Mastery Workshop</h3>
@@ -1504,8 +1604,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png" alt="The Kehlani World Tour: South Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee" data-title="the kehlani world tour: south africa" data-venue="sunbet arena time square" data-city="pretoria" data-date="2026-12-15">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png" alt="The Kehlani World Tour: South Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 15 Dec 2026 · 20:00</div>
         <h3 class="event-title">The Kehlani World Tour: South Africa</h3>
@@ -1517,8 +1617,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-public-private-infrastructure-forum-menlyn-maine-central-c023efef-933f-4433-bea7-0bc2774197df">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Public-Private Infrastructure Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-public-private-infrastructure-forum-menlyn-maine-central-c023efef-933f-4433-bea7-0bc2774197df" data-title="pretoria public-private infrastructure forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2026-12-15">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Public-Private Infrastructure Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 15 Dec 2026 · 08:30</div>
         <h3 class="event-title">Pretoria Public-Private Infrastructure Forum</h3>
@@ -1530,8 +1630,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/soweto-street-food-and-craft-beer-festival-zone-6-venue-soweto-df0ea4a9-77a7-49fd-983e-54cb1123a66d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Soweto Street Food &amp; Craft Beer Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/soweto-street-food-and-craft-beer-festival-zone-6-venue-soweto-df0ea4a9-77a7-49fd-983e-54cb1123a66d" data-title="soweto street food &amp; craft beer festival" data-venue="zone 6 venue" data-city="soweto" data-date="2026-12-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Soweto Street Food &amp; Craft Beer Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 16 Dec 2026 · 11:00</div>
         <h3 class="event-title">Soweto Street Food &amp; Craft Beer Festival</h3>
@@ -1543,8 +1643,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f">
-      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694" alt="Brandy Live in South Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f" data-title="brandy live in south africa" data-venue="sunbet arena" data-city="pretoria" data-date="2026-12-17">
+      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694" alt="Brandy Live in South Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 17 Dec 2026</div>
         <h3 class="event-title">Brandy Live in South Africa</h3>
@@ -1556,8 +1656,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/women-in-african-tech-and-leadership-breakfast-sandton-convention-0fd1beed-8f56-4d8a-b773-a8b8942f2cb0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in African Tech &amp; Leadership Breakfast" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/women-in-african-tech-and-leadership-breakfast-sandton-convention-0fd1beed-8f56-4d8a-b773-a8b8942f2cb0" data-title="women in african tech &amp; leadership breakfast" data-venue="sandton convention centre" data-city="johannesburg" data-date="2026-12-17">
+      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in African Tech &amp; Leadership Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 17 Dec 2026 · 08:00</div>
         <h3 class="event-title">Women in African Tech &amp; Leadership Breakfast</h3>
@@ -1569,8 +1669,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-sunset-electronic-odyssey-cabo-beach-club-cape-town-ff3c3e23-08b5-44d4-9ac8-f6f8a13cd06e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Sunset Electronic Odyssey" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-sunset-electronic-odyssey-cabo-beach-club-cape-town-ff3c3e23-08b5-44d4-9ac8-f6f8a13cd06e" data-title="cabo beach sunset electronic odyssey" data-venue="cabo beach club" data-city="cape town" data-date="2026-12-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Sunset Electronic Odyssey" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 18 Dec 2026 · 16:00</div>
         <h3 class="event-title">Cabo Beach Sunset Electronic Odyssey</h3>
@@ -1582,8 +1682,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-hospitality-and-tourism-leaders-forum-cape-town-international-f6724a55-91e6-4c65-9bca-6a4b527a333f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Hospitality &amp; Tourism Leaders Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-hospitality-and-tourism-leaders-forum-cape-town-international-f6724a55-91e6-4c65-9bca-6a4b527a333f" data-title="africa hospitality &amp; tourism leaders forum" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2026-12-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Hospitality &amp; Tourism Leaders Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 18 Dec 2026 · 09:00</div>
         <h3 class="event-title">Africa Hospitality &amp; Tourism Leaders Forum</h3>
@@ -1595,8 +1695,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/candlelight-christmas-classics-voortrekker-monument-pretoria-bc1981e6-9222-4ed7-a273-4178eb2700d9">
-      <img class="event-img" src="https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373" alt="Candlelight: Christmas Classics" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/candlelight-christmas-classics-voortrekker-monument-pretoria-bc1981e6-9222-4ed7-a273-4178eb2700d9" data-title="candlelight: christmas classics" data-venue="voortrekker monument" data-city="pretoria" data-date="2026-12-19">
+      <img class="event-img" src="https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373" alt="Candlelight: Christmas Classics" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 19 Dec 2026 · 20:00</div>
         <h3 class="event-title">Candlelight: Christmas Classics</h3>
@@ -1608,8 +1708,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/eyadini-december-shisanyama-spectacular-eyadini-lounge-durban-8a087c7b-ef26-4f3d-bdc2-4132640220f5">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Eyadini December Shisanyama Spectacular" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/eyadini-december-shisanyama-spectacular-eyadini-lounge-durban-8a087c7b-ef26-4f3d-bdc2-4132640220f5" data-title="eyadini december shisanyama spectacular" data-venue="eyadini lounge" data-city="durban" data-date="2026-12-19">
+      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Eyadini December Shisanyama Spectacular" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 19 Dec 2026 · 12:00</div>
         <h3 class="event-title">Eyadini December Shisanyama Spectacular</h3>
@@ -1621,8 +1721,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/the-station-parkhurst-rooftop-summer-jam-the-station-parkhurst-a0f05d44-a0d5-4786-a65f-b9e0cd090d4e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="The Station Parkhurst Rooftop Summer Jam" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/the-station-parkhurst-rooftop-summer-jam-the-station-parkhurst-a0f05d44-a0d5-4786-a65f-b9e0cd090d4e" data-title="the station parkhurst rooftop summer jam" data-venue="the station parkhurst" data-city="johannesburg" data-date="2026-12-19">
+      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="The Station Parkhurst Rooftop Summer Jam" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 19 Dec 2026 · 15:00</div>
         <h3 class="event-title">The Station Parkhurst Rooftop Summer Jam</h3>
@@ -1634,8 +1734,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/spier-secret-vineyard-sunset-soiree-spier-wine-farm-stellenbosch-33b87ecf-10ff-4967-b6f0-9cebf6f8c0aa">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Spier Secret Vineyard Sunset Soiree" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/spier-secret-vineyard-sunset-soiree-spier-wine-farm-stellenbosch-33b87ecf-10ff-4967-b6f0-9cebf6f8c0aa" data-title="spier secret vineyard sunset soiree" data-venue="spier wine farm" data-city="stellenbosch" data-date="2026-12-20">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Spier Secret Vineyard Sunset Soiree" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 20 Dec 2026 · 17:00</div>
         <h3 class="event-title">Spier Secret Vineyard Sunset Soiree</h3>
@@ -1647,8 +1747,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-2027-strategy-and-regulatory-briefing-the-marc-sandton-f464a0df-acce-4b5c-b4cc-1d4760c9b83c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa 2027 Strategy &amp; Regulatory Briefing" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-2027-strategy-and-regulatory-briefing-the-marc-sandton-f464a0df-acce-4b5c-b4cc-1d4760c9b83c" data-title="fintech africa 2027 strategy &amp; regulatory briefing" data-venue="the marc sandton" data-city="johannesburg" data-date="2026-12-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa 2027 Strategy &amp; Regulatory Briefing" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 22 Dec 2026 · 14:00</div>
         <h3 class="event-title">FinTech Africa 2027 Strategy &amp; Regulatory Briefing</h3>
@@ -1660,8 +1760,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fnb-stadium-ke-dezemba-superfest-fnb-stadium-johannesburg-cbafa4c0-009e-48b1-b4e5-d260dc30b333">
-      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FNB Stadium Ke Dezemba SuperFest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/fnb-stadium-ke-dezemba-superfest-fnb-stadium-johannesburg-cbafa4c0-009e-48b1-b4e5-d260dc30b333" data-title="fnb stadium ke dezemba superfest" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-23">
+      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FNB Stadium Ke Dezemba SuperFest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 23 Dec 2026 · 14:00</div>
         <h3 class="event-title">FNB Stadium Ke Dezemba SuperFest</h3>
@@ -1673,8 +1773,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/christmas-eve-waterfront-moonlight-ball-grand-africa-cafe-and-beach-80257bd5-bf54-45b6-b86b-bd0575efd8fd">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Eve Waterfront Moonlight Ball" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/christmas-eve-waterfront-moonlight-ball-grand-africa-cafe-and-beach-80257bd5-bf54-45b6-b86b-bd0575efd8fd" data-title="christmas eve waterfront moonlight ball" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2026-12-24">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Eve Waterfront Moonlight Ball" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 24 Dec 2026 · 19:00</div>
         <h3 class="event-title">Christmas Eve Waterfront Moonlight Ball</h3>
@@ -1686,8 +1786,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/christmas-day-family-garden-feast-waterfall-city-park-midrand-bbae7b21-26d6-4af3-8f31-2b1136be8dc4">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Day Family Garden Feast" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/christmas-day-family-garden-feast-waterfall-city-park-midrand-bbae7b21-26d6-4af3-8f31-2b1136be8dc4" data-title="christmas day family garden feast" data-venue="waterfall city park" data-city="midrand" data-date="2026-12-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Day Family Garden Feast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 25 Dec 2026 · 11:00</div>
         <h3 class="event-title">Christmas Day Family Garden Feast</h3>
@@ -1699,8 +1799,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/boxing-day-pool-and-beats-extravaganza-altitude-beach-johannesburg-d97a2ec1-255b-4380-9ae4-dff725c57329">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Boxing Day Pool &amp; Beats Extravaganza" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/boxing-day-pool-and-beats-extravaganza-altitude-beach-johannesburg-d97a2ec1-255b-4380-9ae4-dff725c57329" data-title="boxing day pool &amp; beats extravaganza" data-venue="altitude beach" data-city="johannesburg" data-date="2026-12-26">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Boxing Day Pool &amp; Beats Extravaganza" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 26 Dec 2026 · 12:00</div>
         <h3 class="event-title">Boxing Day Pool &amp; Beats Extravaganza</h3>
@@ -1712,8 +1812,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gqeberha-coastal-summer-sunset-festival-the-boardwalk-gqeberha-da77cea8-8e2a-43ea-893c-565eb364049f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Coastal Summer Sunset Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gqeberha-coastal-summer-sunset-festival-the-boardwalk-gqeberha-da77cea8-8e2a-43ea-893c-565eb364049f" data-title="gqeberha coastal summer sunset festival" data-venue="the boardwalk gqeberha" data-city="gqeberha" data-date="2026-12-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Coastal Summer Sunset Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 27 Dec 2026 · 15:00</div>
         <h3 class="event-title">Gqeberha Coastal Summer Sunset Festival</h3>
@@ -1725,8 +1825,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-festive-sunday-shisanyama-max-s-lifestyle-village-a3e13494-d497-4003-9803-807d296fb691">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Festive Sunday Shisanyama" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-festive-sunday-shisanyama-max-s-lifestyle-village-a3e13494-d497-4003-9803-807d296fb691" data-title="max's lifestyle festive sunday shisanyama" data-venue="max's lifestyle village" data-city="durban" data-date="2026-12-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Festive Sunday Shisanyama" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 27 Dec 2026 · 13:00</div>
         <h3 class="event-title">Max's Lifestyle Festive Sunday Shisanyama</h3>
@@ -1738,8 +1838,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-nye-white-and-silver-gala-cabo-beach-club-cape-town-6fdfd2bd-318e-4919-b47b-6e5d8a29985e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club NYE White &amp; Silver Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-nye-white-and-silver-gala-cabo-beach-club-cape-town-6fdfd2bd-318e-4919-b47b-6e5d8a29985e" data-title="cabo beach club nye white &amp; silver gala" data-venue="cabo beach club" data-city="cape town" data-date="2026-12-31">
+      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club NYE White &amp; Silver Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 31 Dec 2026 · 18:00</div>
         <h3 class="event-title">Cabo Beach Club NYE White &amp; Silver Gala</h3>
@@ -1751,8 +1851,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-soweto-2027-midnight-countdown-konka-soweto-soweto-42d67bce-789d-44f9-b2dc-0aa205a2fdc0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka Soweto 2027 Midnight Countdown" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-soweto-2027-midnight-countdown-konka-soweto-soweto-42d67bce-789d-44f9-b2dc-0aa205a2fdc0" data-title="konka soweto 2027 midnight countdown" data-venue="konka soweto" data-city="soweto" data-date="2026-12-31">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka Soweto 2027 Midnight Countdown" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 31 Dec 2026 · 20:00</div>
         <h3 class="event-title">Konka Soweto 2027 Midnight Countdown</h3>

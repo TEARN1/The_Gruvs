@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -524,11 +577,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Events in May 2027 — Africa Day Carnivals & Enterprise Cloud | The Gruvs",
+  "description": "Celebrate May 2027: Africa Day unity festivals, Stellenbosch red wine harvest, and African enterprise cloud summits.",
+  "url": "https://thegruvs.com/events/may-2027",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -552,8 +652,8 @@
       <p class="hero-lead">Celebrate May 2027: Africa Day unity festivals, Stellenbosch red wine harvest, and African enterprise cloud summits. Browse all verified upcoming concerts, festivals, conferences, and weekend experiences.</p>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/may-day-workers-celebration-music-concert-zone-6-venue-soweto-1f98bd25-523a-4bb9-9e6e-66ccafa72d8b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="May Day Workers Celebration Music Concert" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/may-day-workers-celebration-music-concert-zone-6-venue-soweto-1f98bd25-523a-4bb9-9e6e-66ccafa72d8b" data-title="may day workers celebration music concert" data-venue="zone 6 venue" data-city="soweto" data-date="2027-05-01">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="May Day Workers Celebration Music Concert" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 01 May 2027 · 12:00</div>
         <h3 class="event-title">May Day Workers Celebration Music Concert</h3>
@@ -565,8 +665,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/shimmy-autumn-sunset-session-shimmy-beach-club-cape-town-91f27c56-bba1-4c6d-88b0-675fe7fd7e14">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Autumn Sunset Session" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/shimmy-autumn-sunset-session-shimmy-beach-club-cape-town-91f27c56-bba1-4c6d-88b0-675fe7fd7e14" data-title="shimmy autumn sunset session" data-venue="shimmy beach club" data-city="cape town" data-date="2027-05-02">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Autumn Sunset Session" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 02 May 2027 · 15:00</div>
         <h3 class="event-title">Shimmy Autumn Sunset Session</h3>
@@ -578,8 +678,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/african-enterprise-technology-and-cloud-summit-2027-sandton-f34e93c0-7c8c-4b0d-9eee-b7c079d74859">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Enterprise Technology &amp; Cloud Summit 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/african-enterprise-technology-and-cloud-summit-2027-sandton-f34e93c0-7c8c-4b0d-9eee-b7c079d74859" data-title="african enterprise technology &amp; cloud summit 2027" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-05-04">
+      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Enterprise Technology &amp; Cloud Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 04 May 2027 · 08:30</div>
         <h3 class="event-title">African Enterprise Technology &amp; Cloud Summit 2027</h3>
@@ -591,8 +691,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-afcfta-implementation-forum-durban-icc-durban-918a5b41-1620-4add-b69f-3141a149a4fb">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; AfCFTA Implementation Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-afcfta-implementation-forum-durban-icc-durban-918a5b41-1620-4add-b69f-3141a149a4fb" data-title="africa trade &amp; afcfta implementation forum" data-venue="durban icc" data-city="durban" data-date="2027-05-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; AfCFTA Implementation Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 06 May 2027 · 09:00</div>
         <h3 class="event-title">Africa Trade &amp; AfCFTA Implementation Forum</h3>
@@ -604,8 +704,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-autumn-warmup-party-altitude-beach-johannesburg-35fa89c9-10b5-4b84-8e90-e798cd8d8a32">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Autumn Warmup Party" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-autumn-warmup-party-altitude-beach-johannesburg-35fa89c9-10b5-4b84-8e90-e798cd8d8a32" data-title="altitude beach autumn warmup party" data-venue="altitude beach" data-city="johannesburg" data-date="2027-05-07">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Autumn Warmup Party" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 07 May 2027 · 16:00</div>
         <h3 class="event-title">Altitude Beach Autumn Warmup Party</h3>
@@ -617,8 +717,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Winter Awakening Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9" data-title="sunbet arena winter awakening rave" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-05-08">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Winter Awakening Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 08 May 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Winter Awakening Rave</h3>
@@ -630,8 +730,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/stellenbosch-autumn-red-wine-festival-spier-wine-farm-stellenbosch-245fdb95-0dc6-4688-a130-c362ebb3e1fe">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Stellenbosch Autumn Red Wine Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/stellenbosch-autumn-red-wine-festival-spier-wine-farm-stellenbosch-245fdb95-0dc6-4688-a130-c362ebb3e1fe" data-title="stellenbosch autumn red wine festival" data-venue="spier wine farm" data-city="stellenbosch" data-date="2027-05-08">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Stellenbosch Autumn Red Wine Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 08 May 2027 · 11:00</div>
         <h3 class="event-title">Stellenbosch Autumn Red Wine Festival</h3>
@@ -643,8 +743,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/mother-s-day-sunset-botanical-concert-kirstenbosch-national-botanical-0382c409-c933-4a43-abc1-baa053423cb5">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Mother's Day Sunset Botanical Concert" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/mother-s-day-sunset-botanical-concert-kirstenbosch-national-botanical-0382c409-c933-4a43-abc1-baa053423cb5" data-title="mother's day sunset botanical concert" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-05-09">
+      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Mother's Day Sunset Botanical Concert" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 09 May 2027 · 15:30</div>
         <h3 class="event-title">Mother's Day Sunset Botanical Concert</h3>
@@ -656,8 +756,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-accounting-cash-flow-and-payroll-masterclass-gallagher-convention-2ae9dc58-d24e-407f-8228-435481a5e454">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Accounting, Cash Flow &amp; Payroll Masterclass" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-accounting-cash-flow-and-payroll-masterclass-gallagher-convention-2ae9dc58-d24e-407f-8228-435481a5e454" data-title="sme accounting, cash flow &amp; payroll masterclass" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-05-11">
+      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Accounting, Cash Flow &amp; Payroll Masterclass" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 11 May 2027 · 09:00</div>
         <h3 class="event-title">SME Accounting, Cash Flow &amp; Payroll Masterclass</h3>
@@ -669,8 +769,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-industrial-robotics-and-automation-expo-sandton-517095e5-0404-43a2-be95-3459c91453b7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Industrial Robotics &amp; Automation Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-industrial-robotics-and-automation-expo-sandton-517095e5-0404-43a2-be95-3459c91453b7" data-title="southern africa industrial robotics &amp; automation expo" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-05-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Industrial Robotics &amp; Automation Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 13 May 2027 · 09:00</div>
         <h3 class="event-title">Southern Africa Industrial Robotics &amp; Automation Expo</h3>
@@ -682,8 +782,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-may-luxury-saturday-konka-soweto-soweto-2addda82-fb4c-4c42-b56b-d80d90750910">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka May Luxury Saturday" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-may-luxury-saturday-konka-soweto-soweto-2addda82-fb4c-4c42-b56b-d80d90750910" data-title="konka may luxury saturday" data-venue="konka soweto" data-city="soweto" data-date="2027-05-14">
+      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka May Luxury Saturday" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 14 May 2027 · 20:00</div>
         <h3 class="event-title">Konka May Luxury Saturday</h3>
@@ -695,8 +795,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-beats-cabo-beach-club-cape-town-bf3ca358-e906-49c3-b9e6-3be1af3780fc">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Beats" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-beats-cabo-beach-club-cape-town-bf3ca358-e906-49c3-b9e6-3be1af3780fc" data-title="cabo beach club sunset beats" data-venue="cabo beach club" data-city="cape town" data-date="2027-05-15">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Beats" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 15 May 2027 · 15:00</div>
         <h3 class="event-title">Cabo Beach Club Sunset Beats</h3>
@@ -708,8 +808,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/eyadini-shisanyama-and-afro-house-jam-eyadini-lounge-durban-d9f548ee-1eac-4ce9-a35e-b4eb62390a8e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Eyadini Shisanyama &amp; Afro-House Jam" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/eyadini-shisanyama-and-afro-house-jam-eyadini-lounge-durban-d9f548ee-1eac-4ce9-a35e-b4eb62390a8e" data-title="eyadini shisanyama &amp; afro-house jam" data-venue="eyadini lounge" data-city="durban" data-date="2027-05-15">
+      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Eyadini Shisanyama &amp; Afro-House Jam" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 15 May 2027 · 12:00</div>
         <h3 class="event-title">Eyadini Shisanyama &amp; Afro-House Jam</h3>
@@ -721,8 +821,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/the-station-parkhurst-cozy-winter-rooftop-the-station-parkhurst-2352cf7d-f1b2-47de-92b8-ab97a6040b26">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="The Station Parkhurst Cozy Winter Rooftop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/the-station-parkhurst-cozy-winter-rooftop-the-station-parkhurst-2352cf7d-f1b2-47de-92b8-ab97a6040b26" data-title="the station parkhurst cozy winter rooftop" data-venue="the station parkhurst" data-city="johannesburg" data-date="2027-05-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="The Station Parkhurst Cozy Winter Rooftop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 16 May 2027 · 15:00</div>
         <h3 class="event-title">The Station Parkhurst Cozy Winter Rooftop</h3>
@@ -734,8 +834,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape FinTech &amp; WealthTech Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1" data-title="silicon cape fintech &amp; wealthtech showcase" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-05-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape FinTech &amp; WealthTech Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 18 May 2027 · 10:00</div>
         <h3 class="event-title">Silicon Cape FinTech &amp; WealthTech Showcase</h3>
@@ -747,8 +847,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/commercial-real-estate-logistics-and-warehousing-summit-the-marc-40756299-78b6-48be-b5c3-3fdd4740c68e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Commercial Real Estate Logistics &amp; Warehousing Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/commercial-real-estate-logistics-and-warehousing-summit-the-marc-40756299-78b6-48be-b5c3-3fdd4740c68e" data-title="commercial real estate logistics &amp; warehousing summit" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-05-19">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Commercial Real Estate Logistics &amp; Warehousing Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 19 May 2027 · 09:00</div>
         <h3 class="event-title">Commercial Real Estate Logistics &amp; Warehousing Summit</h3>
@@ -760,8 +860,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Clean Energy &amp; EV Infrastructure Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db" data-title="pretoria clean energy &amp; ev infrastructure forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-05-20">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Clean Energy &amp; EV Infrastructure Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 20 May 2027 · 09:00</div>
         <h3 class="event-title">Pretoria Clean Energy &amp; EV Infrastructure Forum</h3>
@@ -773,8 +873,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Winter Endurance Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec" data-title="kyalami winter endurance fest" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-05-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Winter Endurance Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 21 May 2027 · 12:00</div>
         <h3 class="event-title">Kyalami Winter Endurance Fest</h3>
@@ -786,8 +886,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/rosebank-winter-street-food-and-craft-market-the-zone-rosebank-7d50cd05-9102-410d-87a4-9eddd46f720b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Winter Street Food &amp; Craft Market" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/rosebank-winter-street-food-and-craft-market-the-zone-rosebank-7d50cd05-9102-410d-87a4-9eddd46f720b" data-title="rosebank winter street food &amp; craft market" data-venue="the zone @ rosebank" data-city="johannesburg" data-date="2027-05-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Winter Street Food &amp; Craft Market" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 22 May 2027 · 11:00</div>
         <h3 class="event-title">Rosebank Winter Street Food &amp; Craft Market</h3>
@@ -799,8 +899,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/grand-africa-cafe-cozy-beach-sunset-grand-africa-cafe-and-beach-cape-54d7f2e7-3582-4225-b436-a6ce46f1df31">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Grand Africa Café Cozy Beach Sunset" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/grand-africa-cafe-cozy-beach-sunset-grand-africa-cafe-and-beach-cape-54d7f2e7-3582-4225-b436-a6ce46f1df31" data-title="grand africa café cozy beach sunset" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-05-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Grand Africa Café Cozy Beach Sunset" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 22 May 2027 · 16:00</div>
         <h3 class="event-title">Grand Africa Café Cozy Beach Sunset</h3>
@@ -812,8 +912,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-sunday-soul-and-shisanyama-max-s-lifestyle-village-8f30cc8d-d7b4-4569-94cd-79321fcfaea2">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Sunday Soul &amp; Shisanyama" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-sunday-soul-and-shisanyama-max-s-lifestyle-village-8f30cc8d-d7b4-4569-94cd-79321fcfaea2" data-title="max's lifestyle sunday soul &amp; shisanyama" data-venue="max's lifestyle village" data-city="durban" data-date="2027-05-23">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Sunday Soul &amp; Shisanyama" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 23 May 2027 · 12:00</div>
         <h3 class="event-title">Max's Lifestyle Sunday Soul &amp; Shisanyama</h3>
@@ -825,8 +925,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-day-eve-unity-fest-soweto-zone-6-venue-soweto-62f11268-7865-4cbf-a2d5-818b3fae216a">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Eve Unity Fest Soweto" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-day-eve-unity-fest-soweto-zone-6-venue-soweto-62f11268-7865-4cbf-a2d5-818b3fae216a" data-title="africa day eve unity fest soweto" data-venue="zone 6 venue" data-city="soweto" data-date="2027-05-24">
+      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Eve Unity Fest Soweto" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 24 May 2027 · 18:00</div>
         <h3 class="event-title">Africa Day Eve Unity Fest Soweto</h3>
@@ -838,8 +938,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gqeberha-boardwalk-africa-day-showcase-the-boardwalk-gqeberha-gqeberha-d669726e-d22a-4daa-8e11-a511378e83d1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Boardwalk Africa Day Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gqeberha-boardwalk-africa-day-showcase-the-boardwalk-gqeberha-gqeberha-d669726e-d22a-4daa-8e11-a511378e83d1" data-title="gqeberha boardwalk africa day showcase" data-venue="the boardwalk gqeberha" data-city="gqeberha" data-date="2027-05-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Boardwalk Africa Day Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 25 May 2027 · 12:00</div>
         <h3 class="event-title">Gqeberha Boardwalk Africa Day Showcase</h3>
@@ -851,8 +951,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-day-grand-cultural-carnival-constitution-hill-human-rights-a3d04216-6703-4075-99b1-46b7f5181dc2">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Grand Cultural Carnival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-day-grand-cultural-carnival-constitution-hill-human-rights-a3d04216-6703-4075-99b1-46b7f5181dc2" data-title="africa day grand cultural carnival" data-venue="constitution hill human rights precinct" data-city="johannesburg" data-date="2027-05-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Grand Cultural Carnival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 25 May 2027 · 11:00</div>
         <h3 class="event-title">Africa Day Grand Cultural Carnival</h3>
@@ -864,8 +964,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-day-coastal-jam-durban-moses-mabhida-stadium-peoples-park-1744894a-fba4-4030-a63a-bbcf4cabaea8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Coastal Jam Durban" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-day-coastal-jam-durban-moses-mabhida-stadium-peoples-park-1744894a-fba4-4030-a63a-bbcf4cabaea8" data-title="africa day coastal jam durban" data-venue="moses mabhida stadium peoples park" data-city="durban" data-date="2027-05-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Coastal Jam Durban" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 25 May 2027 · 12:00</div>
         <h3 class="event-title">Africa Day Coastal Jam Durban</h3>
@@ -877,8 +977,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-day-young-business-leaders-and-innovators-dialogue-18747066-4803-4fb1-8dad-9989b3b0b6fa">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Young Business Leaders &amp; Innovators Dialogue" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-day-young-business-leaders-and-innovators-dialogue-18747066-4803-4fb1-8dad-9989b3b0b6fa" data-title="africa day young business leaders &amp; innovators dialogue" data-venue="constitution hill human rights precinct" data-city="johannesburg" data-date="2027-05-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Young Business Leaders &amp; Innovators Dialogue" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 25 May 2027 · 14:00</div>
         <h3 class="event-title">Africa Day Young Business Leaders &amp; Innovators Dialogue</h3>
@@ -890,8 +990,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/women-in-science-engineering-and-mining-forum-sandton-convention-8f7fb86c-db5c-4233-bc10-e82036cb80c0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in Science, Engineering &amp; Mining Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/women-in-science-engineering-and-mining-forum-sandton-convention-8f7fb86c-db5c-4233-bc10-e82036cb80c0" data-title="women in science, engineering &amp; mining forum" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-05-26">
+      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in Science, Engineering &amp; Mining Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 26 May 2027 · 08:30</div>
         <h3 class="event-title">Women in Science, Engineering &amp; Mining Forum</h3>
@@ -903,8 +1003,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/digital-trust-ai-ethics-and-popia-governance-conclave-the-marc-9c9615fc-9189-4426-91f9-5b0026f4687b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Digital Trust, AI Ethics &amp; POPIA Governance Conclave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/digital-trust-ai-ethics-and-popia-governance-conclave-the-marc-9c9615fc-9189-4426-91f9-5b0026f4687b" data-title="digital trust, ai ethics &amp; popia governance conclave" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-05-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Digital Trust, AI Ethics &amp; POPIA Governance Conclave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 27 May 2027 · 09:00</div>
         <h3 class="event-title">Digital Trust, AI Ethics &amp; POPIA Governance Conclave</h3>
@@ -916,8 +1016,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/menlyn-maine-winter-wine-and-dine-gala-menlyn-maine-central-square-869003b8-f571-42b9-a3a5-eb451537c7f0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Menlyn Maine Winter Wine &amp; Dine Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/menlyn-maine-winter-wine-and-dine-gala-menlyn-maine-central-square-869003b8-f571-42b9-a3a5-eb451537c7f0" data-title="menlyn maine winter wine &amp; dine gala" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-05-28">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Menlyn Maine Winter Wine &amp; Dine Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 28 May 2027 · 18:30</div>
         <h3 class="event-title">Menlyn Maine Winter Wine &amp; Dine Gala</h3>
@@ -929,8 +1029,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-may-finale-night-swim-altitude-beach-johannesburg-2d5180d7-031a-4a9c-8381-509a2cfbd30b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach May Finale Night Swim" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-may-finale-night-swim-altitude-beach-johannesburg-2d5180d7-031a-4a9c-8381-509a2cfbd30b" data-title="altitude beach may finale night swim" data-venue="altitude beach" data-city="johannesburg" data-date="2027-05-29">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach May Finale Night Swim" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 29 May 2027 · 17:00</div>
         <h3 class="event-title">Altitude Beach May Finale Night Swim</h3>

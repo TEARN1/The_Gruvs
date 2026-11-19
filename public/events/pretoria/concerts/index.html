@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -360,11 +413,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Concerts & Arena Shows in Pretoria — The Gruvs",
+  "description": "SunBet Arena mega-concerts, Time Square live shows, and orchestral spectacles in Pretoria.",
+  "url": "https://thegruvs.com/events/pretoria/concerts",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -388,8 +488,8 @@
       <p class="hero-lead">SunBet Arena mega-concerts, Time Square live shows, and orchestral spectacles in Pretoria.</p>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Symphony" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624" data-title="sunbet arena afro-tech symphony" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2026-12-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Symphony" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 19:00</div>
         <h3 class="event-title">SunBet Arena Afro-Tech Symphony</h3>
@@ -401,8 +501,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png" alt="The Kehlani World Tour: South Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee" data-title="the kehlani world tour: south africa" data-venue="sunbet arena time square" data-city="pretoria" data-date="2026-12-15">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png" alt="The Kehlani World Tour: South Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 15 Dec 2026 · 20:00</div>
         <h3 class="event-title">The Kehlani World Tour: South Africa</h3>
@@ -414,8 +514,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f">
-      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694" alt="Brandy Live in South Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f" data-title="brandy live in south africa" data-venue="sunbet arena" data-city="pretoria" data-date="2026-12-17">
+      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694" alt="Brandy Live in South Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 17 Dec 2026</div>
         <h3 class="event-title">Brandy Live in South Africa</h3>
@@ -427,8 +527,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-house-music-odyssey-sunbet-arena-at-time-square-pretoria-c0a28f81-85c9-403a-8175-22dc16169c96">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria House Music Odyssey" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-house-music-odyssey-sunbet-arena-at-time-square-pretoria-c0a28f81-85c9-403a-8175-22dc16169c96" data-title="pretoria house music odyssey" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-01-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria House Music Odyssey" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 16 Jan 2027 · 18:00</div>
         <h3 class="event-title">Pretoria House Music Odyssey</h3>
@@ -440,8 +540,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-symphony-of-amapiano-sunbet-arena-at-time-square-pretoria-b8ffcfd2-12b8-4a03-9269-5bbf6d5dd411">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Symphony of Amapiano" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-symphony-of-amapiano-sunbet-arena-at-time-square-pretoria-b8ffcfd2-12b8-4a03-9269-5bbf6d5dd411" data-title="sunbet arena symphony of amapiano" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-02-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Symphony of Amapiano" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Feb 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Symphony of Amapiano</h3>
@@ -453,8 +553,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-masters-sunbet-arena-at-time-square-pretoria-c252678f-148c-4ad6-88a9-a52f74c4cc35">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Masters" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-masters-sunbet-arena-at-time-square-pretoria-c252678f-148c-4ad6-88a9-a52f74c4cc35" data-title="sunbet arena afro-tech masters" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-03-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Masters" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Mar 2027 · 18:00</div>
         <h3 class="event-title">SunBet Arena Afro-Tech Masters</h3>
@@ -466,8 +566,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-soul-and-rnb-night-sunbet-arena-at-time-square-f75b0ab1-3bd6-4db8-b2eb-172d7a0a8b25">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Soul &amp; RnB Night" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-soul-and-rnb-night-sunbet-arena-at-time-square-f75b0ab1-3bd6-4db8-b2eb-172d7a0a8b25" data-title="sunbet arena afro-soul &amp; rnb night" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-04-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Soul &amp; RnB Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 16 Apr 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Afro-Soul &amp; RnB Night</h3>
@@ -479,8 +579,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Winter Awakening Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9" data-title="sunbet arena winter awakening rave" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-05-08">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Winter Awakening Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 08 May 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Winter Awakening Rave</h3>

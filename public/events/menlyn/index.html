@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -484,11 +537,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events in Menlyn (2026) — The Gruvs",
+  "description": "Discover upcoming events, nightlife, and festivals in Menlyn. Dates, venues and directions on The Gruvs.",
+  "url": "https://thegruvs.com/events/menlyn",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -512,6 +612,8 @@
       <h1 class="hero-title">Events in <span class="brand-accent">Menlyn</span></h1>
       <p class="hero-lead">SunBet Arena mega-concerts, Time Square casino nightlife, and luxury weekend chillas in Menlyn. Browse what's listed, with dates, venues and directions.</p>
 
+      
+
       <div class="resident-banner">
         <div class="resident-banner-text">
           <h3>Need Accommodation in Menlyn?</h3>
@@ -520,10 +622,43 @@
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
+      
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (9)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
+
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-public-private-infrastructure-forum-menlyn-maine-central-c023efef-933f-4433-bea7-0bc2774197df">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Public-Private Infrastructure Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-public-private-infrastructure-forum-menlyn-maine-central-c023efef-933f-4433-bea7-0bc2774197df" data-title="pretoria public-private infrastructure forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2026-12-15">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Public-Private Infrastructure Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 15 Dec 2026 · 08:30</div>
         <h3 class="event-title">Pretoria Public-Private Infrastructure Forum</h3>
@@ -535,8 +670,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-tax-and-compliance-masterclass-2027-menlyn-maine-central-square-6ee79d11-3c25-45a5-80c9-e04ba2ee9e01">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Tax &amp; Compliance Masterclass 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-tax-and-compliance-masterclass-2027-menlyn-maine-central-square-6ee79d11-3c25-45a5-80c9-e04ba2ee9e01" data-title="sme tax &amp; compliance masterclass 2027" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-01-26">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Tax &amp; Compliance Masterclass 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 26 Jan 2027 · 09:00</div>
         <h3 class="event-title">SME Tax &amp; Compliance Masterclass 2027</h3>
@@ -548,8 +683,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-automotive-and-manufacturing-summit-menlyn-maine-central-7b0630e7-dd03-4e19-b8ec-0f70f3313c4f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Automotive &amp; Manufacturing Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-automotive-and-manufacturing-summit-menlyn-maine-central-7b0630e7-dd03-4e19-b8ec-0f70f3313c4f" data-title="pretoria automotive &amp; manufacturing summit" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-02-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Automotive &amp; Manufacturing Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 25 Feb 2027 · 09:00</div>
         <h3 class="event-title">Pretoria Automotive &amp; Manufacturing Summit</h3>
@@ -561,8 +696,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-craft-gin-and-food-truck-carnival-menlyn-maine-central-acc92fd7-d4ca-4490-b603-be1ea0dc4ced">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Craft Gin &amp; Food Truck Carnival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-craft-gin-and-food-truck-carnival-menlyn-maine-central-acc92fd7-d4ca-4490-b603-be1ea0dc4ced" data-title="pretoria craft gin &amp; food truck carnival" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-02-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Craft Gin &amp; Food Truck Carnival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 27 Feb 2027 · 11:00</div>
         <h3 class="event-title">Pretoria Craft Gin &amp; Food Truck Carnival</h3>
@@ -574,8 +709,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-cyber-defense-and-government-tech-forum-menlyn-maine-central-51597024-638c-4e7e-97eb-eab79e6bfd7e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Cyber Defense &amp; Government Tech Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-cyber-defense-and-government-tech-forum-menlyn-maine-central-51597024-638c-4e7e-97eb-eab79e6bfd7e" data-title="pretoria cyber defense &amp; government tech forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-03-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Cyber Defense &amp; Government Tech Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 25 Mar 2027 · 09:00</div>
         <h3 class="event-title">Pretoria Cyber Defense &amp; Government Tech Forum</h3>
@@ -587,8 +722,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/menlyn-maine-autumn-fashion-and-music-night-menlyn-maine-central-8c47fb10-d4b3-4f8d-ab62-2879d117a8cf">
-      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Menlyn Maine Autumn Fashion &amp; Music Night" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/menlyn-maine-autumn-fashion-and-music-night-menlyn-maine-central-8c47fb10-d4b3-4f8d-ab62-2879d117a8cf" data-title="menlyn maine autumn fashion &amp; music night" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-03-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Menlyn Maine Autumn Fashion &amp; Music Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 27 Mar 2027 · 18:00</div>
         <h3 class="event-title">Menlyn Maine Autumn Fashion &amp; Music Night</h3>
@@ -600,8 +735,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria GovTech &amp; Smart Public Services Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad" data-title="pretoria govtech &amp; smart public services summit" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-04-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria GovTech &amp; Smart Public Services Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 22 Apr 2027 · 09:00</div>
         <h3 class="event-title">Pretoria GovTech &amp; Smart Public Services Summit</h3>
@@ -613,8 +748,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Clean Energy &amp; EV Infrastructure Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db" data-title="pretoria clean energy &amp; ev infrastructure forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-05-20">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Clean Energy &amp; EV Infrastructure Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 20 May 2027 · 09:00</div>
         <h3 class="event-title">Pretoria Clean Energy &amp; EV Infrastructure Forum</h3>
@@ -626,8 +761,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/menlyn-maine-winter-wine-and-dine-gala-menlyn-maine-central-square-869003b8-f571-42b9-a3a5-eb451537c7f0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Menlyn Maine Winter Wine &amp; Dine Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/menlyn-maine-winter-wine-and-dine-gala-menlyn-maine-central-square-869003b8-f571-42b9-a3a5-eb451537c7f0" data-title="menlyn maine winter wine &amp; dine gala" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-05-28">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Menlyn Maine Winter Wine &amp; Dine Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 28 May 2027 · 18:30</div>
         <h3 class="event-title">Menlyn Maine Winter Wine &amp; Dine Gala</h3>
@@ -639,6 +774,11 @@
       </div>
     </a>
   
+      </div>
+
+      <div class="hub-guide-box">
+        <h2>Insider Guide to Menlyn Events & Nightlife</h2>
+        <p>Explore verified concerts, nightlife, business conferences, and cultural festivals in Menlyn. Check live venue coordinates, ticket prices in ZAR, and RSVP directly on The Gruvs.</p>
       </div>
     
   </div>

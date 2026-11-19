@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -333,11 +386,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Events This Weekend in South Africa (Friday - Sunday) — The Gruvs",
+  "description": "Find top parties, concerts, nightlife and markets happening this weekend in Johannesburg, Pretoria, Cape Town, and Durban.",
+  "url": "https://thegruvs.com/events/this-weekend",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -361,8 +461,8 @@
     <p class="hero-lead">What's listed from Friday night to Sunday, updated every day.</p>
     <div class="event-grid">
       
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-1-time-square-casino-pretoria-5cfcdb06-0fd2-4022-be16-fbc8ef91398e">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 1" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-1-time-square-casino-pretoria-5cfcdb06-0fd2-4022-be16-fbc8ef91398e" data-title="afrikaans is groot 2026: konsert 1" data-venue="time square casino" data-city="pretoria" data-date="2026-11-20">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 1" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 20 Nov 2026 · 19:30</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 1</h3>
@@ -374,8 +474,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ingrid-n-vlam-in-die-sneeu-die-centurion-teater-centurion-bd82d9a2-48a1-41af-8429-a5cca33a44ae">
-      <img class="event-img" src="https://cdn-az.allevents.in/events1/banners/58caf8e949976fa70a6552f017790f19835959f2e1c6e022b16eb5586ee33b3c-rimg-w1200-h628-dc080808-gmir?v=1788323782" alt="INGRID: 'n Vlam in die Sneeu" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ingrid-n-vlam-in-die-sneeu-die-centurion-teater-centurion-bd82d9a2-48a1-41af-8429-a5cca33a44ae" data-title="ingrid: 'n vlam in die sneeu" data-venue="die centurion teater" data-city="centurion" data-date="2026-11-20">
+      <img class="event-img" src="https://cdn-az.allevents.in/events1/banners/58caf8e949976fa70a6552f017790f19835959f2e1c6e022b16eb5586ee33b3c-rimg-w1200-h628-dc080808-gmir?v=1788323782" alt="INGRID: 'n Vlam in die Sneeu" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 20 Nov 2026 · 19:30</div>
         <h3 class="event-title">INGRID: 'n Vlam in die Sneeu</h3>
@@ -387,8 +487,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 2" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3" data-title="afrikaans is groot 2026: konsert 2" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-21">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 2" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 21 Nov 2026 · 13:00</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 2</h3>
@@ -400,8 +500,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 3" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6" data-title="afrikaans is groot 2026: konsert 3" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-21">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 3" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 21 Nov 2026 · 19:30</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 3</h3>
@@ -413,8 +513,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e">
-      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998" alt="Ride Joburg" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e" data-title="ride joburg" data-venue="kyalami grand prix circuit" data-city="johannesburg" data-date="2026-11-22">
+      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998" alt="Ride Joburg" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 22 Nov 2026 · 05:00</div>
         <h3 class="event-title">Ride Joburg</h3>
@@ -426,8 +526,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 4" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23" data-title="afrikaans is groot 2026: konsert 4" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-22">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 4" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 22 Nov 2026 · 12:00</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 4</h3>

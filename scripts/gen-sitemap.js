@@ -189,7 +189,18 @@ const HUBS = [
   { loc: '/services/paramedics-first-aid', changefreq: 'weekly', priority: '0.88' },
   { loc: '/services/photographers-360', changefreq: 'weekly', priority: '0.88' },
   { loc: '/services/drone-videography', changefreq: 'weekly', priority: '0.88' },
+  { loc: '/events/free', changefreq: 'daily', priority: '0.92' },
 ];
+
+for (const cSlug of ['johannesburg', 'cape-town', 'durban', 'pretoria', 'sandton', 'soweto', 'midrand', 'stellenbosch']) {
+  for (const mSlug of ['december-2026', 'january-2027', 'february-2027', 'march-2027', 'april-2027', 'may-2027']) {
+    HUBS.push({ loc: `/events/${cSlug}/${mSlug}`, changefreq: 'daily', priority: '0.88' });
+  }
+}
+for (const cSlug of ['johannesburg', 'cape-town', 'durban', 'pretoria', 'sandton', 'soweto']) {
+  HUBS.push({ loc: `/events/${cSlug}/free`, changefreq: 'daily', priority: '0.86' });
+  HUBS.push({ loc: `/events/${cSlug}/this-weekend`, changefreq: 'daily', priority: '0.90' });
+}
 
 // A hub with no events of its own is built with noindex
 // (scripts/build-seo-hubs.js); sending it in the sitemap too would tell Google

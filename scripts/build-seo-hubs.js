@@ -104,11 +104,53 @@ function renderHtmlShell({ title, description, canonicalUrl, ogImage, jsonLd = [
     '@type': 'WebSite',
     'name': APP_NAME,
     'url': SITE,
+    'sameAs': [
+      'https://www.instagram.com/thegruvs',
+      'https://twitter.com/thegruvs',
+      'https://www.tiktok.com/@thegruvs',
+    ],
     'potentialAction': {
       '@type': 'SearchAction',
       'target': `${SITE}/?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
     },
+  });
+
+  allJsonLd.push({
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    'name': title,
+    'description': description,
+    'url': canonicalUrl,
+    'speakable': {
+      '@type': 'SpeakableSpecification',
+      'cssSelector': ['.hero-title', '.hero-lead'],
+    },
+  });
+
+  allJsonLd.push({
+    '@context': 'https://schema.org',
+    '@type': 'SiteNavigationElement',
+    'name': [
+      'Events in Johannesburg',
+      'Events in Cape Town',
+      'Events in Durban',
+      'Business & Tech Summits',
+      'Amapiano Events',
+      'Ke Dezemba 2026',
+      'Free Events',
+      '28 Event Services',
+    ],
+    'url': [
+      `${SITE}/events/johannesburg`,
+      `${SITE}/events/cape-town`,
+      `${SITE}/events/durban`,
+      `${SITE}/events/business`,
+      `${SITE}/events/amapiano`,
+      `${SITE}/events/ke-dezemba`,
+      `${SITE}/events/free`,
+      `${SITE}/services`,
+    ],
   });
 
   return `<!DOCTYPE html>
@@ -338,6 +380,59 @@ function renderHtmlShell({ title, description, canonicalUrl, ogImage, jsonLd = [
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -435,8 +530,8 @@ function renderEventCard(e) {
   const slug = eventSlug(e);
 
   return `
-    <a class="event-card" href="${SITE}/events/${slug}">
-      <img class="event-img" src="${escapeHtml(cover)}" alt="${escapeHtml(e.title)}" loading="lazy" />
+    <a class="event-card" href="${SITE}/events/${slug}" data-title="${escapeHtml((e.title || '').toLowerCase())}" data-venue="${escapeHtml((e.venue_name || '').toLowerCase())}" data-city="${escapeHtml((e.city || '').toLowerCase())}" data-date="${escapeHtml(e.event_date || '')}">
+      <img class="event-img" src="${escapeHtml(cover)}" alt="${escapeHtml(e.title)}" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">${escapeHtml(dateStr)}</div>
         <h3 class="event-title">${escapeHtml(e.title)}</h3>
@@ -447,6 +542,42 @@ function renderEventCard(e) {
         </div>
       </div>
     </a>
+  `;
+}
+
+function renderHubFilterBar(count) {
+  if (!count || count < 2) return '';
+  return `
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (${count})</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
   `;
 }
 
@@ -578,6 +709,18 @@ function emptyHubNote(what) {
     }
   }
 
+  // ── Editorial Local Guides for Major Metros ──────────────────────────────
+  const CITY_GUIDES = {
+    johannesburg: 'Johannesburg is South Africa’s cultural and commercial powerhouse. From executive fintech summits in Sandton and Rosebank vinyl markets to massive stadium concerts at FNB Stadium and Braamfontein rooftop raves, Jozi delivers 24/7 energy. Book tickets securely in ZAR via PayFast and pair weekend trips with nearby stays on The Resident Crew.',
+    'cape-town': 'Cape Town pairs world-class electronic music and beachfront glamour with serene botanical concerts. Catch golden-hour Afro-Tech at Cabo Beach Club and Shimmy Beach, summer sunset picnics at Kirstenbosch, and venture capital showcases at the CTICC.',
+    durban: 'Durban’s subtropical climate fuels year-round outdoor culture. Experience legendary Sunday Shisanyama at Eyadini and Max’s Lifestyle in Umlazi, beachfront festivals at Moses Mabhida Peoples Park, and maritime trade forums at Durban ICC.',
+    pretoria: 'Tshwane blends mega-arena productions at SunBet Arena Time Square with relaxed afternoon picnics, Menlyn Maine culinary showcases, and Hatfield live music venues. Direct Gautrain and N1 access makes Pretoria effortless for weekend hopping.',
+    sandton: 'Africa’s richest square mile anchors South Africa’s corporate calendar at Sandton Convention Centre and The Marc, alongside upscale cocktail lounges and executive networking galas.',
+    soweto: 'The heartbeat of Amapiano and urban heritage. From Zone 6 Venue in Diepkloof and Konka in Pimville to Vilakazi Street’s culinary festivals, Soweto hosts the country’s most electrifying weekend experiences.',
+    midrand: 'Strategically positioned between Johannesburg and Pretoria, Midrand hosts Altitude Beach pool festivals, Kyalami Grand Prix Circuit motorsport spectacles, Waterfall City markets, and major expos at Gallagher Convention Centre.',
+    stellenbosch: 'Surrounded by dramatic Cape Winelands peaks, Stellenbosch’s historic estates like Spier host harvest jazz picnics, Pinotage tastings, and boutique agricultural summits.',
+  };
+
   // ── Generate City Hubs ────────────────────────────────────────────────────
   for (const c of CITIES) {
     const cityEvents = events.filter(e => {
@@ -615,6 +758,9 @@ function emptyHubNote(what) {
       { name: c.name, url: `${SITE}/events/${c.slug}` },
     ];
 
+    const hasCityMonths = ['johannesburg', 'cape-town', 'durban', 'pretoria', 'sandton', 'soweto', 'midrand', 'stellenbosch'].includes(c.slug);
+    const guideCopy = CITY_GUIDES[c.slug] || `Explore verified concerts, nightlife, business conferences, and cultural festivals in ${c.name}. Check live venue coordinates, ticket prices in ZAR, and RSVP directly on The Gruvs.`;
+
     const body = `
       <div class="breadcrumbs">
         <a href="${SITE}/">Home</a> <span>›</span>
@@ -625,6 +771,17 @@ function emptyHubNote(what) {
       <h1 class="hero-title">Events in <span class="brand-accent">${escapeHtml(c.name)}</span></h1>
       <p class="hero-lead">${escapeHtml(c.desc)} Browse what's listed, with dates, venues and directions.</p>
 
+      ${hasCityMonths ? `<div class="explore-chips">
+        <a class="explore-chip" href="${SITE}/events/${c.slug}/this-weekend">This Weekend</a>
+        <a class="explore-chip" href="${SITE}/events/${c.slug}/free">Free Events</a>
+        <a class="explore-chip" href="${SITE}/events/${c.slug}/december-2026">Dec 2026</a>
+        <a class="explore-chip" href="${SITE}/events/${c.slug}/january-2027">Jan 2027</a>
+        <a class="explore-chip" href="${SITE}/events/${c.slug}/february-2027">Feb 2027</a>
+        <a class="explore-chip" href="${SITE}/events/${c.slug}/march-2027">Mar 2027</a>
+        <a class="explore-chip" href="${SITE}/events/${c.slug}/april-2027">Apr 2027</a>
+        <a class="explore-chip" href="${SITE}/events/${c.slug}/may-2027">May 2027</a>
+      </div>` : ''}
+
       <div class="resident-banner">
         <div class="resident-banner-text">
           <h3>Need Accommodation in ${escapeHtml(c.name)}?</h3>
@@ -633,9 +790,16 @@ function emptyHubNote(what) {
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
+      ${renderHubFilterBar(activeList.length)}
+
       ${activeList.length ? `<div class="event-grid">
         ${activeList.map(renderEventCard).join('')}
       </div>` : emptyHubNote(`events in ${c.name}`)}
+
+      <div class="hub-guide-box">
+        <h2>Insider Guide to ${escapeHtml(c.name)} Events & Nightlife</h2>
+        <p>${escapeHtml(guideCopy)}</p>
+      </div>
     `;
 
     const cityFaqJsonLd = {
@@ -1163,6 +1327,180 @@ function emptyHubNote(what) {
     generatedPages.push({ loc: `${SITE}/events/${ih.city}/${ih.cat}`, priority: '0.90', changefreq: 'daily' });
   }
 
+  // ── City × Month Matrix (8 Top Metros × 6 Months = 48 Long-Tail Hubs) ────
+  const MATRIX_CITIES = [
+    { slug: 'johannesburg', name: 'Johannesburg', match: e => `${e.city || ''} ${e.venue_name || ''}`.toLowerCase().includes('johannesburg') },
+    { slug: 'cape-town', name: 'Cape Town', match: e => `${e.city || ''} ${e.venue_name || ''}`.toLowerCase().includes('cape town') },
+    { slug: 'durban', name: 'Durban', match: e => `${e.city || ''} ${e.venue_name || ''}`.toLowerCase().includes('durban') },
+    { slug: 'pretoria', name: 'Pretoria', match: e => `${e.city || ''} ${e.venue_name || ''}`.toLowerCase().includes('pretoria') },
+    { slug: 'sandton', name: 'Sandton', match: e => `${e.city || ''} ${e.venue_name || ''}`.toLowerCase().includes('sandton') },
+    { slug: 'soweto', name: 'Soweto', match: e => `${e.city || ''} ${e.venue_name || ''}`.toLowerCase().includes('soweto') },
+    { slug: 'midrand', name: 'Midrand', match: e => `${e.city || ''} ${e.venue_name || ''}`.toLowerCase().includes('midrand') },
+    { slug: 'stellenbosch', name: 'Stellenbosch', match: e => `${e.city || ''} ${e.venue_name || ''}`.toLowerCase().includes('stellenbosch') || (e.venue_name || '').toLowerCase().includes('spier') },
+  ];
+
+  let cityMonthCount = 0;
+  for (const mc of MATRIX_CITIES) {
+    for (const mh of MONTH_HUBS) {
+      const activeList = events.filter(e => mc.match(e) && (e.event_date || '').startsWith(mh.ym));
+      const shortMonth = mh.name.split(' (')[0];
+      const title = `Events in ${mc.name} — ${shortMonth} | The Gruvs`;
+      const desc = `Discover all ${activeList.length} verified events, concerts, nightlife, and business summits in ${mc.name} for ${shortMonth}.`;
+      const body = `
+        <div class="breadcrumbs">
+          <a href="${SITE}/">Home</a> <span>›</span>
+          <a href="${SITE}/events/${mc.slug}">${escapeHtml(mc.name)}</a> <span>›</span>
+          <span style="color:#fff;">${escapeHtml(shortMonth)}</span>
+        </div>
+        <h1 class="hero-title">${escapeHtml(mc.name)} Events — <span class="brand-accent">${escapeHtml(shortMonth)}</span></h1>
+        <p class="hero-lead">${escapeHtml(desc)}</p>
+        ${renderHubFilterBar(activeList.length)}
+        ${activeList.length ? `<div class="event-grid">
+          ${activeList.map(renderEventCard).join('')}
+        </div>` : emptyHubNote(`${shortMonth} events in ${mc.name}`)}
+      `;
+      const html = renderHtmlShell({
+        title,
+        description: desc,
+        canonicalUrl: `${SITE}/events/${mc.slug}/${mh.slug}`,
+        jsonLd: activeList.length ? [{
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          'name': title,
+          'itemListElement': activeList.slice(0, 20).map((e, idx) => ({
+            '@type': 'ListItem',
+            'position': idx + 1,
+            'item': {
+              '@type': 'Event',
+              'name': e.title,
+              'startDate': `${e.event_date}T${e.event_time ? e.event_time.slice(0, 5) : '18:00'}:00+02:00`,
+              'url': `${SITE}/events/${eventSlug(e)}`,
+            },
+          })),
+        }] : [],
+        bodyContent: body,
+        noindex: activeList.length === 0,
+        breadcrumbs: [
+          { name: 'Home', url: `${SITE}/` },
+          { name: mc.name, url: `${SITE}/events/${mc.slug}` },
+          { name: shortMonth, url: `${SITE}/events/${mc.slug}/${mh.slug}` },
+        ],
+      });
+      writePage(`events/${mc.slug}/${mh.slug}/index.html`, html);
+      cityMonthCount++;
+      if (activeList.length > 0) {
+        generatedPages.push({ loc: `${SITE}/events/${mc.slug}/${mh.slug}`, priority: '0.88', changefreq: 'daily' });
+      }
+    }
+  }
+
+  // ── Free Events Directory (National + Top Metros) ─────────────────────────
+  const isFreeEvent = e => {
+    if (e.price === 0 || e.price === '0' || e.price === 'FREE') return true;
+    if (typeof e.price === 'string' && e.price.toLowerCase().includes('free')) return true;
+    return false;
+  };
+  const freeNational = events.filter(isFreeEvent);
+  const freeNationalBody = `
+    <div class="breadcrumbs">
+      <a href="${SITE}/">Home</a> <span>›</span>
+      <span>Events</span> <span>›</span>
+      <span style="color:#fff;">Free Events</span>
+    </div>
+    <h1 class="hero-title"><span class="brand-accent">Free Events</span> & RSVPs in South Africa</h1>
+    <p class="hero-lead">Browse verified free-entry festivals, heritage concerts, startup expos, and community markets across South Africa.</p>
+    ${renderHubFilterBar(freeNational.length)}
+    ${freeNational.length ? `<div class="event-grid">
+      ${freeNational.map(renderEventCard).join('')}
+    </div>` : emptyHubNote('free events')}
+  `;
+  writePage('events/free/index.html', renderHtmlShell({
+    title: 'Free Events & Things To Do in South Africa — The Gruvs',
+    description: 'Find free concerts, entrepreneurship expos, cultural festivals, and community markets across South Africa.',
+    canonicalUrl: `${SITE}/events/free`,
+    jsonLd: freeNational.length ? [{
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      'name': 'Free Events in South Africa',
+      'itemListElement': freeNational.slice(0, 20).map((e, idx) => ({
+        '@type': 'ListItem',
+        'position': idx + 1,
+        'item': { '@type': 'Event', 'name': e.title, 'url': `${SITE}/events/${eventSlug(e)}` },
+      })),
+    }] : [],
+    bodyContent: freeNationalBody,
+    noindex: freeNational.length === 0,
+    breadcrumbs: [{ name: 'Home', url: `${SITE}/` }, { name: 'Free Events', url: `${SITE}/events/free` }],
+  }));
+  if (freeNational.length > 0) {
+    generatedPages.push({ loc: `${SITE}/events/free`, priority: '0.92', changefreq: 'daily' });
+  }
+
+  for (const mc of MATRIX_CITIES.slice(0, 6)) {
+    const cityFree = freeNational.filter(mc.match);
+    const body = `
+      <div class="breadcrumbs">
+        <a href="${SITE}/">Home</a> <span>›</span>
+        <a href="${SITE}/events/${mc.slug}">${escapeHtml(mc.name)}</a> <span>›</span>
+        <span style="color:#fff;">Free Events</span>
+      </div>
+      <h1 class="hero-title">Free Events in <span class="brand-accent">${escapeHtml(mc.name)}</span></h1>
+      <p class="hero-lead">Zero-cost festivals, free RSVP expos, and open community gatherings in ${escapeHtml(mc.name)}.</p>
+      ${renderHubFilterBar(cityFree.length)}
+      ${cityFree.length ? `<div class="event-grid">
+        ${cityFree.map(renderEventCard).join('')}
+      </div>` : emptyHubNote(`free events in ${mc.name}`)}
+    `;
+    writePage(`events/${mc.slug}/free/index.html`, renderHtmlShell({
+      title: `Free Events in ${mc.name} — The Gruvs`,
+      description: `Discover free-entry concerts, markets, and business expos in ${mc.name}.`,
+      canonicalUrl: `${SITE}/events/${mc.slug}/free`,
+      jsonLd: [],
+      bodyContent: body,
+      noindex: cityFree.length === 0,
+      breadcrumbs: [
+        { name: 'Home', url: `${SITE}/` },
+        { name: mc.name, url: `${SITE}/events/${mc.slug}` },
+        { name: 'Free', url: `${SITE}/events/${mc.slug}/free` },
+      ],
+    }));
+    if (cityFree.length > 0) {
+      generatedPages.push({ loc: `${SITE}/events/${mc.slug}/free`, priority: '0.86', changefreq: 'daily' });
+    }
+
+    // City × This Weekend Hub
+    const cityWknd = weekendEvents.filter(mc.match);
+    const wkndBody = `
+      <div class="breadcrumbs">
+        <a href="${SITE}/">Home</a> <span>›</span>
+        <a href="${SITE}/events/${mc.slug}">${escapeHtml(mc.name)}</a> <span>›</span>
+        <span style="color:#fff;">This Weekend</span>
+      </div>
+      <h1 class="hero-title">Events in ${escapeHtml(mc.name)} <span class="brand-accent">This Weekend</span></h1>
+      <p class="hero-lead">What’s on in ${escapeHtml(mc.name)} from Friday night through Sunday.</p>
+      ${renderHubFilterBar(cityWknd.length)}
+      ${cityWknd.length ? `<div class="event-grid">
+        ${cityWknd.map(renderEventCard).join('')}
+      </div>` : emptyHubNote(`weekend events in ${mc.name}`)}
+    `;
+    writePage(`events/${mc.slug}/this-weekend/index.html`, renderHtmlShell({
+      title: `Events in ${mc.name} This Weekend — The Gruvs`,
+      description: `Top parties, concerts, and markets happening this weekend in ${mc.name}.`,
+      canonicalUrl: `${SITE}/events/${mc.slug}/this-weekend`,
+      jsonLd: [],
+      bodyContent: wkndBody,
+      noindex: cityWknd.length === 0,
+      breadcrumbs: [
+        { name: 'Home', url: `${SITE}/` },
+        { name: mc.name, url: `${SITE}/events/${mc.slug}` },
+        { name: 'This Weekend', url: `${SITE}/events/${mc.slug}/this-weekend` },
+      ],
+    }));
+    if (cityWknd.length > 0) {
+      generatedPages.push({ loc: `${SITE}/events/${mc.slug}/this-weekend`, priority: '0.90', changefreq: 'daily' });
+    }
+  }
+
   // ── 28-Category Event Business & Hustler Directory Hubs ───────────────────
   const SERVICES = [
     // Food & Refreshments
@@ -1583,6 +1921,10 @@ function emptyHubNote(what) {
         'url': SITE,
         'logo': `${SITE}/logo.png`,
       },
+      'performer': {
+        '@type': 'PerformingGroup',
+        'name': e.title,
+      },
     };
 
     const eventFaqJsonLd = {
@@ -1634,17 +1976,22 @@ function emptyHubNote(what) {
     const icsContent = encodeURIComponent(`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//The Gruvs//ZA\nBEGIN:VEVENT\nSUMMARY:${cleanTitle}\nDESCRIPTION:${cleanDesc}\nLOCATION:${cleanVenue}\nDTSTART:${calStart}\nDTEND:${calEnd}\nEND:VEVENT\nEND:VCALENDAR`);
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`Pull up with me to ${cleanTitle} at ${cleanVenue} on ${dateStr}! See it on The Gruvs: ${SITE}/events/${slug}`)}`;
 
+    const evCitySlug = e.city ? slugify(e.city) : '';
+    const evVenueSlug = e.venue_name ? slugify(e.venue_name) : '';
+    const evMonthObj = MONTH_HUBS.find(m => (e.event_date || '').startsWith(m.ym));
+    const evCatSlug = e.category === 'biz' ? 'business' : (e.category === 'sport' ? 'sports-derbies' : 'amapiano');
+
     const body = `
       <div class="breadcrumbs">
         <a href="${SITE}/">Home</a> <span>›</span>
         <span>Events</span> <span>›</span>
-        ${e.city ? `<a href="${SITE}/events/${slugify(e.city)}">${escapeHtml(e.city)}</a> <span>›</span>` : ''}
+        ${e.city ? `<a href="${SITE}/events/${evCitySlug}">${escapeHtml(e.city)}</a> <span>›</span>` : ''}
         <span style="color:#fff;">${escapeHtml(e.title)}</span>
       </div>
 
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; align-items: start; margin-top: 16px;">
         <div>
-          <img src="${escapeHtml(cover)}" alt="${escapeHtml(e.title)}" style="width:100%; border-radius:18px; border:1px solid var(--surface-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
+          <img src="${escapeHtml(cover)}" alt="${escapeHtml(e.title)}" fetchpriority="high" decoding="async" width="800" height="450" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:18px; border:1px solid var(--surface-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
           
           <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;">
             <a href="${gCalUrl}" target="_blank" rel="noopener" style="flex:1; min-width:140px; text-align:center; background:#1a2327; border:1px solid #00f2ff44; color:#00f2ff; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none;">
@@ -1691,6 +2038,17 @@ function emptyHubNote(what) {
               <span style="color:var(--muted); font-size:13px;">Claim this listing to update times, add tickets, and connect.</span>
             </div>
             <a href="${SITE}/?claim=${e.id}" class="resident-btn" style="background:transparent; border:1px solid var(--primary); color:var(--primary); padding:6px 14px; font-size:13px;">Claim Listing →</a>
+          </div>
+
+          <div style="margin-top:24px;">
+            <strong style="color:#fff; font-size:13px; text-transform:uppercase; letter-spacing:0.6px;">Explore Related Hubs</strong>
+            <div class="explore-chips" style="margin-top:10px;">
+              ${evCitySlug ? `<a class="explore-chip" href="${SITE}/events/${evCitySlug}">More in ${escapeHtml(e.city)}</a>` : ''}
+              ${evVenueSlug ? `<a class="explore-chip" href="${SITE}/venues/${evVenueSlug}">All at ${escapeHtml(e.venue_name)}</a>` : ''}
+              <a class="explore-chip" href="${SITE}/events/${evCatSlug}">${e.category === 'biz' ? 'Business & Tech Summits' : (e.category === 'sport' ? 'Sports Derbies' : 'Amapiano & Music')}</a>
+              ${evMonthObj ? `<a class="explore-chip" href="${SITE}/events/${evMonthObj.slug}">${escapeHtml(evMonthObj.name.split(' (')[0])}</a>` : ''}
+              <a class="explore-chip" href="${SITE}/events/free">Free Events</a>
+            </div>
           </div>
         </div>
       </div>
