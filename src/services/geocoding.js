@@ -148,18 +148,53 @@ export async function reverseGeocode(lat, lon) {
 export async function searchPlaces(query, { limit = 5, near } = {}) {
   const q = String(query || '').trim();
   if (q.length < 3) return [];
-  const viewbox = near
-    ? `&viewbox=${near.lon - 0.3},${near.lat - 0.3},${near.lon + 0.3},${near.lat + 0.3}&bounded=0`
-    : '';
+  const minLon = near ? Math.min(near.lon - 0.5, near.lon + 0.5) : null;
+  const maxLon = near ? Math.max(near.lon - 0.5, near.lon + 0.5) : null;
+  const minLat = near ? Math.min(near.lat - 0.5, near.lat + 0.5) : null;
+  const maxLat = near ? Math.max(near.lat - 0.5, near.lat + 0.5) : null;
+  const viewbox = near ? `&viewbox=${minLon},${maxLat},${maxLon},${minLat}&bounded=0` : '';
+
   return throttled(async () => {
     try {
       const res = await fetch(`${NOMINATIM}/search?q=${encodeURIComponent(q)}&format=jsonv2&addressdetails=1&limit=${limit}${viewbox}`, {
         headers: { Accept: 'application/json' },
       });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return (json || []).map(shape).filter(Boolean);
-    } catch { return []; }
+      if (res.ok) {
+        const json = await res.json();
+        const results = (json || []).map(shape).filter(Boolean);
+        if (results.length > 0) return results;
+      }
+    } catch { /* try photon fallback */ }
+
+    // Fallback to Photon (OSM-based, high availability typeahead)
+    try {
+      const pRes = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=${limit}${near ? `&lat=${near.lat}&lon=${near.lon}` : ''}`);
+      if (pRes.ok) {
+        const pJson = await pRes.json();
+        return (pJson.features || []).map(f => {
+          const coords = f.geometry?.coordinates;
+          if (!coords || coords.length < 2) return null;
+          const [lon, lat] = coords;
+          const p = f.properties || {};
+          const full = [p.name, p.street, p.district, p.city, p.state, p.country].filter(Boolean).join(', ');
+          return {
+            lat, lon,
+            displayName: full || p.name || q,
+            road: p.street || null,
+            suburb: p.district || null,
+            city: p.city || null,
+            province: p.state || null,
+            country: p.country || null,
+            countryCode: (p.countrycode || '').toUpperCase() || null,
+            postcode: p.postcode || null,
+            placeId: p.osm_id ? String(p.osm_id) : null,
+            source: 'photon',
+          };
+        }).filter(Boolean);
+      }
+    } catch { /* all failed */ }
+
+    return [];
   });
 }
 

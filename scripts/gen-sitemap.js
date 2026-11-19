@@ -113,9 +113,51 @@ const HUBS = [
   { loc: '/events/shisanyama', changefreq: 'daily', priority: '0.90' },
   { loc: '/events/sports-derbies', changefreq: 'daily', priority: '0.90' },
 
-  // Date Horizons
+  // Professional & Business Verticals
+  { loc: '/events/business', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/tech-conferences', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/fintech', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/startups-and-vc', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/mining-and-energy', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/real-estate-property', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/sme-workshops', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/women-in-leadership', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/healthcare-innovation', changefreq: 'daily', priority: '0.90' },
+  { loc: '/events/trade-and-logistics', changefreq: 'daily', priority: '0.90' },
+
+  // Monthly Calendar Directory Hubs
+  { loc: '/events/december-2026', changefreq: 'daily', priority: '0.92' },
+  { loc: '/events/january-2027', changefreq: 'daily', priority: '0.92' },
+  { loc: '/events/february-2027', changefreq: 'daily', priority: '0.92' },
+  { loc: '/events/march-2027', changefreq: 'daily', priority: '0.92' },
+  { loc: '/events/april-2027', changefreq: 'daily', priority: '0.92' },
+  { loc: '/events/may-2027', changefreq: 'daily', priority: '0.92' },
+
+  // Flagship Seasonal & Holiday Hubs
   { loc: '/events/this-weekend', changefreq: 'daily', priority: '0.95' },
   { loc: '/events/nye-2027', changefreq: 'daily', priority: '0.95' },
+  { loc: '/events/easter-2027', changefreq: 'daily', priority: '0.95' },
+  { loc: '/events/valentines-2027', changefreq: 'daily', priority: '0.95' },
+  { loc: '/events/freedom-day-2027', changefreq: 'daily', priority: '0.95' },
+  { loc: '/events/africa-day-2027', changefreq: 'daily', priority: '0.95' },
+
+  // High-Intent Localized City x Category Intersection Hubs
+  { loc: '/events/sandton/business', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/sandton/tech', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/johannesburg/business', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/johannesburg/nightlife', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/cape-town/tech', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/cape-town/afro-tech', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/cape-town/jazz', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/soweto/amapiano', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/soweto/culture', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/durban/shisanyama', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/durban/business', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/pretoria/concerts', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/midrand/tech', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/midrand/lifestyle', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/stellenbosch/wine', changefreq: 'daily', priority: '0.88' },
+  { loc: '/events/rosebank/art', changefreq: 'daily', priority: '0.88' },
 
   // 28-Category Event Business & Hustler Directory Hubs
   { loc: '/services', changefreq: 'weekly', priority: '0.90' },

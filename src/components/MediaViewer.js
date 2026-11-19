@@ -97,7 +97,8 @@ const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover', onNatu
   return (
     <SmartImage
       source={source}
-      style={mediaStyle}
+      style={[{ backgroundColor: '#11161b' }, mediaStyle]}
+      fallbackColor="#11161b"
       resizeMode={resizeMode}
       onLoad={(e) => {
         // ONLY notify natural aspect ratio for actual real media items, never after a load failure / fallback
@@ -219,7 +220,7 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
     const showBurst = heartBursts[key];
 
     return (
-      <View style={{ width: MEDIA_WIDTH, height: MEDIA_HEIGHT }}>
+      <View style={{ width: MEDIA_WIDTH, height: MEDIA_HEIGHT, backgroundColor: '#11161b' }}>
         <MediaItem
           item={item}
           isActive={isActive}
@@ -351,7 +352,7 @@ const s = StyleSheet.create({
     width: '100%',
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#000',
+    backgroundColor: '#11161b',
     marginBottom: 14,
   },
   videoLabel: {

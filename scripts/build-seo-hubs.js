@@ -132,6 +132,12 @@ function renderHtmlShell({ title, description, canonicalUrl, ogImage, jsonLd = [
   <meta name="twitter:app:name:googleplay" content="${APP_NAME}" />
   <meta name="twitter:app:id:googleplay" content="com.thegruvs_tearn" />
 
+  <!-- High-Performance CDN Preconnects -->
+  <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+  <link rel="dns-prefetch" href="https://images.unsplash.com" />
+  <link rel="preconnect" href="https://feevvddvrjmfbhffccbf.supabase.co" crossorigin />
+  <link rel="dns-prefetch" href="https://feevvddvrjmfbhffccbf.supabase.co" />
+
   <!-- Regional Geo Meta -->
   <meta name="geo.region" content="ZA" />
   <meta name="geo.placename" content="South Africa" />
@@ -360,18 +366,61 @@ function renderHtmlShell({ title, description, canonicalUrl, ogImage, jsonLd = [
     ${bodyContent}
   </div>
 
-  <footer class="site-footer">
-    <p>© ${new Date().getFullYear()} The Gruvs · Founded by Asemahle "TEARN" Nkwali · TEARN Ventures · South Africa's Live Event & Vibe Discovery Platform.</p>
-    <p style="margin-top: 8px;">
-      <a href="${SITE}/">Home</a> · 
-      <a href="${SITE}/founder">Founder</a> · 
-      <a href="${SITE}/press">Press Kit</a> · 
-      <a href="${SITE}/events/ke-dezemba">Ke Dezemba</a> · 
-      <a href="${SITE}/events/johannesburg">Johannesburg</a> · 
-      <a href="${SITE}/events/pretoria">Pretoria</a> · 
-      <a href="${SITE}/events/midrand">Midrand</a> · 
-      <a href="https://theresidentcrew.com" target="_blank" rel="noopener">Stays via The Resident Crew</a> · 
-      <a href="https://excellencyacs.com" target="_blank" rel="noopener">Excellency Academy</a>
+  <footer class="site-footer" style="padding-top: 40px; margin-top: 60px; border-top: 1px solid var(--surface-border);">
+    <div style="max-width: 1200px; margin: 0 auto; text-align: left; padding-bottom: 24px; border-bottom: 1px solid var(--surface-border); display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 28px;">
+      <div>
+        <h4 style="color: #fff; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; font-weight: 900; letter-spacing: 1px;">Top Metros</h4>
+        <ul style="list-style: none; line-height: 2.1; font-size: 13px;">
+          <li><a href="${SITE}/events/johannesburg" style="color: var(--muted); text-decoration: none;">Johannesburg Events</a></li>
+          <li><a href="${SITE}/events/cape-town" style="color: var(--muted); text-decoration: none;">Cape Town Events</a></li>
+          <li><a href="${SITE}/events/durban" style="color: var(--muted); text-decoration: none;">Durban Events</a></li>
+          <li><a href="${SITE}/events/pretoria" style="color: var(--muted); text-decoration: none;">Pretoria Events</a></li>
+          <li><a href="${SITE}/events/sandton" style="color: var(--muted); text-decoration: none;">Sandton Events</a></li>
+          <li><a href="${SITE}/events/soweto" style="color: var(--muted); text-decoration: none;">Soweto Events</a></li>
+          <li><a href="${SITE}/events/midrand" style="color: var(--muted); text-decoration: none;">Midrand Events</a></li>
+          <li><a href="${SITE}/events/stellenbosch" style="color: var(--muted); text-decoration: none;">Stellenbosch Events</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color: #fff; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; font-weight: 900; letter-spacing: 1px;">Categories & Verticals</h4>
+        <ul style="list-style: none; line-height: 2.1; font-size: 13px;">
+          <li><a href="${SITE}/events/amapiano" style="color: var(--muted); text-decoration: none;">Amapiano & Private School</a></li>
+          <li><a href="${SITE}/events/afro-tech" style="color: var(--muted); text-decoration: none;">Afro-Tech & Deep House</a></li>
+          <li><a href="${SITE}/events/business" style="color: var(--muted); text-decoration: none;">Business & Corporate Summits</a></li>
+          <li><a href="${SITE}/events/tech-conferences" style="color: var(--muted); text-decoration: none;">Tech, AI & Cloud</a></li>
+          <li><a href="${SITE}/events/fintech" style="color: var(--muted); text-decoration: none;">FinTech & Payments</a></li>
+          <li><a href="${SITE}/events/startups-and-vc" style="color: var(--muted); text-decoration: none;">Startups & Venture Capital</a></li>
+          <li><a href="${SITE}/events/shisanyama" style="color: var(--muted); text-decoration: none;">Shisanyama & Braai Sundays</a></li>
+          <li><a href="${SITE}/events/live-jazz" style="color: var(--muted); text-decoration: none;">Live Jazz & Afro-Soul</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color: #fff; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; font-weight: 900; letter-spacing: 1px;">2026/2027 Calendar</h4>
+        <ul style="list-style: none; line-height: 2.1; font-size: 13px;">
+          <li><a href="${SITE}/events/december-2026" style="color: var(--muted); text-decoration: none;">December 2026 (Ke Dezemba)</a></li>
+          <li><a href="${SITE}/events/january-2027" style="color: var(--muted); text-decoration: none;">January 2027 (Summer Kickoff)</a></li>
+          <li><a href="${SITE}/events/february-2027" style="color: var(--muted); text-decoration: none;">February 2027 (Valentine's)</a></li>
+          <li><a href="${SITE}/events/march-2027" style="color: var(--muted); text-decoration: none;">March 2027 (Human Rights)</a></li>
+          <li><a href="${SITE}/events/april-2027" style="color: var(--muted); text-decoration: none;">April 2027 (Easter & Freedom Day)</a></li>
+          <li><a href="${SITE}/events/may-2027" style="color: var(--muted); text-decoration: none;">May 2027 (Africa Day)</a></li>
+          <li><a href="${SITE}/events/nye-2027" style="color: var(--muted); text-decoration: none;">New Year's Eve 2027</a></li>
+          <li><a href="${SITE}/events/this-weekend" style="color: var(--muted); text-decoration: none;">This Weekend in SA</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color: #fff; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; font-weight: 900; letter-spacing: 1px;">Ecosystem & Directory</h4>
+        <ul style="list-style: none; line-height: 2.1; font-size: 13px;">
+          <li><a href="${SITE}/services" style="color: var(--muted); text-decoration: none;">28 Event Services Directory</a></li>
+          <li><a href="https://theresidentcrew.com" target="_blank" rel="noopener" style="color: var(--muted); text-decoration: none;">Stays via The Resident Crew</a></li>
+          <li><a href="https://excellencyacs.com" target="_blank" rel="noopener" style="color: var(--muted); text-decoration: none;">Excellency Academy</a></li>
+          <li><a href="${SITE}/founder" style="color: var(--muted); text-decoration: none;">Founder — Asemahle "TEARN" Nkwali</a></li>
+          <li><a href="${SITE}/press" style="color: var(--muted); text-decoration: none;">Press Kit & Brand Assets</a></li>
+          <li><a href="${SITE}/feed.xml" style="color: var(--muted); text-decoration: none;">Live RSS 2.0 / Atom Feed</a></li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top: 18px; font-size: 12px; color: var(--muted); text-align: center;">
+      © ${new Date().getFullYear()} The Gruvs · Founded by Asemahle "TEARN" Nkwali · TEARN Ventures · South Africa's Live Event & Vibe Discovery Platform.
     </p>
   </footer>
 </body>
@@ -475,7 +524,7 @@ function emptyHubNote(what) {
     { slug: 'camps-bay', name: 'Camps Bay', desc: 'Sunset oceanfront lounges, VIP beach parties, and summer cocktail terraces in Camps Bay.' },
   ];
 
-  // 2. Genre Definitions (Expanded across all South African Music & Event Subcultures)
+  // 2. Genre & Category Definitions (Music, Subcultures & Professional Verticals)
   const GENRES = [
     { slug: 'amapiano', name: 'Amapiano', desc: 'The biggest Amapiano concerts, day parties, and private school groove sets in South Africa.' },
     { slug: 'afro-tech', name: 'Afro-Tech & Deep House', desc: 'Deep ancestral rhythms, electronic stages, and sunset Afro-Tech experiences.' },
@@ -489,6 +538,17 @@ function emptyHubNote(what) {
     { slug: 'rooftop-sundowners', name: 'Rooftop Sundowners', desc: 'Golden hour panoramic cocktails, deep house selections, and skybar weekends.' },
     { slug: 'shisanyama', name: 'Shisanyama & Braai Sundays', desc: 'Butchery grill feasts, cooler box lawn picnics, and authentic township Sunday sessions.' },
     { slug: 'sports-derbies', name: 'Sports Derbies & Stadium Vibe', desc: 'Soweto Derby fan parks, rugby test tailgates, and stadium screening parties.' },
+    // Professional & Business Verticals
+    { slug: 'business', name: 'Business & Corporate Summits', desc: 'Executive conferences, industry conventions, corporate galas, and leadership summits across South Africa.' },
+    { slug: 'tech-conferences', name: 'Tech, AI & Cloud Summits', desc: 'Enterprise artificial intelligence, cloud architecture, cybersecurity, and software engineering conferences.' },
+    { slug: 'fintech', name: 'FinTech, Banking & Payments', desc: 'Digital banking, African payment gateways, mobile money interoperability, and cross-border remittance summits.' },
+    { slug: 'startups-and-vc', name: 'Startups, Venture Capital & Angels', desc: 'Seed funding pitch competitions, angel investor breakfasts, tech demo days, and venture showcases.' },
+    { slug: 'mining-and-energy', name: 'Mining, Clean Energy & Green Hydrogen', desc: 'Mining indaba executive forums, commercial solar wheeling, battery storage, and green hydrogen summits.' },
+    { slug: 'real-estate-property', name: 'Commercial Property & Real Estate', desc: 'Property buyer expos, student accommodation developments, REIT investment panels, and green building forums.' },
+    { slug: 'sme-workshops', name: 'SME Growth, Tax & Funding', desc: 'Actionable SARS tax compliance, cloud accounting masterclasses, government grant funding, and franchise expos.' },
+    { slug: 'women-in-leadership', name: 'Women in Leadership & Tech', desc: 'Executive boardroom governance, female tech founder showcases, and mentorship breakfast round-tables.' },
+    { slug: 'healthcare-innovation', name: 'Healthcare Innovation & MedTech', desc: 'Digital health diagnostics, pharmacy automation, telemedicine platforms, and medical scheme tech forums.' },
+    { slug: 'trade-and-logistics', name: 'Trade, AfCFTA, Maritime & Ports', desc: 'Port of Durban logistics, AfCFTA cross-border trade corridors, rail freight revitalization, and export forums.' },
   ];
 
   const generatedPages = [];
@@ -615,11 +675,47 @@ function emptyHubNote(what) {
     generatedPages.push({ loc: `${SITE}/events/${c.slug}`, priority: '0.9', changefreq: 'daily' });
   }
 
-  // ── Generate Genre Hubs ───────────────────────────────────────────────────
+  // ── Generate Genre & Category Hubs ────────────────────────────────────────
   for (const g of GENRES) {
     const genreEvents = events.filter(e => {
-      const catText = `${e.category || ''} ${e.title || ''} ${e.description || ''}`.toLowerCase();
-      return catText.includes(g.slug.replace('-', ' ')) || catText.includes(g.name.toLowerCase());
+      const cat = (e.category || '').toLowerCase();
+      const title = (e.title || '').toLowerCase();
+      const desc = (e.description || '').toLowerCase();
+      const tags = (Array.isArray(e.tags) ? e.tags.join(' ') : '').toLowerCase();
+      const combined = `${cat} ${title} ${desc} ${tags}`;
+
+      if (g.slug === 'business') {
+        return cat === 'biz' || cat === 'business' || combined.includes('business') || combined.includes('summit') || combined.includes('executive') || combined.includes('conference');
+      }
+      if (g.slug === 'tech-conferences') {
+        return combined.includes('tech') || combined.includes(' ai ') || combined.includes('cloud') || combined.includes('automation') || combined.includes('cybersecurity');
+      }
+      if (g.slug === 'fintech') {
+        return combined.includes('fintech') || combined.includes('banking') || combined.includes('payments') || combined.includes('remittance');
+      }
+      if (g.slug === 'startups-and-vc') {
+        return combined.includes('startup') || combined.includes('venture capital') || combined.includes('angel') || combined.includes('investor') || combined.includes('pitch');
+      }
+      if (g.slug === 'mining-and-energy') {
+        return combined.includes('mining') || combined.includes('energy') || combined.includes('solar') || combined.includes('hydrogen') || combined.includes('battery');
+      }
+      if (g.slug === 'real-estate-property') {
+        return combined.includes('property') || combined.includes('real estate') || combined.includes('building') || combined.includes('housing');
+      }
+      if (g.slug === 'sme-workshops') {
+        return combined.includes('sme') || combined.includes('tax') || combined.includes('compliance') || combined.includes('workshop') || combined.includes('accounting');
+      }
+      if (g.slug === 'women-in-leadership') {
+        return combined.includes('women') || combined.includes('female') || combined.includes('women in');
+      }
+      if (g.slug === 'healthcare-innovation') {
+        return combined.includes('health') || combined.includes('medtech') || combined.includes('telemedicine') || combined.includes('medical');
+      }
+      if (g.slug === 'trade-and-logistics') {
+        return combined.includes('trade') || combined.includes('logistics') || combined.includes('maritime') || combined.includes('port') || combined.includes('afcfta') || combined.includes('export');
+      }
+
+      return combined.includes(g.slug.replace(/-/g, ' ')) || combined.includes(g.name.toLowerCase());
     });
 
     const activeList = genreEvents;
@@ -862,6 +958,210 @@ function emptyHubNote(what) {
   });
   writePage('events/nye-2027/index.html', nyeHtml);
   generatedPages.push({ loc: `${SITE}/events/nye-2027`, priority: '0.95', changefreq: 'daily' });
+
+  // ── Marquee Flagship Seasonal Hubs (Easter, Valentine's, Freedom Day, Africa Day) ──
+  const MARQUEE_SEASONS = [
+    {
+      slug: 'easter-2027',
+      name: 'Easter Long Weekend 2027',
+      title: 'Easter Long Weekend 2027 Events & Bashes in South Africa — The Gruvs',
+      desc: 'Top Easter long weekend Amapiano parties, ocean raves, vineyard jazz picnics, and family celebrations across South Africa.',
+      filter: e => e.event_date >= '2027-04-02' && e.event_date <= '2027-04-05',
+    },
+    {
+      slug: 'valentines-2027',
+      name: "Valentine's Weekend 2027",
+      title: "Valentine's Weekend 2027 Dinners, Beach & Sunset Soirees — The Gruvs",
+      desc: "Romantic candlelit dinners, sunset beach cruises, wine and chocolate pairings, and lovers' grooves across South Africa.",
+      filter: e => e.event_date >= '2027-02-12' && e.event_date <= '2027-02-14',
+    },
+    {
+      slug: 'freedom-day-2027',
+      name: 'Freedom Day 2027',
+      title: 'Freedom Day 2027 Celebrations & Heritage Concerts — The Gruvs',
+      desc: 'Commemorating 33 years of democracy with all-star stadium festivals, heritage concerts at Constitution Hill, and coastal gatherings.',
+      filter: e => e.event_date >= '2027-04-26' && e.event_date <= '2027-04-27',
+    },
+    {
+      slug: 'africa-day-2027',
+      name: 'Africa Day 2027',
+      title: 'Africa Day 2027 Cultural Carnivals & Concerts — The Gruvs',
+      desc: 'Pan-African cultural carnivals, continent-wide Afrobeats and Amapiano concerts, and young African business innovator dialogues.',
+      filter: e => e.event_date >= '2027-05-24' && e.event_date <= '2027-05-25',
+    },
+  ];
+
+  for (const s of MARQUEE_SEASONS) {
+    const activeList = events.filter(s.filter);
+    const body = `
+      <div class="breadcrumbs">
+        <a href="${SITE}/">Home</a> <span>›</span>
+        <span>Seasonal</span> <span>›</span>
+        <span style="color:#fff;">${escapeHtml(s.name)}</span>
+      </div>
+      <h1 class="hero-title"><span class="brand-accent">${escapeHtml(s.name)}</span> Events</h1>
+      <p class="hero-lead">${escapeHtml(s.desc)}</p>
+      ${activeList.length ? `<div class="event-grid">
+        ${activeList.map(renderEventCard).join('')}
+      </div>` : emptyHubNote(`${s.name} events`)}
+    `;
+
+    const html = renderHtmlShell({
+      title: s.title,
+      description: s.desc,
+      canonicalUrl: `${SITE}/events/${s.slug}`,
+      jsonLd: [{
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        'name': s.title,
+        'description': s.desc,
+        'itemListElement': activeList.slice(0, 20).map((e, idx) => ({
+          '@type': 'ListItem',
+          'position': idx + 1,
+          'item': {
+            '@type': 'Event',
+            'name': e.title,
+            'startDate': `${e.event_date}T${e.event_time ? e.event_time.slice(0, 5) : '18:00'}:00+02:00`,
+            'url': `${SITE}/events/${eventSlug(e)}`,
+          },
+        })),
+      }],
+      bodyContent: body,
+      noindex: false,
+      breadcrumbs: [
+        { name: 'Home', url: `${SITE}/` },
+        { name: s.name, url: `${SITE}/events/${s.slug}` },
+      ],
+    });
+
+    writePage(`events/${s.slug}/index.html`, html);
+    generatedPages.push({ loc: `${SITE}/events/${s.slug}`, priority: '0.95', changefreq: 'daily' });
+  }
+
+  // ── Monthly Calendar Directory Hubs (Dec 2026 – May 2027) ─────────────────
+  const MONTH_HUBS = [
+    { ym: '2026-12', slug: 'december-2026', name: 'December 2026 (Ke Dezemba)', title: 'Events in December 2026 (Ke Dezemba) — South Africa Guide | The Gruvs', desc: 'Complete December 2026 event lineup: festive Amapiano raves, beach club countdowns, and corporate year-end summits.' },
+    { ym: '2027-01', slug: 'january-2027', name: 'January 2027 (Summer Kickoff)', title: 'Events in January 2027 — Summer Music & Tech Summits | The Gruvs', desc: 'Start 2027 with New Year beach raves, street culture festivals, economic outlook forums, and enterprise AI summits.' },
+    { ym: '2027-02', slug: 'february-2027', name: 'February 2027 (Valentine’s & Indaba)', title: 'Events in February 2027 — Nightlife, Mining & Valentine’s | The Gruvs', desc: 'Explore February 2027 events: African mining indabas, VC summits, romantic rooftop soirees, and outdoor festivals.' },
+    { ym: '2027-03', slug: 'march-2027', name: 'March 2027 (Human Rights & Jazz)', title: 'Events in March 2027 — Festivals, Jazz & FinTech Summits | The Gruvs', desc: 'Discover March 2027 events: Human Rights weekend celebrations, harvest jazz picnics, FinTech Africa, and clean energy forums.' },
+    { ym: '2027-04', slug: 'april-2027', name: 'April 2027 (Easter & Freedom Day)', title: 'Events in April 2027 — Easter, Freedom Day & Property Expos | The Gruvs', desc: 'April 2027 event calendar: Easter long-weekend bashes, Freedom Day stadium concerts, property buyer expos, and tech summits.' },
+    { ym: '2027-05', slug: 'may-2027', name: 'May 2027 (Africa Day & Winter Warmup)', title: 'Events in May 2027 — Africa Day Carnivals & Enterprise Cloud | The Gruvs', desc: 'Celebrate May 2027: Africa Day unity festivals, Stellenbosch red wine harvest, and African enterprise cloud summits.' },
+  ];
+
+  for (const m of MONTH_HUBS) {
+    const activeList = events.filter(e => (e.event_date || '').startsWith(m.ym));
+    const body = `
+      <div class="breadcrumbs">
+        <a href="${SITE}/">Home</a> <span>›</span>
+        <span>Calendar</span> <span>›</span>
+        <span style="color:#fff;">${escapeHtml(m.name)}</span>
+      </div>
+      <h1 class="hero-title">Events in <span class="brand-accent">${escapeHtml(m.name)}</span></h1>
+      <p class="hero-lead">${escapeHtml(m.desc)} Browse all verified upcoming concerts, festivals, conferences, and weekend experiences.</p>
+      ${activeList.length ? `<div class="event-grid">
+        ${activeList.map(renderEventCard).join('')}
+      </div>` : emptyHubNote(`events in ${m.name}`)}
+    `;
+
+    const html = renderHtmlShell({
+      title: m.title,
+      description: m.desc,
+      canonicalUrl: `${SITE}/events/${m.slug}`,
+      jsonLd: [{
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        'name': m.title,
+        'description': m.desc,
+        'itemListElement': activeList.slice(0, 25).map((e, idx) => ({
+          '@type': 'ListItem',
+          'position': idx + 1,
+          'item': {
+            '@type': 'Event',
+            'name': e.title,
+            'startDate': `${e.event_date}T${e.event_time ? e.event_time.slice(0, 5) : '18:00'}:00+02:00`,
+            'url': `${SITE}/events/${eventSlug(e)}`,
+          },
+        })),
+      }],
+      bodyContent: body,
+      noindex: false,
+      breadcrumbs: [
+        { name: 'Home', url: `${SITE}/` },
+        { name: m.name, url: `${SITE}/events/${m.slug}` },
+      ],
+    });
+
+    writePage(`events/${m.slug}/index.html`, html);
+    generatedPages.push({ loc: `${SITE}/events/${m.slug}`, priority: '0.92', changefreq: 'daily' });
+  }
+
+  // ── High-Intent Localized City × Category Intersection Hubs ───────────────
+  const INTERSECTION_HUBS = [
+    { city: 'sandton', cat: 'business', title: 'Business Conferences & Summits in Sandton — The Gruvs', desc: 'Upcoming executive conferences, finance summits, and corporate expos in Sandton Convention Centre and The Marc.', filter: e => (e.city || '').toLowerCase().includes('sandton') || (e.venue_name || '').toLowerCase().includes('sandton') },
+    { city: 'sandton', cat: 'tech', title: 'Tech, AI & Cloud Summits in Sandton — The Gruvs', desc: 'Leading enterprise AI, cybersecurity, and cloud conferences taking place in Sandton.', filter: e => ((e.city || '').toLowerCase().includes('sandton') || (e.venue_name || '').toLowerCase().includes('sandton')) && ((e.title || '').toLowerCase().includes('tech') || (e.title || '').toLowerCase().includes('ai') || (e.title || '').toLowerCase().includes('cloud') || (e.title || '').toLowerCase().includes('fintech')) },
+    { city: 'johannesburg', cat: 'business', title: 'Business Summits & Expos in Johannesburg — The Gruvs', desc: 'Executive symposiums, property expos, and commercial trade gatherings in Johannesburg.', filter: e => (e.city || '').toLowerCase().includes('johannesburg') && (e.category === 'biz' || (e.title || '').toLowerCase().includes('business')) },
+    { city: 'johannesburg', cat: 'nightlife', title: 'Nightlife, Clubs & Parties in Johannesburg — The Gruvs', desc: 'Top rooftop sundowners, club raves, and weekend nightlife in Johannesburg.', filter: e => (e.city || '').toLowerCase().includes('johannesburg') && (e.category === 'music' || e.category === 'party') },
+    { city: 'cape-town', cat: 'tech', title: 'Tech & Startup Summits in Cape Town — The Gruvs', desc: 'Silicon Cape demo days, venture capital forums, and innovation congresses at CTICC.', filter: e => (e.city || '').toLowerCase().includes('cape town') && ((e.title || '').toLowerCase().includes('tech') || (e.title || '').toLowerCase().includes('startup') || (e.title || '').toLowerCase().includes('venture')) },
+    { city: 'cape-town', cat: 'afro-tech', title: 'Afro-Tech & Deep House in Cape Town — The Gruvs', desc: 'Sunset coastal parties, Shimmy Beach raves, and oceanfront electronic sets in Cape Town.', filter: e => (e.city || '').toLowerCase().includes('cape town') && ((e.title || '').toLowerCase().includes('afro-tech') || (e.title || '').toLowerCase().includes('house') || (e.title || '').toLowerCase().includes('techno') || (e.title || '').toLowerCase().includes('beach')) },
+    { city: 'cape-town', cat: 'jazz', title: 'Live Jazz & Sunset Concerts in Cape Town — The Gruvs', desc: 'Kirstenbosch summer sunset concerts, acoustic soul sessions, and jazz in Cape Town.', filter: e => (e.city || '').toLowerCase().includes('cape town') && ((e.title || '').toLowerCase().includes('jazz') || (e.title || '').toLowerCase().includes('kirstenbosch') || (e.title || '').toLowerCase().includes('acoustic')) },
+    { city: 'soweto', cat: 'amapiano', title: 'Amapiano Parties & Street Bashes in Soweto — The Gruvs', desc: 'High-voltage Amapiano sets, Zone 6 blowouts, and Konka VIP celebrations in Soweto.', filter: e => (e.city || '').toLowerCase().includes('soweto') && ((e.title || '').toLowerCase().includes('amapiano') || (e.venue_name || '').toLowerCase().includes('zone 6') || (e.venue_name || '').toLowerCase().includes('konka')) },
+    { city: 'soweto', cat: 'culture', title: 'Cultural Festivals & Street Food in Soweto — The Gruvs', desc: 'Heritage concerts, street kota festivals, craft beer markets, and arts in Soweto.', filter: e => (e.city || '').toLowerCase().includes('soweto') && ((e.title || '').toLowerCase().includes('food') || (e.title || '').toLowerCase().includes('culture') || (e.title || '').toLowerCase().includes('rights')) },
+    { city: 'durban', cat: 'shisanyama', title: 'Shisanyama & Braai Sundays in Durban — The Gruvs', desc: 'Legendary butchery braai feasts, Eyadini Lounge groove, and Max’s Lifestyle in Umlazi.', filter: e => (e.city || '').toLowerCase().includes('durban') && ((e.title || '').toLowerCase().includes('shisanyama') || (e.venue_name || '').toLowerCase().includes('eyadini') || (e.venue_name || '').toLowerCase().includes('max')) },
+    { city: 'durban', cat: 'business', title: 'Maritime, Trade & Logistics Summits in Durban — The Gruvs', desc: 'Port of Durban symposiums, AfCFTA trade round-tables, and manufacturing conferences at Durban ICC.', filter: e => (e.city || '').toLowerCase().includes('durban') && (e.category === 'biz' || (e.title || '').toLowerCase().includes('trade') || (e.title || '').toLowerCase().includes('port') || (e.title || '').toLowerCase().includes('manufacturing')) },
+    { city: 'pretoria', cat: 'concerts', title: 'Concerts & Arena Shows in Pretoria — The Gruvs', desc: 'SunBet Arena mega-concerts, Time Square live shows, and orchestral spectacles in Pretoria.', filter: e => (e.city || '').toLowerCase().includes('pretoria') && ((e.venue_name || '').toLowerCase().includes('sunbet') || (e.title || '').toLowerCase().includes('symphony') || (e.title || '').toLowerCase().includes('concert')) },
+    { city: 'midrand', cat: 'tech', title: 'Tech Summits & Gallagher Expos in Midrand — The Gruvs', desc: 'Enterprise AI expos, cloud workshops, and industrial automation conferences at Gallagher.', filter: e => (e.city || '').toLowerCase().includes('midrand') && (e.category === 'biz' || (e.venue_name || '').toLowerCase().includes('gallagher')) },
+    { city: 'midrand', cat: 'lifestyle', title: 'Altitude Beach & Kyalami Track Days in Midrand — The Gruvs', desc: 'Pool parties at Altitude Beach, Kyalami drifting festivals, and Waterfall City street food.', filter: e => (e.city || '').toLowerCase().includes('midrand') && ((e.venue_name || '').toLowerCase().includes('altitude') || (e.venue_name || '').toLowerCase().includes('kyalami') || (e.venue_name || '').toLowerCase().includes('waterfall')) },
+    { city: 'stellenbosch', cat: 'wine', title: 'Wine Tastings & Vineyard Jazz in Stellenbosch — The Gruvs', desc: 'Spier vineyard sunset soirees, Pinotage festivals, and harvest jazz picnics in Stellenbosch.', filter: e => (e.city || '').toLowerCase().includes('stellenbosch') || (e.venue_name || '').toLowerCase().includes('spier') },
+    { city: 'rosebank', cat: 'art', title: 'Art Markets, Vinyl & Streetwear in Rosebank — The Gruvs', desc: 'Boutique art mixers, vintage vinyl listening sessions, and street culture battles at The Zone Rosebank.', filter: e => (e.city || '').toLowerCase().includes('rosebank') },
+  ];
+
+  for (const ih of INTERSECTION_HUBS) {
+    const activeList = events.filter(ih.filter);
+    const body = `
+      <div class="breadcrumbs">
+        <a href="${SITE}/">Home</a> <span>›</span>
+        <a href="${SITE}/events/${ih.city}">${escapeHtml(ih.city.toUpperCase())}</a> <span>›</span>
+        <span style="color:#fff;">${escapeHtml(ih.cat)}</span>
+      </div>
+      <h1 class="hero-title">${escapeHtml(ih.title.replace(' — The Gruvs', ''))}</h1>
+      <p class="hero-lead">${escapeHtml(ih.desc)}</p>
+      ${activeList.length ? `<div class="event-grid">
+        ${activeList.map(renderEventCard).join('')}
+      </div>` : emptyHubNote(`events in ${ih.city} (${ih.cat})`)}
+    `;
+
+    const html = renderHtmlShell({
+      title: ih.title,
+      description: ih.desc,
+      canonicalUrl: `${SITE}/events/${ih.city}/${ih.cat}`,
+      jsonLd: [{
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        'name': ih.title,
+        'description': ih.desc,
+        'itemListElement': activeList.slice(0, 20).map((e, idx) => ({
+          '@type': 'ListItem',
+          'position': idx + 1,
+          'item': {
+            '@type': 'Event',
+            'name': e.title,
+            'startDate': `${e.event_date}T${e.event_time ? e.event_time.slice(0, 5) : '18:00'}:00+02:00`,
+            'url': `${SITE}/events/${eventSlug(e)}`,
+          },
+        })),
+      }],
+      bodyContent: body,
+      noindex: false,
+      breadcrumbs: [
+        { name: 'Home', url: `${SITE}/` },
+        { name: ih.city.toUpperCase(), url: `${SITE}/events/${ih.city}` },
+        { name: ih.cat, url: `${SITE}/events/${ih.city}/${ih.cat}` },
+      ],
+    });
+
+    writePage(`events/${ih.city}/${ih.cat}/index.html`, html);
+    generatedPages.push({ loc: `${SITE}/events/${ih.city}/${ih.cat}`, priority: '0.90', changefreq: 'daily' });
+  }
 
   // ── 28-Category Event Business & Hustler Directory Hubs ───────────────────
   const SERVICES = [
@@ -1229,12 +1529,26 @@ function emptyHubNote(what) {
     const venue = [e.venue_name, e.city].filter(Boolean).join(' · ');
     const price = e.price === 'FREE' || e.price === 0 ? 'Free entry' : (typeof e.price === 'string' && !e.price.startsWith('{') ? e.price : 'Tickets Available');
 
+    // Extract numerical price for Schema.org
+    let schemaPrice = '0';
+    if (typeof e.price === 'number') {
+      schemaPrice = String(e.price);
+    } else if (typeof e.price === 'string') {
+      const priceMatch = e.price.match(/(?:R|ZAR)\s*([0-9,]+)/i) || e.price.match(/"(?:general|early_bird|standard|tier_1)":\s*"([0-9]+)"/i);
+      if (priceMatch) {
+        schemaPrice = priceMatch[1].replace(/,/g, '');
+      } else if (e.price.toLowerCase().includes('free')) {
+        schemaPrice = '0';
+      }
+    }
+
     const eventJsonLd = {
       '@context': 'https://schema.org',
       '@type': 'Event',
       'name': e.title,
       'description': e.description || `${e.title} at ${venue}`,
       'startDate': `${e.event_date}T${e.event_time ? e.event_time.slice(0, 5) : '18:00'}:00+02:00`,
+      ...(e.end_date ? { 'endDate': `${e.end_date}T${e.end_time ? e.end_time.slice(0, 5) : '23:59'}:00+02:00` } : {}),
       'eventStatus': 'https://schema.org/EventScheduled',
       'eventAttendanceMode': 'https://schema.org/OfflineEventAttendanceMode',
       'location': {
@@ -1242,16 +1556,23 @@ function emptyHubNote(what) {
         'name': e.venue_name || e.city || 'Johannesburg, South Africa',
         'address': {
           '@type': 'PostalAddress',
+          'streetAddress': e.address || e.venue_name || '',
           'addressLocality': e.city || 'Johannesburg',
-          'addressRegion': 'Gauteng',
           'addressCountry': 'ZA',
         },
+        ...(e.lat && e.lon ? {
+          'geo': {
+            '@type': 'GeoCoordinates',
+            'latitude': e.lat,
+            'longitude': e.lon,
+          }
+        } : {}),
       },
       'image': [cover],
       'offers': {
         '@type': 'Offer',
         'url': `${SITE}/events/${slug}`,
-        'price': typeof e.price === 'number' ? String(e.price) : '0',
+        'price': schemaPrice,
         'priceCurrency': 'ZAR',
         'availability': 'https://schema.org/InStock',
         'validFrom': e.event_date || today,
@@ -1260,6 +1581,7 @@ function emptyHubNote(what) {
         '@type': 'Organization',
         'name': APP_NAME,
         'url': SITE,
+        'logo': `${SITE}/logo.png`,
       },
     };
 
@@ -1431,8 +1753,12 @@ function emptyHubNote(what) {
   console.log('[build-seo-hubs] Generated public/feed.xml with 50 live events.');
 
   console.log(`[build-seo-hubs] Successfully generated ${generatedPages.length} programmatic SEO pages.`);
-  console.log(`  - 8 City Hubs (Midrand, JHB, Pretoria, Soweto, Tembisa, etc.)`);
-  console.log(`  - 6 Genre Hubs (Amapiano, Afro-Tech, Nightlife, etc.)`);
-  console.log(`  - 1 Ke Dezemba 2026 Flagship Hub`);
+  console.log(`  - ${CITIES.length} City Hubs (Johannesburg, Cape Town, Durban, Pretoria, Sandton, Soweto, etc.)`);
+  console.log(`  - ${GENRES.length} Category & Vertical Hubs (Music, Nightlife, Tech, FinTech, Mining, VC, Real Estate)`);
+  console.log(`  - ${MONTH_HUBS.length} Monthly Calendar Directory Hubs (Dec 2026 – May 2027)`);
+  console.log(`  - ${MARQUEE_SEASONS.length + 3} Flagship Seasonal Hubs (Ke Dezemba, NYE 2027, Easter, Valentines, Freedom Day, Africa Day, This Weekend)`);
+  console.log(`  - ${INTERSECTION_HUBS.length} Localized City x Category Intersection Hubs`);
+  console.log(`  - ${SERVICES.length} Event Business & Hustler Directory Hubs`);
+  console.log(`  - ${venueMap.size} Dedicated Venue Hubs`);
   console.log(`  - ${events.length} Per-Event SEO Slug Pages`);
 })();
