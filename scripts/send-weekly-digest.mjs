@@ -55,6 +55,13 @@ const isSend = args.includes('--send');
 const testEmailIdx = args.indexOf('--test-email');
 const testEmail = testEmailIdx > -1 ? args[testEmailIdx + 1] : null;
 
+// Every digest carries an unsubscribe link (POPIA s69). Until the site has a
+// page that honours it, a live send would promise an unsubscribe that 404s.
+if (isSend && process.env.DIGEST_UNSUBSCRIBE_READY !== 'true') {
+  console.error('Live send refused: set DIGEST_UNSUBSCRIBE_READY=true once ' + (process.env.EXPO_PUBLIC_APP_URL || 'https://thegruvs.com') + '/unsubscribe works. Nothing was sent.');
+  process.exit(1);
+}
+
 // ── Fetch 14-day upcoming events ────────────────────────────────────────────
 async function fetchUpcomingEvents() {
   const today = new Date();
@@ -62,7 +69,7 @@ async function fetchUpcomingEvents() {
   const todayStr = today.toISOString().split('T')[0];
   const maxStr = twoWeeksLater.toISOString().split('T')[0];
 
-  const queryUrl = `${SUPABASE_URL}/rest/v1/events?select=id,title,venue_name,location,address,city,event_date,event_time,lat,lon,latitude,longitude,image_url,cover_url,media_urls,category,price,slug&and=(event_date.gte.${todayStr},event_date.lte.${maxStr})&deleted_at=is.null&order=event_date.asc`;
+  const queryUrl = `${SUPABASE_URL}/rest/v1/events?select=id,title,venue_name,location,address,city,event_date,event_time,lat,lon,latitude,longitude,image_url,cover_url,media_urls,category,price,slug&and=(event_date.gte.${todayStr},event_date.lte.${maxStr})&deleted_at=is.null&is_published=eq.true&is_deleted=eq.false&order=event_date.asc`;
 
   const res = await fetch(queryUrl, {
     headers: {
@@ -97,14 +104,22 @@ async function fetchEligibleUsers() {
     if (res.ok) {
       const users = await res.json();
       if (Array.isArray(users) && users.length > 0) return users;
+      if (isSend) return [];
+    } else if (isSend) {
+      throw new Error(`Recipients unavailable (${res.status}): apply supabase/queries/weekly_email_digest.sql first. Nothing was sent.`);
     }
+  }
+
+  // A live send goes only to real, consenting recipients: never to the samples below.
+  if (isSend) {
+    throw new Error('Live send needs SUPABASE_SERVICE_ROLE_KEY and get_weekly_digest_recipients. Nothing was sent.');
   }
 
   // Fallback / mock sample users for testing and dry-run preview across major regions
   return [
     {
       id: 'mock-user-sandton',
-      email: testEmail || 'sandton.viber@example.com',
+      email: testEmail || 'sandton.viber@gruvs.example',
       display_name: 'Lerato',
       username: 'lerato_vibe',
       home_area: 'Sandton, Johannesburg',
@@ -114,7 +129,7 @@ async function fetchEligibleUsers() {
     },
     {
       id: 'mock-user-pretoria',
-      email: testEmail || 'tumi.pta@example.com',
+      email: testEmail || 'tumi.pta@gruvs.example',
       display_name: 'Tumi',
       username: 'tumi_pta',
       home_area: 'Pretoria East',
@@ -124,7 +139,7 @@ async function fetchEligibleUsers() {
     },
     {
       id: 'mock-user-centurion',
-      email: testEmail || 'sipho.centurion@example.com',
+      email: testEmail || 'sipho.centurion@gruvs.example',
       display_name: 'Sipho',
       username: 'sipho_c',
       home_area: 'Centurion',
