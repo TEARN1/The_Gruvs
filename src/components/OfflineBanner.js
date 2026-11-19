@@ -17,7 +17,10 @@ const pingSupabase = async () => {
       signal: controller.signal,
     });
     clearTimeout(timer);
-    return res.ok || res.status === 400; // 400 means server replied — we're online
+    // ANY HTTP reply means the network works. Supabase answers this anon HEAD
+    // with 401, which the old `ok || 400` check read as offline — so native
+    // (which always pings) showed "No internet connection" permanently.
+    return res.status > 0;
   } catch {
     return false;
   }

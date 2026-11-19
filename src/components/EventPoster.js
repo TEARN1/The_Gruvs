@@ -40,6 +40,19 @@ export const EventPoster = ({ title, category, date, time, venue, color = '#00f2
   </View>
 );
 
+/**
+ * CategoryCover — the backdrop of EventPoster without its text, for small
+ * tiles that already print the title over the image (Trending rows). Those
+ * used to draw an empty Image for events with no picture: a black card.
+ */
+export const CategoryCover = ({ category, color = '#00f2ff', style }) => (
+  <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0b1112', overflow: 'hidden' }, style]} accessible={false}>
+    <View style={[ep.disc, { backgroundColor: `${color}38`, width: '130%', aspectRatio: 1, borderRadius: 999, top: '-55%', right: '-45%' }]} />
+    <View style={[ep.disc, { backgroundColor: `${color}1c`, width: '90%', aspectRatio: 1, borderRadius: 999, bottom: '-30%', left: '-30%' }]} />
+    {!!category && <Text style={[ep.cat, { color, position: 'absolute', top: 14, right: 12, fontSize: 10 }]} numberOfLines={1}>{pretty(category)}</Text>}
+  </View>
+);
+
 const ep = StyleSheet.create({
   wrap: { width: '100%', overflow: 'hidden', borderBottomWidth: 1, justifyContent: 'flex-end' },
   disc: { position: 'absolute' },

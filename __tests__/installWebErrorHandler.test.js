@@ -66,4 +66,16 @@ describe('installWebErrorHandler', () => {
     expect(() => installWebErrorHandler({ logError: jest.fn() })).not.toThrow();
     global.window = originalWindow;
   });
+
+  it('is a no-op on React Native, where window exists without addEventListener', () => {
+    // Regression: RN aliases window to global but gives it no DOM event API.
+    // A typeof-window-only guard crashed Android at boot ("undefined is not a function").
+    const originalWindow = global.window;
+    global.window = {};
+    try {
+      expect(() => installWebErrorHandler({ logError: jest.fn() })).not.toThrow();
+    } finally {
+      global.window = originalWindow;
+    }
+  });
 });

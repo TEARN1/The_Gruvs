@@ -124,7 +124,9 @@ export const useNotifications = ({ onNavigate } = {}) => {
 
           if (!nav) return;
 
-          if (data.event_id) {
+          if (data.type === 'tip' && data.tab) {
+            nav('tab', data); // learn-the-app tip → the tab it talks about
+          } else if (data.event_id) {
             nav('event', { event_id: data.event_id });
           } else if (data.type === 'message' || data.dm_conversation_id) {
             nav('chats', data);
