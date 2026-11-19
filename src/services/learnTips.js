@@ -9,6 +9,7 @@
 import { Platform } from 'react-native';
 
 const STORE_KEY = '@gruvs_learn_tips_v1';
+const OFF_KEY = '@gruvs_learn_tips_off'; // the user switched tips off in Settings
 const TIP_HOUR = 18; // early evening: when people plan their night
 
 // Every tip names a feature that exists today, and the tab that holds it.
@@ -40,6 +41,7 @@ export async function scheduleLearnTips() {
   if (Platform.OS === 'web') return false;
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    if (await AsyncStorage.getItem(OFF_KEY)) return false;
     if (await AsyncStorage.getItem(STORE_KEY)) return false;
 
     const Notifications = require('expo-notifications');
@@ -67,4 +69,33 @@ export async function cancelLearnTips() {
     const Notifications = require('expo-notifications');
     await Promise.all(TIPS.map((_, i) => Notifications.cancelScheduledNotificationAsync(`gruvs-tip-${i + 1}`)));
   } catch { /* nothing scheduled */ }
+}
+
+/** Whether tips are switched on (Settings → Notifications). Defaults to on. */
+export async function getLearnTipsEnabled() {
+  try {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    return !(await AsyncStorage.getItem(OFF_KEY));
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Switch tips off (cancels any not yet shown) or back on (starts a fresh week,
+ * if notifications are allowed). Resolves to whether tips are now scheduled.
+ */
+export async function setLearnTipsEnabled(on) {
+  try {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    if (!on) {
+      await AsyncStorage.setItem(OFF_KEY, '1');
+      await cancelLearnTips();
+      return false;
+    }
+    await AsyncStorage.multiRemove([OFF_KEY, STORE_KEY]);
+    return await scheduleLearnTips();
+  } catch {
+    return false;
+  }
 }
