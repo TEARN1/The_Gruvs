@@ -19,6 +19,12 @@
   <meta name="twitter:app:name:googleplay" content="The Gruvs" />
   <meta name="twitter:app:id:googleplay" content="com.thegruvs_tearn" />
 
+  <!-- High-Performance CDN Preconnects -->
+  <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+  <link rel="dns-prefetch" href="https://images.unsplash.com" />
+  <link rel="preconnect" href="https://feevvddvrjmfbhffccbf.supabase.co" crossorigin />
+  <link rel="dns-prefetch" href="https://feevvddvrjmfbhffccbf.supabase.co" />
+
   <!-- Regional Geo Meta -->
   <meta name="geo.region" content="ZA" />
   <meta name="geo.placename" content="South Africa" />
@@ -246,8 +252,8 @@
     "name": "The Marc Sandton",
     "address": {
       "@type": "PostalAddress",
+      "streetAddress": "The Marc Sandton",
       "addressLocality": "Johannesburg",
-      "addressRegion": "Gauteng",
       "addressCountry": "ZA"
     }
   },
@@ -257,7 +263,7 @@
   "offers": {
     "@type": "Offer",
     "url": "https://thegruvs.com/events/africa-sustainability-esg-and-carbon-markets-forum-the-marc-sandton-9b88bc5f-6ee1-4a39-9f8f-042521e5fa4e",
-    "price": "0",
+    "price": "850",
     "priceCurrency": "ZAR",
     "availability": "https://schema.org/InStock",
     "validFrom": "2027-04-08"
@@ -265,7 +271,8 @@
   "organizer": {
     "@type": "Organization",
     "name": "The Gruvs",
-    "url": "https://thegruvs.com"
+    "url": "https://thegruvs.com",
+    "logo": "https://thegruvs.com/logo.png"
   }
 }
 </script>
@@ -420,18 +427,61 @@
     
   </div>
 
-  <footer class="site-footer">
-    <p>© 2026 The Gruvs · Founded by Asemahle "TEARN" Nkwali · TEARN Ventures · South Africa's Live Event & Vibe Discovery Platform.</p>
-    <p style="margin-top: 8px;">
-      <a href="https://thegruvs.com/">Home</a> · 
-      <a href="https://thegruvs.com/founder">Founder</a> · 
-      <a href="https://thegruvs.com/press">Press Kit</a> · 
-      <a href="https://thegruvs.com/events/ke-dezemba">Ke Dezemba</a> · 
-      <a href="https://thegruvs.com/events/johannesburg">Johannesburg</a> · 
-      <a href="https://thegruvs.com/events/pretoria">Pretoria</a> · 
-      <a href="https://thegruvs.com/events/midrand">Midrand</a> · 
-      <a href="https://theresidentcrew.com" target="_blank" rel="noopener">Stays via The Resident Crew</a> · 
-      <a href="https://excellencyacs.com" target="_blank" rel="noopener">Excellency Academy</a>
+  <footer class="site-footer" style="padding-top: 40px; margin-top: 60px; border-top: 1px solid var(--surface-border);">
+    <div style="max-width: 1200px; margin: 0 auto; text-align: left; padding-bottom: 24px; border-bottom: 1px solid var(--surface-border); display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 28px;">
+      <div>
+        <h4 style="color: #fff; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; font-weight: 900; letter-spacing: 1px;">Top Metros</h4>
+        <ul style="list-style: none; line-height: 2.1; font-size: 13px;">
+          <li><a href="https://thegruvs.com/events/johannesburg" style="color: var(--muted); text-decoration: none;">Johannesburg Events</a></li>
+          <li><a href="https://thegruvs.com/events/cape-town" style="color: var(--muted); text-decoration: none;">Cape Town Events</a></li>
+          <li><a href="https://thegruvs.com/events/durban" style="color: var(--muted); text-decoration: none;">Durban Events</a></li>
+          <li><a href="https://thegruvs.com/events/pretoria" style="color: var(--muted); text-decoration: none;">Pretoria Events</a></li>
+          <li><a href="https://thegruvs.com/events/sandton" style="color: var(--muted); text-decoration: none;">Sandton Events</a></li>
+          <li><a href="https://thegruvs.com/events/soweto" style="color: var(--muted); text-decoration: none;">Soweto Events</a></li>
+          <li><a href="https://thegruvs.com/events/midrand" style="color: var(--muted); text-decoration: none;">Midrand Events</a></li>
+          <li><a href="https://thegruvs.com/events/stellenbosch" style="color: var(--muted); text-decoration: none;">Stellenbosch Events</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color: #fff; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; font-weight: 900; letter-spacing: 1px;">Categories & Verticals</h4>
+        <ul style="list-style: none; line-height: 2.1; font-size: 13px;">
+          <li><a href="https://thegruvs.com/events/amapiano" style="color: var(--muted); text-decoration: none;">Amapiano & Private School</a></li>
+          <li><a href="https://thegruvs.com/events/afro-tech" style="color: var(--muted); text-decoration: none;">Afro-Tech & Deep House</a></li>
+          <li><a href="https://thegruvs.com/events/business" style="color: var(--muted); text-decoration: none;">Business & Corporate Summits</a></li>
+          <li><a href="https://thegruvs.com/events/tech-conferences" style="color: var(--muted); text-decoration: none;">Tech, AI & Cloud</a></li>
+          <li><a href="https://thegruvs.com/events/fintech" style="color: var(--muted); text-decoration: none;">FinTech & Payments</a></li>
+          <li><a href="https://thegruvs.com/events/startups-and-vc" style="color: var(--muted); text-decoration: none;">Startups & Venture Capital</a></li>
+          <li><a href="https://thegruvs.com/events/shisanyama" style="color: var(--muted); text-decoration: none;">Shisanyama & Braai Sundays</a></li>
+          <li><a href="https://thegruvs.com/events/live-jazz" style="color: var(--muted); text-decoration: none;">Live Jazz & Afro-Soul</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color: #fff; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; font-weight: 900; letter-spacing: 1px;">2026/2027 Calendar</h4>
+        <ul style="list-style: none; line-height: 2.1; font-size: 13px;">
+          <li><a href="https://thegruvs.com/events/december-2026" style="color: var(--muted); text-decoration: none;">December 2026 (Ke Dezemba)</a></li>
+          <li><a href="https://thegruvs.com/events/january-2027" style="color: var(--muted); text-decoration: none;">January 2027 (Summer Kickoff)</a></li>
+          <li><a href="https://thegruvs.com/events/february-2027" style="color: var(--muted); text-decoration: none;">February 2027 (Valentine's)</a></li>
+          <li><a href="https://thegruvs.com/events/march-2027" style="color: var(--muted); text-decoration: none;">March 2027 (Human Rights)</a></li>
+          <li><a href="https://thegruvs.com/events/april-2027" style="color: var(--muted); text-decoration: none;">April 2027 (Easter & Freedom Day)</a></li>
+          <li><a href="https://thegruvs.com/events/may-2027" style="color: var(--muted); text-decoration: none;">May 2027 (Africa Day)</a></li>
+          <li><a href="https://thegruvs.com/events/nye-2027" style="color: var(--muted); text-decoration: none;">New Year's Eve 2027</a></li>
+          <li><a href="https://thegruvs.com/events/this-weekend" style="color: var(--muted); text-decoration: none;">This Weekend in SA</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color: #fff; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; font-weight: 900; letter-spacing: 1px;">Ecosystem & Directory</h4>
+        <ul style="list-style: none; line-height: 2.1; font-size: 13px;">
+          <li><a href="https://thegruvs.com/services" style="color: var(--muted); text-decoration: none;">28 Event Services Directory</a></li>
+          <li><a href="https://theresidentcrew.com" target="_blank" rel="noopener" style="color: var(--muted); text-decoration: none;">Stays via The Resident Crew</a></li>
+          <li><a href="https://excellencyacs.com" target="_blank" rel="noopener" style="color: var(--muted); text-decoration: none;">Excellency Academy</a></li>
+          <li><a href="https://thegruvs.com/founder" style="color: var(--muted); text-decoration: none;">Founder — Asemahle "TEARN" Nkwali</a></li>
+          <li><a href="https://thegruvs.com/press" style="color: var(--muted); text-decoration: none;">Press Kit & Brand Assets</a></li>
+          <li><a href="https://thegruvs.com/feed.xml" style="color: var(--muted); text-decoration: none;">Live RSS 2.0 / Atom Feed</a></li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top: 18px; font-size: 12px; color: var(--muted); text-align: center;">
+      © 2026 The Gruvs · Founded by Asemahle "TEARN" Nkwali · TEARN Ventures · South Africa's Live Event & Vibe Discovery Platform.
     </p>
   </footer>
 </body>

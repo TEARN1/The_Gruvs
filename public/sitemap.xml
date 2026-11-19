@@ -463,6 +463,134 @@
     <priority>0.90</priority>
   </url>
   <url>
+    <loc>https://thegruvs.com/events/business</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/business" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/business" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/tech-conferences</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/tech-conferences" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/tech-conferences" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/fintech</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/fintech" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/fintech" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/startups-and-vc</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/startups-and-vc" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/startups-and-vc" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/mining-and-energy</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/mining-and-energy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/mining-and-energy" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/real-estate-property</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/real-estate-property" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/real-estate-property" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/sme-workshops</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sme-workshops" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sme-workshops" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/women-in-leadership</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/women-in-leadership" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/women-in-leadership" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/healthcare-innovation</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/healthcare-innovation" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/healthcare-innovation" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/trade-and-logistics</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/trade-and-logistics" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/trade-and-logistics" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/december-2026</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/december-2026" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/december-2026" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/january-2027</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/january-2027" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/january-2027" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/february-2027</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/february-2027" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/february-2027" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/march-2027</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/march-2027" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/march-2027" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/april-2027</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/april-2027" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/april-2027" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/may-2027</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/may-2027" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/may-2027" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
     <loc>https://thegruvs.com/events/this-weekend</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/this-weekend" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/this-weekend" />
@@ -477,6 +605,166 @@
     <lastmod>2026-11-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/easter-2027</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/easter-2027" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/easter-2027" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/valentines-2027</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/valentines-2027" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/valentines-2027" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/freedom-day-2027</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/freedom-day-2027" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/freedom-day-2027" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/africa-day-2027</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/africa-day-2027" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/africa-day-2027" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/sandton/business</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sandton/business" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sandton/business" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/sandton/tech</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/sandton/tech" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/sandton/tech" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/johannesburg/business</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/johannesburg/business" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/johannesburg/business" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/johannesburg/nightlife</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/johannesburg/nightlife" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/johannesburg/nightlife" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/cape-town/tech</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/cape-town/tech" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/cape-town/tech" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/cape-town/afro-tech</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/cape-town/afro-tech" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/cape-town/afro-tech" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/cape-town/jazz</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/cape-town/jazz" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/cape-town/jazz" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/soweto/amapiano</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/soweto/amapiano" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/soweto/amapiano" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/soweto/culture</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/soweto/culture" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/soweto/culture" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/durban/shisanyama</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/durban/shisanyama" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/durban/shisanyama" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/durban/business</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/durban/business" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/durban/business" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/pretoria/concerts</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/pretoria/concerts" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/pretoria/concerts" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/midrand/tech</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/midrand/tech" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/midrand/tech" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/midrand/lifestyle</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/midrand/lifestyle" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/midrand/lifestyle" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/stellenbosch/wine</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/stellenbosch/wine" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/stellenbosch/wine" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/rosebank/art</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/rosebank/art" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/events/rosebank/art" />
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.88</priority>
   </url>
   <url>
     <loc>https://thegruvs.com/services</loc>
