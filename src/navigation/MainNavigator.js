@@ -41,6 +41,7 @@ import {
 import { useTutorial } from '../context/TutorialContext';
 import { TutorialOverlay } from '../components/TutorialOverlay';
 import { ResetPasswordModal } from '../components/ResetPasswordModal';
+import { PaymentReturnModal, readPaymentReturn } from '../components/PaymentReturnModal';
 import { AuthModal } from '../components/AuthModal';
 import { BusinessDashboardScreen } from '../screens/BusinessDashboardScreen';
 import { ViberProfileModal } from '../components/ViberProfileModal';
@@ -116,6 +117,13 @@ export const MainNavigator = () => {
   const [targetEvent, setTargetEvent] = useState(null);
   const [targetProfile, setTargetProfile] = useState(null);
   const [targetReel, setTargetReel] = useState(null);
+  // Set when PayFast sends the buyer back to /payment/success or /payment/cancelled.
+  const [paymentReturn, setPaymentReturn] = useState(() => (Platform.OS === 'web' ? readPaymentReturn() : null));
+  const closePaymentReturn = useCallback((goTo) => {
+    setPaymentReturn(null);
+    try { window.history.replaceState({}, '', '/'); } catch {}
+    if (goTo) setCurrentTab(goTo);
+  }, []);
 
   const screenOpacity = useRef(new Animated.Value(1)).current;
   const backPressCount = useRef(0);
@@ -638,6 +646,16 @@ export const MainNavigator = () => {
         backgroundColor={bg}
         translucent={false}
       />
+
+      {paymentReturn && (
+        <ErrorBoundary label="Payment return">
+          <PaymentReturnModal
+            info={paymentReturn}
+            onClose={() => closePaymentReturn(null)}
+            onOpenTickets={() => closePaymentReturn('profile')}
+          />
+        </ErrorBoundary>
+      )}
 
       {recoveryMode && (
         <ErrorBoundary label="Password reset">
