@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -484,11 +537,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "FinTech, Banking & Payments Events & Parties in South Africa (2026) — The Gruvs",
+  "description": "Experience the top FinTech, Banking & Payments events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/events/fintech",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -514,8 +614,8 @@
 
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Year-End Business &amp; Tech Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d" data-title="southern africa year-end business &amp; tech gala" data-venue="sandton convention centre" data-city="johannesburg" data-date="2026-12-02">
+      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Year-End Business &amp; Tech Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 02 Dec 2026 · 18:30</div>
         <h3 class="event-title">Southern Africa Year-End Business &amp; Tech Gala</h3>
@@ -527,8 +627,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Township Economy &amp; Retail Entrepreneurship Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1" data-title="township economy &amp; retail entrepreneurship expo" data-venue="zone 6 venue" data-city="soweto" data-date="2026-12-03">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Township Economy &amp; Retail Entrepreneurship Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 03 Dec 2026 · 09:00</div>
         <h3 class="event-title">Township Economy &amp; Retail Entrepreneurship Expo</h3>
@@ -540,8 +640,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Midrand SME Cloud &amp; Digital Mastery Workshop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b" data-title="midrand sme cloud &amp; digital mastery workshop" data-venue="gallagher convention centre" data-city="midrand" data-date="2026-12-14">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Midrand SME Cloud &amp; Digital Mastery Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 14 Dec 2026 · 09:30</div>
         <h3 class="event-title">Midrand SME Cloud &amp; Digital Mastery Workshop</h3>
@@ -553,8 +653,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-2027-strategy-and-regulatory-briefing-the-marc-sandton-f464a0df-acce-4b5c-b4cc-1d4760c9b83c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa 2027 Strategy &amp; Regulatory Briefing" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-2027-strategy-and-regulatory-briefing-the-marc-sandton-f464a0df-acce-4b5c-b4cc-1d4760c9b83c" data-title="fintech africa 2027 strategy &amp; regulatory briefing" data-venue="the marc sandton" data-city="johannesburg" data-date="2026-12-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa 2027 Strategy &amp; Regulatory Briefing" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 22 Dec 2026 · 14:00</div>
         <h3 class="event-title">FinTech Africa 2027 Strategy &amp; Regulatory Briefing</h3>
@@ -566,8 +666,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ecommerce-africa-logistics-and-payments-forum-sandton-convention-f52a871a-00df-47b6-8304-e46fea869106">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="eCommerce Africa Logistics &amp; Payments Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ecommerce-africa-logistics-and-payments-forum-sandton-convention-f52a871a-00df-47b6-8304-e46fea869106" data-title="ecommerce africa logistics &amp; payments forum" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="eCommerce Africa Logistics &amp; Payments Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 21 Jan 2027 · 09:30</div>
         <h3 class="event-title">eCommerce Africa Logistics &amp; Payments Forum</h3>
@@ -579,8 +679,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa Payments &amp; Cross-Border Remittances" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9" data-title="fintech africa payments &amp; cross-border remittances" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-02-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa Payments &amp; Cross-Border Remittances" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 16 Feb 2027 · 09:00</div>
         <h3 class="event-title">FinTech Africa Payments &amp; Cross-Border Remittances</h3>
@@ -592,8 +692,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-fintech-and-digital-banking-summit-2027-sandton-convention-c73ab3bf-f758-441f-b144-3ba4f2caf492">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa FinTech &amp; Digital Banking Summit 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-fintech-and-digital-banking-summit-2027-sandton-convention-c73ab3bf-f758-441f-b144-3ba4f2caf492" data-title="africa fintech &amp; digital banking summit 2027" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-03-03">
+      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa FinTech &amp; Digital Banking Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 03 Mar 2027 · 08:30</div>
         <h3 class="event-title">Africa FinTech &amp; Digital Banking Summit 2027</h3>
@@ -605,8 +705,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-cybersecurity-and-data-compliance-workshop-gallagher-convention-cf335bc8-fe73-4669-8f9e-1eb58a6bb7dc">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Cybersecurity &amp; Data Compliance Workshop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-cybersecurity-and-data-compliance-workshop-gallagher-convention-cf335bc8-fe73-4669-8f9e-1eb58a6bb7dc" data-title="sme cybersecurity &amp; data compliance workshop" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-04-15">
+      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Cybersecurity &amp; Data Compliance Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 15 Apr 2027 · 09:30</div>
         <h3 class="event-title">SME Cybersecurity &amp; Data Compliance Workshop</h3>
@@ -618,8 +718,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape FinTech &amp; WealthTech Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1" data-title="silicon cape fintech &amp; wealthtech showcase" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-05-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape FinTech &amp; WealthTech Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 18 May 2027 · 10:00</div>
         <h3 class="event-title">Silicon Cape FinTech &amp; WealthTech Showcase</h3>

@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -484,11 +537,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Startups, Venture Capital & Angels Events & Parties in South Africa (2026) — The Gruvs",
+  "description": "Experience the top Startups, Venture Capital & Angels events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/events/startups-and-vc",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -514,8 +614,8 @@
 
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Year-End Business &amp; Tech Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d" data-title="southern africa year-end business &amp; tech gala" data-venue="sandton convention centre" data-city="johannesburg" data-date="2026-12-02">
+      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Year-End Business &amp; Tech Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 02 Dec 2026 · 18:30</div>
         <h3 class="event-title">Southern Africa Year-End Business &amp; Tech Gala</h3>
@@ -527,8 +627,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Tech &amp; Venture Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c" data-title="western cape tech &amp; venture showcase" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2026-12-09">
+      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Tech &amp; Venture Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 09 Dec 2026 · 10:00</div>
         <h3 class="event-title">Western Cape Tech &amp; Venture Showcase</h3>
@@ -540,8 +640,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-startup-kickoff-and-angel-day-cape-town-international-7c2e110d-2696-4713-9afc-b2e9f8b02f38">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Startup Kickoff &amp; Angel Day" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-startup-kickoff-and-angel-day-cape-town-international-7c2e110d-2696-4713-9afc-b2e9f8b02f38" data-title="silicon cape startup kickoff &amp; angel day" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-01-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Startup Kickoff &amp; Angel Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 18 Jan 2027 · 10:00</div>
         <h3 class="event-title">Silicon Cape Startup Kickoff &amp; Angel Day</h3>
@@ -553,8 +653,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/venture-capital-africa-investor-breakfast-the-marc-sandton-6787796f-8642-4a94-887c-ac89d6963ce7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Venture Capital Africa Investor Breakfast" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/venture-capital-africa-investor-breakfast-the-marc-sandton-6787796f-8642-4a94-887c-ac89d6963ce7" data-title="venture capital africa investor breakfast" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-01-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Venture Capital Africa Investor Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 27 Jan 2027 · 08:00</div>
         <h3 class="event-title">Venture Capital Africa Investor Breakfast</h3>
@@ -566,8 +666,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/african-venture-capital-and-private-equity-summit-cape-town-d97ef501-2628-4954-bfac-b97d28dbc2c3">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Venture Capital &amp; Private Equity Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/african-venture-capital-and-private-equity-summit-cape-town-d97ef501-2628-4954-bfac-b97d28dbc2c3" data-title="african venture capital &amp; private equity summit" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-02-04">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Venture Capital &amp; Private Equity Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 04 Feb 2027 · 09:00</div>
         <h3 class="event-title">African Venture Capital &amp; Private Equity Summit</h3>
@@ -579,8 +679,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-funding-and-growth-capital-expo-2027-gallagher-convention-centre-ea3aaea9-30e4-4abc-aba2-e4f7bc10de32">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Funding &amp; Growth Capital Expo 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-funding-and-growth-capital-expo-2027-gallagher-convention-centre-ea3aaea9-30e4-4abc-aba2-e4f7bc10de32" data-title="sme funding &amp; growth capital expo 2027" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-02-09">
+      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Funding &amp; Growth Capital Expo 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 09 Feb 2027 · 09:00</div>
         <h3 class="event-title">SME Funding &amp; Growth Capital Expo 2027</h3>
@@ -592,8 +692,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-investor-demo-day-2027-cape-town-international-3f3952b6-50a3-4de1-986c-0e390f1957dc">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Investor Demo Day 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-investor-demo-day-2027-cape-town-international-3f3952b6-50a3-4de1-986c-0e390f1957dc" data-title="silicon cape investor demo day 2027" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-03-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Investor Demo Day 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 16 Mar 2027 · 14:00</div>
         <h3 class="event-title">Silicon Cape Investor Demo Day 2027</h3>
@@ -605,8 +705,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/women-in-private-equity-and-angel-investing-masterclass-the-marc-bb20c93f-9330-4efd-80de-f5152fb26564">
-      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in Private Equity &amp; Angel Investing Masterclass" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/women-in-private-equity-and-angel-investing-masterclass-the-marc-bb20c93f-9330-4efd-80de-f5152fb26564" data-title="women in private equity &amp; angel investing masterclass" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-03-31">
+      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in Private Equity &amp; Angel Investing Masterclass" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 31 Mar 2027 · 14:00</div>
         <h3 class="event-title">Women in Private Equity &amp; Angel Investing Masterclass</h3>
@@ -618,8 +718,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-venture-capital-lp-gp-symposium-2027-cape-town-international-235aaeb4-4219-4137-8318-ac40ab26d55e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Venture Capital LP-GP Symposium 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-venture-capital-lp-gp-symposium-2027-cape-town-international-235aaeb4-4219-4137-8318-ac40ab26d55e" data-title="africa venture capital lp-gp symposium 2027" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-04-20">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Venture Capital LP-GP Symposium 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 20 Apr 2027 · 09:00</div>
         <h3 class="event-title">Africa Venture Capital LP-GP Symposium 2027</h3>

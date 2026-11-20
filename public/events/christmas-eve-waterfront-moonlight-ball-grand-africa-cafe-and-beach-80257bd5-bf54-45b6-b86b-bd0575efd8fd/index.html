@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -273,6 +326,10 @@
     "name": "The Gruvs",
     "url": "https://thegruvs.com",
     "logo": "https://thegruvs.com/logo.png"
+  },
+  "performer": {
+    "@type": "PerformingGroup",
+    "name": "Christmas Eve Waterfront Moonlight Ball"
   }
 }
 </script>
@@ -346,11 +403,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Christmas Eve Waterfront Moonlight Ball — Grand Africa Café & Beach · Cape Town | The Gruvs",
+  "description": "Christmas Eve Waterfront Moonlight Ball taking place on Thu, 24 Dec 2026 · 19:00 at Grand Africa Café & Beach · Cape Town. Book tickets and connect on The Gruvs.",
+  "url": "https://thegruvs.com/events/christmas-eve-waterfront-moonlight-ball-grand-africa-cafe-and-beach-80257bd5-bf54-45b6-b86b-bd0575efd8fd",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -374,7 +478,7 @@
 
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; align-items: start; margin-top: 16px;">
         <div>
-          <img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Eve Waterfront Moonlight Ball" style="width:100%; border-radius:18px; border:1px solid var(--surface-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
+          <img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Eve Waterfront Moonlight Ball" fetchpriority="high" decoding="async" width="800" height="450" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:18px; border:1px solid var(--surface-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
           
           <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;">
             <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Christmas%20Eve%20Waterfront%20Moonlight%20Ball&dates=20261224T190000/20261224T235900&details=Celebrate%20Christmas%20Eve%20on%20the%20water%20at%20Grand%20Africa%20Caf%C3%A9%20%26%20Beach.%20Romantic%20candlelit%20tables%20on%20the%20sand%2C%20champagne%20towers%2C%20live%20acoustic%20serenades%2C%20and%20festive%20culinary%20specials.&location=Grand%20Africa%20Caf%C3%A9%20%26%20Beach%20%C2%B7%20Cape%20Town&sprop=website:https://thegruvs.com" target="_blank" rel="noopener" style="flex:1; min-width:140px; text-align:center; background:#1a2327; border:1px solid #00f2ff44; color:#00f2ff; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none;">
@@ -421,6 +525,17 @@
               <span style="color:var(--muted); font-size:13px;">Claim this listing to update times, add tickets, and connect.</span>
             </div>
             <a href="https://thegruvs.com/?claim=80257bd5-bf54-45b6-b86b-bd0575efd8fd" class="resident-btn" style="background:transparent; border:1px solid var(--primary); color:var(--primary); padding:6px 14px; font-size:13px;">Claim Listing →</a>
+          </div>
+
+          <div style="margin-top:24px;">
+            <strong style="color:#fff; font-size:13px; text-transform:uppercase; letter-spacing:0.6px;">Explore Related Hubs</strong>
+            <div class="explore-chips" style="margin-top:10px;">
+              <a class="explore-chip" href="https://thegruvs.com/events/cape-town">More in Cape Town</a>
+              <a class="explore-chip" href="https://thegruvs.com/venues/grand-africa-cafe-and-beach">All at Grand Africa Café &amp; Beach</a>
+              <a class="explore-chip" href="https://thegruvs.com/events/amapiano">Amapiano & Music</a>
+              <a class="explore-chip" href="https://thegruvs.com/events/december-2026">December 2026</a>
+              <a class="explore-chip" href="https://thegruvs.com/events/free">Free Events</a>
+            </div>
           </div>
         </div>
       </div>

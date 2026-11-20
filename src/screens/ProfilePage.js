@@ -5,7 +5,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
   Switch, Dimensions, useWindowDimensions, Share, Platform, RefreshControl, Modal,
-  KeyboardAvoidingView, Pressable, Image, Linking,
+  KeyboardAvoidingView, Pressable, Image, Linking, BackHandler,
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
 import { WritingStylePicker } from '../components/WritingStylePicker';
@@ -2289,6 +2289,14 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const toast = useToast();
 
   const [subView, setSubView] = useState(null);
+  // Settings / Find Me / Find Them are in-page sub-views, not navigator
+  // screens, so Android's Back button did nothing on them (users got stuck in
+  // Settings). Back now closes the sub-view, like its on-screen back arrow.
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !subView) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { setSubView(null); return true; });
+    return () => sub.remove();
+  }, [subView]);
   const [discoverRadius, setDiscoverRadius] = useState(5); // km — feeds Find Them
   const [refreshing, setRefreshing] = useState(false);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
@@ -3041,6 +3049,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           activeOpacity={0.9}
           style={[styles.coverPhoto, { backgroundColor: `${primary}18` }]}
           onPress={() => profile?.cover_url && setImageViewerUri(profile.cover_url)}
+          accessibilityRole={profile?.cover_url ? 'imagebutton' : 'image'}
+          accessibilityLabel={profile?.cover_url ? 'View cover photo' : 'Cover photo'}
         >
           {profile?.cover_url
             ? <SmartImage source={thumb.cover(profile.cover_url)} style={StyleSheet.absoluteFill} resizeMode="cover" />
@@ -3050,7 +3060,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             </>
           }
           {user && (
-            <TouchableOpacity style={styles.coverEditBtn} onPress={handleCoverUpload}>
+            <TouchableOpacity style={styles.coverEditBtn} onPress={handleCoverUpload} accessibilityRole="button" accessibilityLabel="Change cover photo">
               <Feather name="camera" size={14} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
           )}
@@ -3063,6 +3073,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             onPress={() => avatarUrl ? setImageViewerUri(avatarUrl) : (user && handleAvatarUpload())}
             onLongPress={() => user && handleAvatarUpload()}
             activeOpacity={0.85}
+            accessibilityRole="imagebutton"
+            accessibilityLabel={avatarUrl ? 'View profile photo' : 'Add profile photo'}
+            accessibilityHint={user && avatarUrl ? 'Long press to change it' : undefined}
           >
             {avatarUrl
               ? <SmartImage source={thumb.avatarLg(avatarUrl)} style={[styles.avatar, { borderColor: primary }]} />

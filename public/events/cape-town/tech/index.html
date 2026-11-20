@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -350,11 +403,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Tech & Startup Summits in Cape Town — The Gruvs",
+  "description": "Silicon Cape demo days, venture capital forums, and innovation congresses at CTICC.",
+  "url": "https://thegruvs.com/events/cape-town/tech",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -378,8 +478,8 @@
       <p class="hero-lead">Silicon Cape demo days, venture capital forums, and innovation congresses at CTICC.</p>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Tech &amp; Venture Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c" data-title="western cape tech &amp; venture showcase" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2026-12-09">
+      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Tech &amp; Venture Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 09 Dec 2026 · 10:00</div>
         <h3 class="event-title">Western Cape Tech &amp; Venture Showcase</h3>
@@ -391,8 +491,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-startup-kickoff-and-angel-day-cape-town-international-7c2e110d-2696-4713-9afc-b2e9f8b02f38">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Startup Kickoff &amp; Angel Day" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-startup-kickoff-and-angel-day-cape-town-international-7c2e110d-2696-4713-9afc-b2e9f8b02f38" data-title="silicon cape startup kickoff &amp; angel day" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-01-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Startup Kickoff &amp; Angel Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 18 Jan 2027 · 10:00</div>
         <h3 class="event-title">Silicon Cape Startup Kickoff &amp; Angel Day</h3>
@@ -404,8 +504,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/healthcare-innovation-and-medtech-expo-cape-town-international-83ce472d-8bb9-416b-aab3-de376d7077d7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Healthcare Innovation &amp; MedTech Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/healthcare-innovation-and-medtech-expo-cape-town-international-83ce472d-8bb9-416b-aab3-de376d7077d7" data-title="healthcare innovation &amp; medtech expo" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-01-28">
+      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Healthcare Innovation &amp; MedTech Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 28 Jan 2027 · 09:00</div>
         <h3 class="event-title">Healthcare Innovation &amp; MedTech Expo</h3>
@@ -417,8 +517,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/african-venture-capital-and-private-equity-summit-cape-town-d97ef501-2628-4954-bfac-b97d28dbc2c3">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Venture Capital &amp; Private Equity Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/african-venture-capital-and-private-equity-summit-cape-town-d97ef501-2628-4954-bfac-b97d28dbc2c3" data-title="african venture capital &amp; private equity summit" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-02-04">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Venture Capital &amp; Private Equity Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 04 Feb 2027 · 09:00</div>
         <h3 class="event-title">African Venture Capital &amp; Private Equity Summit</h3>
@@ -430,8 +530,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-afro-tech-cabo-beach-club-cape-town-7ea4c6c8-3754-492d-b606-a1e1d6b7c993">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Afro-Tech" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-afro-tech-cabo-beach-club-cape-town-7ea4c6c8-3754-492d-b606-a1e1d6b7c993" data-title="cabo beach club sunset afro-tech" data-venue="cabo beach club" data-city="cape town" data-date="2027-02-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Afro-Tech" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Feb 2027 · 15:00</div>
         <h3 class="event-title">Cabo Beach Club Sunset Afro-Tech</h3>
@@ -443,8 +543,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-venture-capital-lp-gp-symposium-2027-cape-town-international-235aaeb4-4219-4137-8318-ac40ab26d55e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Venture Capital LP-GP Symposium 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-venture-capital-lp-gp-symposium-2027-cape-town-international-235aaeb4-4219-4137-8318-ac40ab26d55e" data-title="africa venture capital lp-gp symposium 2027" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-04-20">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Venture Capital LP-GP Symposium 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 20 Apr 2027 · 09:00</div>
         <h3 class="event-title">Africa Venture Capital LP-GP Symposium 2027</h3>
@@ -456,8 +556,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape FinTech &amp; WealthTech Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1" data-title="silicon cape fintech &amp; wealthtech showcase" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-05-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape FinTech &amp; WealthTech Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 18 May 2027 · 10:00</div>
         <h3 class="event-title">Silicon Cape FinTech &amp; WealthTech Showcase</h3>

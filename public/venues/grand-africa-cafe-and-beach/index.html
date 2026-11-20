@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -354,11 +407,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events at Grand Africa Café & Beach, Cape Town — Schedule & Tickets | The Gruvs",
+  "description": "View upcoming events, concerts, and parties at Grand Africa Café & Beach in Cape Town. Dates, directions and how to RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/venues/grand-africa-cafe-and-beach",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -401,8 +501,8 @@
       <h2 style="font-size:20px; font-weight:800; margin-bottom:20px;">Upcoming Dates (6)</h2>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/christmas-eve-waterfront-moonlight-ball-grand-africa-cafe-and-beach-80257bd5-bf54-45b6-b86b-bd0575efd8fd">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Eve Waterfront Moonlight Ball" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/christmas-eve-waterfront-moonlight-ball-grand-africa-cafe-and-beach-80257bd5-bf54-45b6-b86b-bd0575efd8fd" data-title="christmas eve waterfront moonlight ball" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2026-12-24">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Eve Waterfront Moonlight Ball" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 24 Dec 2026 · 19:00</div>
         <h3 class="event-title">Christmas Eve Waterfront Moonlight Ball</h3>
@@ -414,8 +514,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/new-year-s-day-sunrise-beach-rave-grand-africa-cafe-and-beach-cape-d899b580-b176-4035-9c0f-cd6454aa6cc8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="New Year's Day Sunrise Beach Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/new-year-s-day-sunrise-beach-rave-grand-africa-cafe-and-beach-cape-d899b580-b176-4035-9c0f-cd6454aa6cc8" data-title="new year's day sunrise beach rave" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-01-01">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="New Year's Day Sunrise Beach Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 01 Jan 2027 · 06:00</div>
         <h3 class="event-title">New Year's Day Sunrise Beach Rave</h3>
@@ -427,8 +527,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/valentine-candlelit-beach-dinner-and-acoustic-night-grand-africa-cafe-e5c3cd90-a39b-4a80-88e9-2d899f3fa224">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Valentine Candlelit Beach Dinner &amp; Acoustic Night" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/valentine-candlelit-beach-dinner-and-acoustic-night-grand-africa-cafe-e5c3cd90-a39b-4a80-88e9-2d899f3fa224" data-title="valentine candlelit beach dinner &amp; acoustic night" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-02-14">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Valentine Candlelit Beach Dinner &amp; Acoustic Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 14 Feb 2027 · 18:30</div>
         <h3 class="event-title">Valentine Candlelit Beach Dinner &amp; Acoustic Night</h3>
@@ -440,8 +540,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/grand-africa-cafe-autumn-beach-party-grand-africa-cafe-and-beach-cape-e3ef95c3-0ae3-4cb2-a3a1-b71e45ece555">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Grand Africa Café Autumn Beach Party" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/grand-africa-cafe-autumn-beach-party-grand-africa-cafe-and-beach-cape-e3ef95c3-0ae3-4cb2-a3a1-b71e45ece555" data-title="grand africa café autumn beach party" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-03-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Grand Africa Café Autumn Beach Party" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 21 Mar 2027 · 15:00</div>
         <h3 class="event-title">Grand Africa Café Autumn Beach Party</h3>
@@ -453,8 +553,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/easter-monday-sunset-chill-at-grand-africa-grand-africa-cafe-and-6c195d90-f9a4-4301-9157-55f8a1334b9f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Easter Monday Sunset Chill at Grand Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/easter-monday-sunset-chill-at-grand-africa-grand-africa-cafe-and-6c195d90-f9a4-4301-9157-55f8a1334b9f" data-title="easter monday sunset chill at grand africa" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-04-05">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Easter Monday Sunset Chill at Grand Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 05 Apr 2027 · 15:00</div>
         <h3 class="event-title">Easter Monday Sunset Chill at Grand Africa</h3>
@@ -466,8 +566,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/grand-africa-cafe-cozy-beach-sunset-grand-africa-cafe-and-beach-cape-54d7f2e7-3582-4225-b436-a6ce46f1df31">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Grand Africa Café Cozy Beach Sunset" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/grand-africa-cafe-cozy-beach-sunset-grand-africa-cafe-and-beach-cape-54d7f2e7-3582-4225-b436-a6ce46f1df31" data-title="grand africa café cozy beach sunset" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-05-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Grand Africa Café Cozy Beach Sunset" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 22 May 2027 · 16:00</div>
         <h3 class="event-title">Grand Africa Café Cozy Beach Sunset</h3>

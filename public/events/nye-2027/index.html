@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -313,11 +366,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "New Year's Eve 2027 Parties & Crossover Bashes in South Africa — The Gruvs",
+  "description": "Browse New Year's Eve countdown parties, midnight fireworks, and crossover events across South Africa.",
+  "url": "https://thegruvs.com/events/nye-2027",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -341,8 +441,8 @@
     <p class="hero-lead">Countdown to 2027 across South Africa's biggest countdown arenas, rooftop celebrations, and street festivals.</p>
     <div class="event-grid">
       
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-nye-white-and-silver-gala-cabo-beach-club-cape-town-6fdfd2bd-318e-4919-b47b-6e5d8a29985e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club NYE White &amp; Silver Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-nye-white-and-silver-gala-cabo-beach-club-cape-town-6fdfd2bd-318e-4919-b47b-6e5d8a29985e" data-title="cabo beach club nye white &amp; silver gala" data-venue="cabo beach club" data-city="cape town" data-date="2026-12-31">
+      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club NYE White &amp; Silver Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 31 Dec 2026 · 18:00</div>
         <h3 class="event-title">Cabo Beach Club NYE White &amp; Silver Gala</h3>
@@ -354,8 +454,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-soweto-2027-midnight-countdown-konka-soweto-soweto-42d67bce-789d-44f9-b2dc-0aa205a2fdc0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka Soweto 2027 Midnight Countdown" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-soweto-2027-midnight-countdown-konka-soweto-soweto-42d67bce-789d-44f9-b2dc-0aa205a2fdc0" data-title="konka soweto 2027 midnight countdown" data-venue="konka soweto" data-city="soweto" data-date="2026-12-31">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka Soweto 2027 Midnight Countdown" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 31 Dec 2026 · 20:00</div>
         <h3 class="event-title">Konka Soweto 2027 Midnight Countdown</h3>
@@ -367,8 +467,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/new-year-s-day-sunrise-beach-rave-grand-africa-cafe-and-beach-cape-d899b580-b176-4035-9c0f-cd6454aa6cc8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="New Year's Day Sunrise Beach Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/new-year-s-day-sunrise-beach-rave-grand-africa-cafe-and-beach-cape-d899b580-b176-4035-9c0f-cd6454aa6cc8" data-title="new year's day sunrise beach rave" data-venue="grand africa café &amp; beach" data-city="cape town" data-date="2027-01-01">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="New Year's Day Sunrise Beach Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 01 Jan 2027 · 06:00</div>
         <h3 class="event-title">New Year's Day Sunrise Beach Rave</h3>
@@ -380,8 +480,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/soweto-new-year-kickoff-celebration-zone-6-venue-soweto-4e06eee8-d0d4-4277-97ee-04a35d604ece">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Soweto New Year Kickoff Celebration" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/soweto-new-year-kickoff-celebration-zone-6-venue-soweto-4e06eee8-d0d4-4277-97ee-04a35d604ece" data-title="soweto new year kickoff celebration" data-venue="zone 6 venue" data-city="soweto" data-date="2027-01-01">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Soweto New Year Kickoff Celebration" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 01 Jan 2027 · 14:00</div>
         <h3 class="event-title">Soweto New Year Kickoff Celebration</h3>

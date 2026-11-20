@@ -4,6 +4,8 @@
  * Bootstraps runtime guards, error reporters, font assets, and mounts the top-level
  * AppProviders wrapper around MainNavigator.
  */
+// First import on purpose: its clock starts as early as JS can start one.
+import { markStartup } from './src/utils/startupTrace';
 import React, { useState, useEffect } from 'react';
 import { useFonts, loadAsync as _loadFontAsync } from 'expo-font';
 const Font = { loadAsync: _loadFontAsync };
@@ -17,6 +19,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from './src/icons/MaterialCommunityIcons';
 
 import { setDriftReporter } from './src/utils/resilience';
 import { shouldEnterSafeMode, shouldEnterSafeModeSync, clearCrashLog } from './src/utils/bootGuard';
@@ -44,7 +47,24 @@ setDriftReporter((label, err, kind) =>
   logError(`${kind}:${label}`.slice(0, 80), err, { code: err?.code || null })
 );
 
+markStartup('App module evaluated');
+
+// Icons are drawn as a private-use font character. Inside a button, Android
+// merged that character into the button's spoken label, so screen readers
+// read ", Clubs" instead of "Clubs" (found on Vibe Card: 11 of 24
+// buttons). Hide every icon from accessibility; the button's own text or
+// accessibilityLabel is what gets read.
+const A11Y_HIDDEN_ICON = {
+  accessible: false,
+  importantForAccessibility: 'no-hide-descendants',
+  accessibilityElementsHidden: true,
+};
+[Feather, MaterialCommunityIcons].forEach((Icon) => {
+  Icon.defaultProps = { ...Icon.defaultProps, ...A11Y_HIDDEN_ICON };
+});
+
 export default function App() {
+  markStartup('App first render');
   const [syncSafeMode] = useState(() => (Platform.OS === 'web' ? shouldEnterSafeModeSync() : null));
   const [safeModeChecked, setSafeModeChecked] = useState(syncSafeMode !== null);
   const [inSafeMode, setInSafeMode] = useState(!!syncSafeMode);
@@ -90,6 +110,7 @@ export default function App() {
   }, []);
 
   if (!safeModeChecked || (Platform.OS !== 'web' && !fontsLoaded && !forceLoaded)) {
+    markStartup('App gate: waiting (safe-mode check / fonts)');
     return (
       <View style={styles.loadingScreen}>
         <StatusBar barStyle="light-content" backgroundColor="#0d1112" translucent={false} />
@@ -127,6 +148,7 @@ export default function App() {
     );
   }
 
+  markStartup('App gate passed: rendering providers + navigator');
   return (
     <AppProviders>
       <MainNavigator />

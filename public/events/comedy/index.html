@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -324,11 +377,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Stand-up Comedy Events & Parties in South Africa (2026) — The Gruvs",
+  "description": "Experience the top Stand-up Comedy events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/events/comedy",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -354,8 +454,8 @@
 
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5">
-      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/2cb6fcc397bd636f2f64715c4110a47068a82a7e931c8f6f90df2377e79c5312-rimg-w1200-h628-dc080808-gmir?v=1788259661" alt="HOORT met Stephanie Baartman" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5" data-title="hoort met stephanie baartman" data-venue="die centurion teater" data-city="centurion" data-date="2026-11-28">
+      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/2cb6fcc397bd636f2f64715c4110a47068a82a7e931c8f6f90df2377e79c5312-rimg-w1200-h628-dc080808-gmir?v=1788259661" alt="HOORT met Stephanie Baartman" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 28 Nov 2026 · 15:00</div>
         <h3 class="event-title">HOORT met Stephanie Baartman</h3>

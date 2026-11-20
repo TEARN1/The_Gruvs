@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -824,11 +877,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Trade, AfCFTA, Maritime & Ports Events & Parties in South Africa (2026) — The Gruvs",
+  "description": "Experience the top Trade, AfCFTA, Maritime & Ports events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/events/trade-and-logistics",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -854,8 +954,8 @@
 
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e">
-      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998" alt="Ride Joburg" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e" data-title="ride joburg" data-venue="kyalami grand prix circuit" data-city="johannesburg" data-date="2026-11-22">
+      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998" alt="Ride Joburg" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 22 Nov 2026 · 05:00</div>
         <h3 class="event-title">Ride Joburg</h3>
@@ -867,8 +967,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891">
-      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703" alt="TinMan Joburg #5" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891" data-title="tinman joburg #5" data-venue="prime view adventure and leisure" data-city="midrand" data-date="2026-11-29">
+      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703" alt="TinMan Joburg #5" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 29 Nov 2026 · 06:30</div>
         <h3 class="event-title">TinMan Joburg #5</h3>
@@ -880,8 +980,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/amfihart-26-5-jaar-van-amfihart-f9ebe47a-8398-4f60-a190-d04cda9977b9">
-      <img class="event-img" src="https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1784615984067_y6dljqt351.jpg" alt="AmfiHart '26 (5 Jaar van AMFIHART)" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/amfihart-26-5-jaar-van-amfihart-f9ebe47a-8398-4f60-a190-d04cda9977b9" data-title="amfihart '26 (5 jaar van amfihart)" data-venue="" data-city="" data-date="2026-12-04">
+      <img class="event-img" src="https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1784615984067_y6dljqt351.jpg" alt="AmfiHart '26 (5 Jaar van AMFIHART)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 04 Dec 2026 · 12:00</div>
         <h3 class="event-title">AmfiHart '26 (5 Jaar van AMFIHART)</h3>
@@ -893,8 +993,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/a11d1e7886e9264767ba00b6bc8f8053175004fe674cf51c77dec47d8b540573-rimg-w1200-h628-dcf8f8f8-gmir?v=1787602769" alt="Brooks Campus Run: Summer Race" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1" data-title="brooks campus run: summer race" data-venue="the campus" data-city="sandton" data-date="2026-12-06">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/a11d1e7886e9264767ba00b6bc8f8053175004fe674cf51c77dec47d8b540573-rimg-w1200-h628-dcf8f8f8-gmir?v=1787602769" alt="Brooks Campus Run: Summer Race" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 06 Dec 2026 · 07:00</div>
         <h3 class="event-title">Brooks Campus Run: Summer Race</h3>
@@ -906,8 +1006,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gauteng Commercial Real Estate &amp; Investment Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57" data-title="gauteng commercial real estate &amp; investment summit" data-venue="the marc sandton" data-city="johannesburg" data-date="2026-12-08">
+      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gauteng Commercial Real Estate &amp; Investment Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 08 Dec 2026 · 08:30</div>
         <h3 class="event-title">Gauteng Commercial Real Estate &amp; Investment Summit</h3>
@@ -919,8 +1019,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; Port Logistics Round-Table" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305" data-title="africa trade &amp; port logistics round-table" data-venue="durban icc" data-city="durban" data-date="2026-12-10">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; Port Logistics Round-Table" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 10 Dec 2026 · 09:00</div>
         <h3 class="event-title">Africa Trade &amp; Port Logistics Round-Table</h3>
@@ -932,8 +1032,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" alt="J. Cole: The Fall-Off Tour" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659" data-title="j. cole: the fall-off tour" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-12">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" alt="J. Cole: The Fall-Off Tour" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 18:00</div>
         <h3 class="event-title">J. Cole: The Fall-Off Tour</h3>
@@ -945,8 +1045,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-festive-sunday-shisanyama-max-s-lifestyle-village-a3e13494-d497-4003-9803-807d296fb691">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Festive Sunday Shisanyama" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-festive-sunday-shisanyama-max-s-lifestyle-village-a3e13494-d497-4003-9803-807d296fb691" data-title="max's lifestyle festive sunday shisanyama" data-venue="max's lifestyle village" data-city="durban" data-date="2026-12-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Festive Sunday Shisanyama" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 27 Dec 2026 · 13:00</div>
         <h3 class="event-title">Max's Lifestyle Festive Sunday Shisanyama</h3>
@@ -958,8 +1058,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/rosebank-street-culture-and-sneaker-festival-the-zone-rosebank-ec36ddf2-9150-45a6-98e4-5d579edee209">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Street Culture &amp; Sneaker Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/rosebank-street-culture-and-sneaker-festival-the-zone-rosebank-ec36ddf2-9150-45a6-98e4-5d579edee209" data-title="rosebank street culture &amp; sneaker festival" data-venue="the zone @ rosebank" data-city="johannesburg" data-date="2027-01-15">
+      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Street Culture &amp; Sneaker Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 15 Jan 2027 · 11:00</div>
         <h3 class="event-title">Rosebank Street Culture &amp; Sneaker Festival</h3>
@@ -971,8 +1071,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ecommerce-africa-logistics-and-payments-forum-sandton-convention-f52a871a-00df-47b6-8304-e46fea869106">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="eCommerce Africa Logistics &amp; Payments Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ecommerce-africa-logistics-and-payments-forum-sandton-convention-f52a871a-00df-47b6-8304-e46fea869106" data-title="ecommerce africa logistics &amp; payments forum" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="eCommerce Africa Logistics &amp; Payments Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 21 Jan 2027 · 09:30</div>
         <h3 class="event-title">eCommerce Africa Logistics &amp; Payments Forum</h3>
@@ -984,8 +1084,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-manufacturing-and-export-excellence-conference-durban-icc-367074d0-4117-4c3e-970d-152383357166">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Manufacturing &amp; Export Excellence Conference" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-manufacturing-and-export-excellence-conference-durban-icc-367074d0-4117-4c3e-970d-152383357166" data-title="durban manufacturing &amp; export excellence conference" data-venue="durban icc" data-city="durban" data-date="2027-01-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Manufacturing &amp; Export Excellence Conference" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 25 Jan 2027 · 08:30</div>
         <h3 class="event-title">Durban Manufacturing &amp; Export Excellence Conference</h3>
@@ -997,8 +1097,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/venture-capital-africa-investor-breakfast-the-marc-sandton-6787796f-8642-4a94-887c-ac89d6963ce7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Venture Capital Africa Investor Breakfast" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/venture-capital-africa-investor-breakfast-the-marc-sandton-6787796f-8642-4a94-887c-ac89d6963ce7" data-title="venture capital africa investor breakfast" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-01-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Venture Capital Africa Investor Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 27 Jan 2027 · 08:00</div>
         <h3 class="event-title">Venture Capital Africa Investor Breakfast</h3>
@@ -1010,8 +1110,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa Payments &amp; Cross-Border Remittances" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9" data-title="fintech africa payments &amp; cross-border remittances" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-02-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa Payments &amp; Cross-Border Remittances" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 16 Feb 2027 · 09:00</div>
         <h3 class="event-title">FinTech Africa Payments &amp; Cross-Border Remittances</h3>
@@ -1023,8 +1123,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-port-supply-chain-and-maritime-tech-forum-durban-icc-durban-a5ca2a52-f8ce-47d9-abc8-0d2fc5059ce0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Supply Chain &amp; Maritime Tech Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-port-supply-chain-and-maritime-tech-forum-durban-icc-durban-a5ca2a52-f8ce-47d9-abc8-0d2fc5059ce0" data-title="durban port supply chain &amp; maritime tech forum" data-venue="durban icc" data-city="durban" data-date="2027-02-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Supply Chain &amp; Maritime Tech Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 18 Feb 2027 · 08:30</div>
         <h3 class="event-title">Durban Port Supply Chain &amp; Maritime Tech Forum</h3>
@@ -1036,8 +1136,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-ocean-economy-and-maritime-trade-summit-durban-icc-durban-fbc77e61-f8ec-4e13-8307-0a957812427d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Ocean Economy &amp; Maritime Trade Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-ocean-economy-and-maritime-trade-summit-durban-icc-durban-fbc77e61-f8ec-4e13-8307-0a957812427d" data-title="durban ocean economy &amp; maritime trade summit" data-venue="durban icc" data-city="durban" data-date="2027-03-23">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Ocean Economy &amp; Maritime Trade Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 23 Mar 2027 · 08:30</div>
         <h3 class="event-title">Durban Ocean Economy &amp; Maritime Trade Summit</h3>
@@ -1049,8 +1149,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-exporting-and-global-e-commerce-workshop-the-marc-sandton-1ec2fa0e-6704-450b-9edc-162b16d42de8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Exporting &amp; Global E-Commerce Workshop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-exporting-and-global-e-commerce-workshop-the-marc-sandton-1ec2fa0e-6704-450b-9edc-162b16d42de8" data-title="sme exporting &amp; global e-commerce workshop" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-03-24">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Exporting &amp; Global E-Commerce Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 24 Mar 2027 · 09:30</div>
         <h3 class="event-title">SME Exporting &amp; Global E-Commerce Workshop</h3>
@@ -1062,8 +1162,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/clean-energy-and-green-hydrogen-southern-africa-sandton-convention-014c8514-cb47-40f5-813b-7396c999ef4c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Clean Energy &amp; Green Hydrogen Southern Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/clean-energy-and-green-hydrogen-southern-africa-sandton-convention-014c8514-cb47-40f5-813b-7396c999ef4c" data-title="clean energy &amp; green hydrogen southern africa" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-03-30">
+      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Clean Energy &amp; Green Hydrogen Southern Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 30 Mar 2027 · 08:30</div>
         <h3 class="event-title">Clean Energy &amp; Green Hydrogen Southern Africa</h3>
@@ -1075,8 +1175,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-sustainability-esg-and-carbon-markets-forum-the-marc-sandton-9b88bc5f-6ee1-4a39-9f8f-042521e5fa4e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Sustainability, ESG &amp; Carbon Markets Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-sustainability-esg-and-carbon-markets-forum-the-marc-sandton-9b88bc5f-6ee1-4a39-9f8f-042521e5fa4e" data-title="africa sustainability, esg &amp; carbon markets forum" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-04-08">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Sustainability, ESG &amp; Carbon Markets Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 08 Apr 2027 · 08:30</div>
         <h3 class="event-title">Africa Sustainability, ESG &amp; Carbon Markets Forum</h3>
@@ -1088,8 +1188,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/western-cape-wine-export-and-trade-conference-spier-wine-farm-609df65a-5d12-497b-9fae-4f11f1e64af8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Wine Export &amp; Trade Conference" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/western-cape-wine-export-and-trade-conference-spier-wine-farm-609df65a-5d12-497b-9fae-4f11f1e64af8" data-title="western cape wine export &amp; trade conference" data-venue="spier wine farm" data-city="stellenbosch" data-date="2027-04-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Wine Export &amp; Trade Conference" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 13 Apr 2027 · 09:00</div>
         <h3 class="event-title">Western Cape Wine Export &amp; Trade Conference</h3>
@@ -1101,8 +1201,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-port-logistics-and-rail-freight-conclave-durban-icc-durban-4bad0dfb-95ab-44d0-8c43-c6b968d7f9d1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Logistics &amp; Rail Freight Conclave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-port-logistics-and-rail-freight-conclave-durban-icc-durban-4bad0dfb-95ab-44d0-8c43-c6b968d7f9d1" data-title="durban port logistics &amp; rail freight conclave" data-venue="durban icc" data-city="durban" data-date="2027-04-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Logistics &amp; Rail Freight Conclave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 21 Apr 2027 · 08:30</div>
         <h3 class="event-title">Durban Port Logistics &amp; Rail Freight Conclave</h3>
@@ -1114,8 +1214,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria GovTech &amp; Smart Public Services Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad" data-title="pretoria govtech &amp; smart public services summit" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-04-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria GovTech &amp; Smart Public Services Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 22 Apr 2027 · 09:00</div>
         <h3 class="event-title">Pretoria GovTech &amp; Smart Public Services Summit</h3>
@@ -1127,8 +1227,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/freedom-day-beach-festival-durban-moses-mabhida-stadium-peoples-park-578b02c6-5bc5-4f70-a45f-56824b354694">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Beach Festival Durban" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/freedom-day-beach-festival-durban-moses-mabhida-stadium-peoples-park-578b02c6-5bc5-4f70-a45f-56824b354694" data-title="freedom day beach festival durban" data-venue="moses mabhida stadium peoples park" data-city="durban" data-date="2027-04-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Beach Festival Durban" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 27 Apr 2027 · 11:00</div>
         <h3 class="event-title">Freedom Day Beach Festival Durban</h3>
@@ -1140,8 +1240,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-afcfta-implementation-forum-durban-icc-durban-918a5b41-1620-4add-b69f-3141a149a4fb">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; AfCFTA Implementation Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-afcfta-implementation-forum-durban-icc-durban-918a5b41-1620-4add-b69f-3141a149a4fb" data-title="africa trade &amp; afcfta implementation forum" data-venue="durban icc" data-city="durban" data-date="2027-05-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; AfCFTA Implementation Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 06 May 2027 · 09:00</div>
         <h3 class="event-title">Africa Trade &amp; AfCFTA Implementation Forum</h3>
@@ -1153,8 +1253,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/commercial-real-estate-logistics-and-warehousing-summit-the-marc-40756299-78b6-48be-b5c3-3fdd4740c68e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Commercial Real Estate Logistics &amp; Warehousing Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/commercial-real-estate-logistics-and-warehousing-summit-the-marc-40756299-78b6-48be-b5c3-3fdd4740c68e" data-title="commercial real estate logistics &amp; warehousing summit" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-05-19">
+      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Commercial Real Estate Logistics &amp; Warehousing Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 19 May 2027 · 09:00</div>
         <h3 class="event-title">Commercial Real Estate Logistics &amp; Warehousing Summit</h3>
@@ -1166,8 +1266,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Clean Energy &amp; EV Infrastructure Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db" data-title="pretoria clean energy &amp; ev infrastructure forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-05-20">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Clean Energy &amp; EV Infrastructure Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 20 May 2027 · 09:00</div>
         <h3 class="event-title">Pretoria Clean Energy &amp; EV Infrastructure Forum</h3>
@@ -1179,8 +1279,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Winter Endurance Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec" data-title="kyalami winter endurance fest" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-05-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Winter Endurance Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 21 May 2027 · 12:00</div>
         <h3 class="event-title">Kyalami Winter Endurance Fest</h3>

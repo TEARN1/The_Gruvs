@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -384,11 +437,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events at Kirstenbosch National Botanical Garden, Cape Town — Schedule & Tickets | The Gruvs",
+  "description": "View upcoming events, concerts, and parties at Kirstenbosch National Botanical Garden in Cape Town. Dates, directions and how to RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/venues/kirstenbosch-national-botanical-garden",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -431,8 +531,8 @@
       <h2 style="font-size:20px; font-weight:800; margin-bottom:20px;">Upcoming Dates (9)</h2>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-soul-and-afro-jazz-kirstenbosch-national-6ba678aa-a7dd-4409-8959-45bcf06e0672">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Soul &amp; Afro-Jazz" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-soul-and-afro-jazz-kirstenbosch-national-6ba678aa-a7dd-4409-8959-45bcf06e0672" data-title="kirstenbosch summer sunset: soul &amp; afro-jazz" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2026-12-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Soul &amp; Afro-Jazz" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Soul &amp; Afro-Jazz</h3>
@@ -444,8 +544,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-indie-and-folk-harmony-kirstenbosch-7e9c72da-04a4-4072-85a1-3ab8259f8d8d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Indie &amp; Folk Harmony" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-indie-and-folk-harmony-kirstenbosch-7e9c72da-04a4-4072-85a1-3ab8259f8d8d" data-title="kirstenbosch summer sunset: indie &amp; folk harmony" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-01-10">
+      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Indie &amp; Folk Harmony" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 10 Jan 2027 · 16:30</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Indie &amp; Folk Harmony</h3>
@@ -457,8 +557,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-cape-reggae-fest-kirstenbosch-national-91f58764-adbb-4184-a15b-3e09615297ae">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Cape Reggae Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-cape-reggae-fest-kirstenbosch-national-91f58764-adbb-4184-a15b-3e09615297ae" data-title="kirstenbosch summer sunset: cape reggae fest" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-01-24">
+      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Cape Reggae Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 24 Jan 2027 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Cape Reggae Fest</h3>
@@ -470,8 +570,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-afro-soul-romance-kirstenbosch-national-658ed054-5ca4-47e3-bbe2-f8e2da9127ae">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Afro-Soul Romance" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-afro-soul-romance-kirstenbosch-national-658ed054-5ca4-47e3-bbe2-f8e2da9127ae" data-title="kirstenbosch summer sunset: afro-soul romance" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-02-07">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Afro-Soul Romance" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 07 Feb 2027 · 16:30</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Afro-Soul Romance</h3>
@@ -483,8 +583,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-jazz-in-the-park-kirstenbosch-national-429b93d8-c7b6-4c95-9731-b43b17324f2f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Jazz in the Park" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-jazz-in-the-park-kirstenbosch-national-429b93d8-c7b6-4c95-9731-b43b17324f2f" data-title="kirstenbosch summer sunset: jazz in the park" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-02-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Jazz in the Park" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 21 Feb 2027 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Jazz in the Park</h3>
@@ -496,8 +596,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-cape-town-philharmonic-pop-classics-e3f253f0-5635-4447-976a-a2976a0c5cbb">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Cape Town Philharmonic Pop Classics" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-summer-sunset-cape-town-philharmonic-pop-classics-e3f253f0-5635-4447-976a-a2976a0c5cbb" data-title="kirstenbosch summer sunset: cape town philharmonic pop classics" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-03-07">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Summer Sunset: Cape Town Philharmonic Pop Classics" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 07 Mar 2027 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Summer Sunset: Cape Town Philharmonic Pop Classics</h3>
@@ -509,8 +609,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/human-rights-day-sunset-concert-kirstenbosch-kirstenbosch-national-3373c182-f782-4e63-9a06-4b3a85928810">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Human Rights Day Sunset Concert Kirstenbosch" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/human-rights-day-sunset-concert-kirstenbosch-kirstenbosch-national-3373c182-f782-4e63-9a06-4b3a85928810" data-title="human rights day sunset concert kirstenbosch" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-03-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Human Rights Day Sunset Concert Kirstenbosch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 21 Mar 2027 · 16:00</div>
         <h3 class="event-title">Human Rights Day Sunset Concert Kirstenbosch</h3>
@@ -522,8 +622,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-autumn-sunset-contemporary-folk-kirstenbosch-national-a2b3acd8-34f0-4a61-814a-a25f041e24c9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Autumn Sunset: Contemporary Folk" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kirstenbosch-autumn-sunset-contemporary-folk-kirstenbosch-national-a2b3acd8-34f0-4a61-814a-a25f041e24c9" data-title="kirstenbosch autumn sunset: contemporary folk" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-04-18">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kirstenbosch Autumn Sunset: Contemporary Folk" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 18 Apr 2027 · 16:00</div>
         <h3 class="event-title">Kirstenbosch Autumn Sunset: Contemporary Folk</h3>
@@ -535,8 +635,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/mother-s-day-sunset-botanical-concert-kirstenbosch-national-botanical-0382c409-c933-4a43-abc1-baa053423cb5">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Mother's Day Sunset Botanical Concert" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/mother-s-day-sunset-botanical-concert-kirstenbosch-national-botanical-0382c409-c933-4a43-abc1-baa053423cb5" data-title="mother's day sunset botanical concert" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-05-09">
+      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Mother's Day Sunset Botanical Concert" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 09 May 2027 · 15:30</div>
         <h3 class="event-title">Mother's Day Sunset Botanical Concert</h3>

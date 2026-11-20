@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -864,11 +917,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events in Pretoria (2026) — The Gruvs",
+  "description": "Discover upcoming events, nightlife, and festivals in Pretoria. Dates, venues and directions on The Gruvs.",
+  "url": "https://thegruvs.com/events/pretoria",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -892,6 +992,17 @@
       <h1 class="hero-title">Events in <span class="brand-accent">Pretoria</span></h1>
       <p class="hero-lead">Live music, theatre, picnics, and weekend vibes across Pretoria &amp; Tshwane. Browse what's listed, with dates, venues and directions.</p>
 
+      <div class="explore-chips">
+        <a class="explore-chip" href="https://thegruvs.com/events/pretoria/this-weekend">This Weekend</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/pretoria/free">Free Events</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/pretoria/december-2026">Dec 2026</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/pretoria/january-2027">Jan 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/pretoria/february-2027">Feb 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/pretoria/march-2027">Mar 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/pretoria/april-2027">Apr 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/pretoria/may-2027">May 2027</a>
+      </div>
+
       <div class="resident-banner">
         <div class="resident-banner-text">
           <h3>Need Accommodation in Pretoria?</h3>
@@ -900,10 +1011,43 @@
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
+      
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (28)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
+
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-1-time-square-casino-pretoria-5cfcdb06-0fd2-4022-be16-fbc8ef91398e">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 1" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-1-time-square-casino-pretoria-5cfcdb06-0fd2-4022-be16-fbc8ef91398e" data-title="afrikaans is groot 2026: konsert 1" data-venue="time square casino" data-city="pretoria" data-date="2026-11-20">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 1" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 20 Nov 2026 · 19:30</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 1</h3>
@@ -915,8 +1059,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 2" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3" data-title="afrikaans is groot 2026: konsert 2" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-21">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 2" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 21 Nov 2026 · 13:00</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 2</h3>
@@ -928,8 +1072,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 3" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6" data-title="afrikaans is groot 2026: konsert 3" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-21">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 3" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 21 Nov 2026 · 19:30</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 3</h3>
@@ -941,8 +1085,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 4" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23" data-title="afrikaans is groot 2026: konsert 4" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-22">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 4" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 22 Nov 2026 · 12:00</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 4</h3>
@@ -954,8 +1098,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 6" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383" data-title="afrikaans is groot 2026: konsert 6" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-27">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 6" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 27 Nov 2026 · 19:30</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 6</h3>
@@ -967,8 +1111,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 8" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a" data-title="afrikaans is groot 2026: konsert 8" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-28">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 8" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 28 Nov 2026 · 19:30</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 8</h3>
@@ -980,8 +1124,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/9e0a02757503c6feaa7f95823c5435585768ab532ee52f8bb78426a001d53310-rimg-w1200-h566-dc083848-gmir?v=1788206754" alt="Afrikaans is Groot 2026: Konsert 10" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e" data-title="afrikaans is groot 2026: konsert 10" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-29">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/9e0a02757503c6feaa7f95823c5435585768ab532ee52f8bb78426a001d53310-rimg-w1200-h566-dc083848-gmir?v=1788206754" alt="Afrikaans is Groot 2026: Konsert 10" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 29 Nov 2026 · 18:00</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 10</h3>
@@ -993,8 +1137,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee">
-      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/3711961c9db20223afe846b6884b652aa1a803af3720cc6b270be1ba7bd44f4c-rimg-w1200-h1698-dce8e8e8-gmir?v=1788283398" alt="Bearfest SA 2026" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee" data-title="bearfest sa 2026" data-venue="die windpomp male resort" data-city="pretoria" data-date="2026-12-04">
+      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/3711961c9db20223afe846b6884b652aa1a803af3720cc6b270be1ba7bd44f4c-rimg-w1200-h1698-dce8e8e8-gmir?v=1788283398" alt="Bearfest SA 2026" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 04 Dec 2026 · 14:00</div>
         <h3 class="event-title">Bearfest SA 2026</h3>
@@ -1006,8 +1150,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 1)" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2" data-title="+live+ at time square (night 1)" data-venue="time square south africa" data-city="pretoria" data-date="2026-12-11">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 1)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 11 Dec 2026 · 20:00</div>
         <h3 class="event-title">+LIVE+ at Time Square (Night 1)</h3>
@@ -1019,8 +1163,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 2)" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843" data-title="+live+ at time square (night 2)" data-venue="time square south africa" data-city="pretoria" data-date="2026-12-12">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 2)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 20:00</div>
         <h3 class="event-title">+LIVE+ at Time Square (Night 2)</h3>
@@ -1032,8 +1176,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Symphony" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624" data-title="sunbet arena afro-tech symphony" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2026-12-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Symphony" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 19:00</div>
         <h3 class="event-title">SunBet Arena Afro-Tech Symphony</h3>
@@ -1045,8 +1189,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png" alt="The Kehlani World Tour: South Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee" data-title="the kehlani world tour: south africa" data-venue="sunbet arena time square" data-city="pretoria" data-date="2026-12-15">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png" alt="The Kehlani World Tour: South Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 15 Dec 2026 · 20:00</div>
         <h3 class="event-title">The Kehlani World Tour: South Africa</h3>
@@ -1058,8 +1202,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-public-private-infrastructure-forum-menlyn-maine-central-c023efef-933f-4433-bea7-0bc2774197df">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Public-Private Infrastructure Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-public-private-infrastructure-forum-menlyn-maine-central-c023efef-933f-4433-bea7-0bc2774197df" data-title="pretoria public-private infrastructure forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2026-12-15">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Public-Private Infrastructure Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 15 Dec 2026 · 08:30</div>
         <h3 class="event-title">Pretoria Public-Private Infrastructure Forum</h3>
@@ -1071,8 +1215,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f">
-      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694" alt="Brandy Live in South Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f" data-title="brandy live in south africa" data-venue="sunbet arena" data-city="pretoria" data-date="2026-12-17">
+      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694" alt="Brandy Live in South Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 17 Dec 2026</div>
         <h3 class="event-title">Brandy Live in South Africa</h3>
@@ -1084,8 +1228,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/candlelight-christmas-classics-voortrekker-monument-pretoria-bc1981e6-9222-4ed7-a273-4178eb2700d9">
-      <img class="event-img" src="https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373" alt="Candlelight: Christmas Classics" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/candlelight-christmas-classics-voortrekker-monument-pretoria-bc1981e6-9222-4ed7-a273-4178eb2700d9" data-title="candlelight: christmas classics" data-venue="voortrekker monument" data-city="pretoria" data-date="2026-12-19">
+      <img class="event-img" src="https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373" alt="Candlelight: Christmas Classics" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 19 Dec 2026 · 20:00</div>
         <h3 class="event-title">Candlelight: Christmas Classics</h3>
@@ -1097,8 +1241,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-house-music-odyssey-sunbet-arena-at-time-square-pretoria-c0a28f81-85c9-403a-8175-22dc16169c96">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria House Music Odyssey" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-house-music-odyssey-sunbet-arena-at-time-square-pretoria-c0a28f81-85c9-403a-8175-22dc16169c96" data-title="pretoria house music odyssey" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-01-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria House Music Odyssey" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 16 Jan 2027 · 18:00</div>
         <h3 class="event-title">Pretoria House Music Odyssey</h3>
@@ -1110,8 +1254,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-tax-and-compliance-masterclass-2027-menlyn-maine-central-square-6ee79d11-3c25-45a5-80c9-e04ba2ee9e01">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Tax &amp; Compliance Masterclass 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-tax-and-compliance-masterclass-2027-menlyn-maine-central-square-6ee79d11-3c25-45a5-80c9-e04ba2ee9e01" data-title="sme tax &amp; compliance masterclass 2027" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-01-26">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Tax &amp; Compliance Masterclass 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 26 Jan 2027 · 09:00</div>
         <h3 class="event-title">SME Tax &amp; Compliance Masterclass 2027</h3>
@@ -1123,8 +1267,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-symphony-of-amapiano-sunbet-arena-at-time-square-pretoria-b8ffcfd2-12b8-4a03-9269-5bbf6d5dd411">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Symphony of Amapiano" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-symphony-of-amapiano-sunbet-arena-at-time-square-pretoria-b8ffcfd2-12b8-4a03-9269-5bbf6d5dd411" data-title="sunbet arena symphony of amapiano" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-02-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Symphony of Amapiano" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Feb 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Symphony of Amapiano</h3>
@@ -1136,8 +1280,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-automotive-and-manufacturing-summit-menlyn-maine-central-7b0630e7-dd03-4e19-b8ec-0f70f3313c4f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Automotive &amp; Manufacturing Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-automotive-and-manufacturing-summit-menlyn-maine-central-7b0630e7-dd03-4e19-b8ec-0f70f3313c4f" data-title="pretoria automotive &amp; manufacturing summit" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-02-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Automotive &amp; Manufacturing Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 25 Feb 2027 · 09:00</div>
         <h3 class="event-title">Pretoria Automotive &amp; Manufacturing Summit</h3>
@@ -1149,8 +1293,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-craft-gin-and-food-truck-carnival-menlyn-maine-central-acc92fd7-d4ca-4490-b603-be1ea0dc4ced">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Craft Gin &amp; Food Truck Carnival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-craft-gin-and-food-truck-carnival-menlyn-maine-central-acc92fd7-d4ca-4490-b603-be1ea0dc4ced" data-title="pretoria craft gin &amp; food truck carnival" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-02-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Craft Gin &amp; Food Truck Carnival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 27 Feb 2027 · 11:00</div>
         <h3 class="event-title">Pretoria Craft Gin &amp; Food Truck Carnival</h3>
@@ -1162,8 +1306,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-masters-sunbet-arena-at-time-square-pretoria-c252678f-148c-4ad6-88a9-a52f74c4cc35">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Masters" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-masters-sunbet-arena-at-time-square-pretoria-c252678f-148c-4ad6-88a9-a52f74c4cc35" data-title="sunbet arena afro-tech masters" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-03-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Masters" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Mar 2027 · 18:00</div>
         <h3 class="event-title">SunBet Arena Afro-Tech Masters</h3>
@@ -1175,8 +1319,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-cyber-defense-and-government-tech-forum-menlyn-maine-central-51597024-638c-4e7e-97eb-eab79e6bfd7e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Cyber Defense &amp; Government Tech Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-cyber-defense-and-government-tech-forum-menlyn-maine-central-51597024-638c-4e7e-97eb-eab79e6bfd7e" data-title="pretoria cyber defense &amp; government tech forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-03-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Cyber Defense &amp; Government Tech Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 25 Mar 2027 · 09:00</div>
         <h3 class="event-title">Pretoria Cyber Defense &amp; Government Tech Forum</h3>
@@ -1188,8 +1332,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/menlyn-maine-autumn-fashion-and-music-night-menlyn-maine-central-8c47fb10-d4b3-4f8d-ab62-2879d117a8cf">
-      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Menlyn Maine Autumn Fashion &amp; Music Night" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/menlyn-maine-autumn-fashion-and-music-night-menlyn-maine-central-8c47fb10-d4b3-4f8d-ab62-2879d117a8cf" data-title="menlyn maine autumn fashion &amp; music night" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-03-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Menlyn Maine Autumn Fashion &amp; Music Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 27 Mar 2027 · 18:00</div>
         <h3 class="event-title">Menlyn Maine Autumn Fashion &amp; Music Night</h3>
@@ -1201,8 +1345,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-soul-and-rnb-night-sunbet-arena-at-time-square-f75b0ab1-3bd6-4db8-b2eb-172d7a0a8b25">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Soul &amp; RnB Night" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-soul-and-rnb-night-sunbet-arena-at-time-square-f75b0ab1-3bd6-4db8-b2eb-172d7a0a8b25" data-title="sunbet arena afro-soul &amp; rnb night" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-04-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Soul &amp; RnB Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 16 Apr 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Afro-Soul &amp; RnB Night</h3>
@@ -1214,8 +1358,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria GovTech &amp; Smart Public Services Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad" data-title="pretoria govtech &amp; smart public services summit" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-04-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria GovTech &amp; Smart Public Services Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 22 Apr 2027 · 09:00</div>
         <h3 class="event-title">Pretoria GovTech &amp; Smart Public Services Summit</h3>
@@ -1227,8 +1371,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Winter Awakening Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9" data-title="sunbet arena winter awakening rave" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-05-08">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Winter Awakening Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 08 May 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Winter Awakening Rave</h3>
@@ -1240,8 +1384,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Clean Energy &amp; EV Infrastructure Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db" data-title="pretoria clean energy &amp; ev infrastructure forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-05-20">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Clean Energy &amp; EV Infrastructure Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 20 May 2027 · 09:00</div>
         <h3 class="event-title">Pretoria Clean Energy &amp; EV Infrastructure Forum</h3>
@@ -1253,8 +1397,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/menlyn-maine-winter-wine-and-dine-gala-menlyn-maine-central-square-869003b8-f571-42b9-a3a5-eb451537c7f0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Menlyn Maine Winter Wine &amp; Dine Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/menlyn-maine-winter-wine-and-dine-gala-menlyn-maine-central-square-869003b8-f571-42b9-a3a5-eb451537c7f0" data-title="menlyn maine winter wine &amp; dine gala" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-05-28">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Menlyn Maine Winter Wine &amp; Dine Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 28 May 2027 · 18:30</div>
         <h3 class="event-title">Menlyn Maine Winter Wine &amp; Dine Gala</h3>
@@ -1266,6 +1410,11 @@
       </div>
     </a>
   
+      </div>
+
+      <div class="hub-guide-box">
+        <h2>Insider Guide to Pretoria Events & Nightlife</h2>
+        <p>Tshwane blends mega-arena productions at SunBet Arena Time Square with relaxed afternoon picnics, Menlyn Maine culinary showcases, and Hatfield live music venues. Direct Gautrain and N1 access makes Pretoria effortless for weekend hopping.</p>
       </div>
     
   </div>

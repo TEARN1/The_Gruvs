@@ -65,7 +65,7 @@ export function MapLayersModal({
               <Text style={[s.title, { color: text }]}>Map Layers & Modes</Text>
               <Text style={[s.sub, { color: muted }]}>Tailor what you see on the streets tonight</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={[s.closeBtn, { backgroundColor: surface, borderColor: `${primary}20` }]}>
+            <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close map layers" style={[s.closeBtn, { backgroundColor: surface, borderColor: `${primary}20` }]}>
               <Feather name="x" size={20} color={text} />
             </TouchableOpacity>
           </View>

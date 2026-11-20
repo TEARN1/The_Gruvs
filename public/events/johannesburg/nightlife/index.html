@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -480,11 +533,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Nightlife, Clubs & Parties in Johannesburg — The Gruvs",
+  "description": "Top rooftop sundowners, club raves, and weekend nightlife in Johannesburg.",
+  "url": "https://thegruvs.com/events/johannesburg/nightlife",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -508,8 +608,8 @@
       <p class="hero-lead">Top rooftop sundowners, club raves, and weekend nightlife in Johannesburg.</p>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/piano-people-johannesburg-2026-old-park-station-johannesburg-bc30f1bf-b377-4212-bf05-f0054e63f32e">
-      <img class="event-img" src="https://cdn2.allevents.in/thumbs/thumb6a854e0810ec4.jpg" alt="Piano People Johannesburg 2026" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/piano-people-johannesburg-2026-old-park-station-johannesburg-bc30f1bf-b377-4212-bf05-f0054e63f32e" data-title="piano people johannesburg 2026" data-venue="old park station" data-city="johannesburg" data-date="2026-11-28">
+      <img class="event-img" src="https://cdn2.allevents.in/thumbs/thumb6a854e0810ec4.jpg" alt="Piano People Johannesburg 2026" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 28 Nov 2026 · 14:00</div>
         <h3 class="event-title">Piano People Johannesburg 2026</h3>
@@ -521,8 +621,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-dezemba-fest-altitude-beach-johannesburg-ce770e88-47ee-492e-9cfb-284fdfbb9550">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Dezemba Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-dezemba-fest-altitude-beach-johannesburg-ce770e88-47ee-492e-9cfb-284fdfbb9550" data-title="altitude beach dezemba fest" data-venue="altitude beach" data-city="johannesburg" data-date="2026-12-06">
+      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Dezemba Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 06 Dec 2026 · 13:00</div>
         <h3 class="event-title">Altitude Beach Dezemba Fest</h3>
@@ -534,8 +634,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3">
-      <img class="event-img" src="https://cdn2.allevents.in/thumbs/thumb6a33b7d965639.jpg" alt="Fatboy Slim - Johannesburg 2026" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3" data-title="fatboy slim - johannesburg 2026" data-venue="james and ethel gray park" data-city="johannesburg" data-date="2026-12-12">
+      <img class="event-img" src="https://cdn2.allevents.in/thumbs/thumb6a33b7d965639.jpg" alt="Fatboy Slim - Johannesburg 2026" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 12:00</div>
         <h3 class="event-title">Fatboy Slim - Johannesburg 2026</h3>
@@ -547,8 +647,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" alt="J. Cole: The Fall-Off Tour" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659" data-title="j. cole: the fall-off tour" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-12">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" alt="J. Cole: The Fall-Off Tour" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 18:00</div>
         <h3 class="event-title">J. Cole: The Fall-Off Tour</h3>
@@ -560,8 +660,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/m/u/n/38f72e26-d769-4675-9001-82c2204da85a.png" alt="Limp Bizkit in Johannesburg" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298" data-title="limp bizkit in johannesburg" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-13">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/m/u/n/38f72e26-d769-4675-9001-82c2204da85a.png" alt="Limp Bizkit in Johannesburg" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 16:00</div>
         <h3 class="event-title">Limp Bizkit in Johannesburg</h3>
@@ -573,8 +673,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/the-station-parkhurst-rooftop-summer-jam-the-station-parkhurst-a0f05d44-a0d5-4786-a65f-b9e0cd090d4e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="The Station Parkhurst Rooftop Summer Jam" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/the-station-parkhurst-rooftop-summer-jam-the-station-parkhurst-a0f05d44-a0d5-4786-a65f-b9e0cd090d4e" data-title="the station parkhurst rooftop summer jam" data-venue="the station parkhurst" data-city="johannesburg" data-date="2026-12-19">
+      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="The Station Parkhurst Rooftop Summer Jam" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 19 Dec 2026 · 15:00</div>
         <h3 class="event-title">The Station Parkhurst Rooftop Summer Jam</h3>
@@ -586,8 +686,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fnb-stadium-ke-dezemba-superfest-fnb-stadium-johannesburg-cbafa4c0-009e-48b1-b4e5-d260dc30b333">
-      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FNB Stadium Ke Dezemba SuperFest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/fnb-stadium-ke-dezemba-superfest-fnb-stadium-johannesburg-cbafa4c0-009e-48b1-b4e5-d260dc30b333" data-title="fnb stadium ke dezemba superfest" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-23">
+      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FNB Stadium Ke Dezemba SuperFest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 23 Dec 2026 · 14:00</div>
         <h3 class="event-title">FNB Stadium Ke Dezemba SuperFest</h3>
@@ -599,8 +699,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/boxing-day-pool-and-beats-extravaganza-altitude-beach-johannesburg-d97a2ec1-255b-4380-9ae4-dff725c57329">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Boxing Day Pool &amp; Beats Extravaganza" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/boxing-day-pool-and-beats-extravaganza-altitude-beach-johannesburg-d97a2ec1-255b-4380-9ae4-dff725c57329" data-title="boxing day pool &amp; beats extravaganza" data-venue="altitude beach" data-city="johannesburg" data-date="2026-12-26">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Boxing Day Pool &amp; Beats Extravaganza" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 26 Dec 2026 · 12:00</div>
         <h3 class="event-title">Boxing Day Pool &amp; Beats Extravaganza</h3>
@@ -612,8 +712,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-january-sun-drenched-sessions-altitude-beach-johannesburg-19485eed-71c0-4351-9b99-f8ecb6ee7586">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude January Sun-Drenched Sessions" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-january-sun-drenched-sessions-altitude-beach-johannesburg-19485eed-71c0-4351-9b99-f8ecb6ee7586" data-title="altitude january sun-drenched sessions" data-venue="altitude beach" data-city="johannesburg" data-date="2027-01-08">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude January Sun-Drenched Sessions" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 08 Jan 2027 · 14:00</div>
         <h3 class="event-title">Altitude January Sun-Drenched Sessions</h3>
@@ -625,8 +725,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/rosebank-street-culture-and-sneaker-festival-the-zone-rosebank-ec36ddf2-9150-45a6-98e4-5d579edee209">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Street Culture &amp; Sneaker Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/rosebank-street-culture-and-sneaker-festival-the-zone-rosebank-ec36ddf2-9150-45a6-98e4-5d579edee209" data-title="rosebank street culture &amp; sneaker festival" data-venue="the zone @ rosebank" data-city="johannesburg" data-date="2027-01-15">
+      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Street Culture &amp; Sneaker Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 15 Jan 2027 · 11:00</div>
         <h3 class="event-title">Rosebank Street Culture &amp; Sneaker Festival</h3>
@@ -638,8 +738,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/parkhurst-summer-sunset-social-the-station-parkhurst-johannesburg-b58ac605-17f8-435c-86b7-3eb847f7e570">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Parkhurst Summer Sunset Social" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/parkhurst-summer-sunset-social-the-station-parkhurst-johannesburg-b58ac605-17f8-435c-86b7-3eb847f7e570" data-title="parkhurst summer sunset social" data-venue="the station parkhurst" data-city="johannesburg" data-date="2027-01-17">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Parkhurst Summer Sunset Social" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 17 Jan 2027 · 15:00</div>
         <h3 class="event-title">Parkhurst Summer Sunset Social</h3>
@@ -651,8 +751,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/braamfontein-rooftop-summer-jam-constitution-hill-human-rights-86eb56d6-016b-4653-aa22-6d7f41018a5b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Braamfontein Rooftop Summer Jam" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/braamfontein-rooftop-summer-jam-constitution-hill-human-rights-86eb56d6-016b-4653-aa22-6d7f41018a5b" data-title="braamfontein rooftop summer jam" data-venue="constitution hill human rights precinct" data-city="johannesburg" data-date="2027-01-31">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Braamfontein Rooftop Summer Jam" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 31 Jan 2027 · 15:00</div>
         <h3 class="event-title">Braamfontein Rooftop Summer Jam</h3>
@@ -664,8 +764,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ultra-summer-warmup-rooftop-fiesta-the-station-parkhurst-johannesburg-d32654f3-07cf-4366-a5d8-ff56a5027cbb">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Ultra Summer Warmup Rooftop Fiesta" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ultra-summer-warmup-rooftop-fiesta-the-station-parkhurst-johannesburg-d32654f3-07cf-4366-a5d8-ff56a5027cbb" data-title="ultra summer warmup rooftop fiesta" data-venue="the station parkhurst" data-city="johannesburg" data-date="2027-02-05">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Ultra Summer Warmup Rooftop Fiesta" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 05 Feb 2027 · 17:00</div>
         <h3 class="event-title">Ultra Summer Warmup Rooftop Fiesta</h3>
@@ -677,8 +777,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-pre-valentine-pool-party-altitude-beach-johannesburg-02cf7d37-1c34-41cc-a7fa-9e7511d9e4a7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Pre-Valentine Pool Party" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-pre-valentine-pool-party-altitude-beach-johannesburg-02cf7d37-1c34-41cc-a7fa-9e7511d9e4a7" data-title="altitude beach pre-valentine pool party" data-venue="altitude beach" data-city="johannesburg" data-date="2027-02-12">
+      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Pre-Valentine Pool Party" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 12 Feb 2027 · 14:00</div>
         <h3 class="event-title">Altitude Beach Pre-Valentine Pool Party</h3>
@@ -690,8 +790,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/rosebank-streetwear-and-hip-hop-showcase-the-zone-rosebank-265289b8-015b-4e98-971e-0386d1e204b3">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Streetwear &amp; Hip Hop Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/rosebank-streetwear-and-hip-hop-showcase-the-zone-rosebank-265289b8-015b-4e98-971e-0386d1e204b3" data-title="rosebank streetwear &amp; hip hop showcase" data-venue="the zone @ rosebank" data-city="johannesburg" data-date="2027-02-26">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Streetwear &amp; Hip Hop Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 26 Feb 2027 · 14:00</div>
         <h3 class="event-title">Rosebank Streetwear &amp; Hip Hop Showcase</h3>
@@ -703,8 +803,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-february-finale-pool-fest-altitude-beach-johannesburg-b8242531-5084-4d8e-bda3-48f9c59aa805">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach February Finale Pool Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-february-finale-pool-fest-altitude-beach-johannesburg-b8242531-5084-4d8e-bda3-48f9c59aa805" data-title="altitude beach february finale pool fest" data-venue="altitude beach" data-city="johannesburg" data-date="2027-02-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach February Finale Pool Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 27 Feb 2027 · 13:00</div>
         <h3 class="event-title">Altitude Beach February Finale Pool Fest</h3>
@@ -716,8 +816,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/braamfontein-sunset-electronic-session-constitution-hill-human-rights-d77cb1da-a0ea-4e47-ac98-960584a3f57e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Braamfontein Sunset Electronic Session" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/braamfontein-sunset-electronic-session-constitution-hill-human-rights-d77cb1da-a0ea-4e47-ac98-960584a3f57e" data-title="braamfontein sunset electronic session" data-venue="constitution hill human rights precinct" data-city="johannesburg" data-date="2027-02-28">
+      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Braamfontein Sunset Electronic Session" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 28 Feb 2027 · 16:00</div>
         <h3 class="event-title">Braamfontein Sunset Electronic Session</h3>
@@ -729,8 +829,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-autumn-sunset-bash-altitude-beach-johannesburg-aec1c96a-4bf4-4070-9ff1-1a633e10cd15">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Autumn Sunset Bash" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-autumn-sunset-bash-altitude-beach-johannesburg-aec1c96a-4bf4-4070-9ff1-1a633e10cd15" data-title="altitude beach autumn sunset bash" data-venue="altitude beach" data-city="johannesburg" data-date="2027-03-12">
+      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Autumn Sunset Bash" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 12 Mar 2027 · 14:00</div>
         <h3 class="event-title">Altitude Beach Autumn Sunset Bash</h3>
@@ -742,8 +842,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/constitution-hill-human-rights-festival-and-concert-constitution-hill-3210f31d-fbfe-43d9-aeec-22d83f6d7250">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Constitution Hill Human Rights Festival &amp; Concert" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/constitution-hill-human-rights-festival-and-concert-constitution-hill-3210f31d-fbfe-43d9-aeec-22d83f6d7250" data-title="constitution hill human rights festival &amp; concert" data-venue="constitution hill human rights precinct" data-city="johannesburg" data-date="2027-03-20">
+      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Constitution Hill Human Rights Festival &amp; Concert" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 20 Mar 2027 · 10:00</div>
         <h3 class="event-title">Constitution Hill Human Rights Festival &amp; Concert</h3>
@@ -755,8 +855,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/parkhurst-autumn-craft-beer-and-gin-fest-the-station-parkhurst-fc602da6-e2fe-4810-82c1-41fa339a307a">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Parkhurst Autumn Craft Beer &amp; Gin Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/parkhurst-autumn-craft-beer-and-gin-fest-the-station-parkhurst-fc602da6-e2fe-4810-82c1-41fa339a307a" data-title="parkhurst autumn craft beer &amp; gin fest" data-venue="the station parkhurst" data-city="johannesburg" data-date="2027-03-26">
+      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Parkhurst Autumn Craft Beer &amp; Gin Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 26 Mar 2027 · 16:00</div>
         <h3 class="event-title">Parkhurst Autumn Craft Beer &amp; Gin Fest</h3>
@@ -768,8 +868,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/rosebank-art-and-vinyl-evening-market-the-zone-rosebank-johannesburg-4337c806-3274-412a-b1f0-67c5268ea9be">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Art &amp; Vinyl Evening Market" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/rosebank-art-and-vinyl-evening-market-the-zone-rosebank-johannesburg-4337c806-3274-412a-b1f0-67c5268ea9be" data-title="rosebank art &amp; vinyl evening market" data-venue="the zone @ rosebank" data-city="johannesburg" data-date="2027-03-31">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Art &amp; Vinyl Evening Market" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 31 Mar 2027 · 17:00</div>
         <h3 class="event-title">Rosebank Art &amp; Vinyl Evening Market</h3>
@@ -781,8 +881,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-easter-saturday-pool-gala-altitude-beach-johannesburg-bfcf349b-fea0-456a-ba9a-0500fe4a9018">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Easter Saturday Pool Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-easter-saturday-pool-gala-altitude-beach-johannesburg-bfcf349b-fea0-456a-ba9a-0500fe4a9018" data-title="altitude beach easter saturday pool gala" data-venue="altitude beach" data-city="johannesburg" data-date="2027-04-03">
+      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Easter Saturday Pool Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 03 Apr 2027 · 13:00</div>
         <h3 class="event-title">Altitude Beach Easter Saturday Pool Gala</h3>
@@ -794,8 +894,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/rosebank-street-art-and-sneaker-clash-the-zone-rosebank-johannesburg-cd947628-6848-48a5-bea0-0532648460aa">
-      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Street Art &amp; Sneaker Clash" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/rosebank-street-art-and-sneaker-clash-the-zone-rosebank-johannesburg-cd947628-6848-48a5-bea0-0532648460aa" data-title="rosebank street art &amp; sneaker clash" data-venue="the zone @ rosebank" data-city="johannesburg" data-date="2027-04-23">
+      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Street Art &amp; Sneaker Clash" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 23 Apr 2027 · 13:00</div>
         <h3 class="event-title">Rosebank Street Art &amp; Sneaker Clash</h3>
@@ -807,8 +907,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/the-station-parkhurst-autumn-rooftop-beats-the-station-parkhurst-0a783827-1bb9-493b-8477-a2c9c875f20f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="The Station Parkhurst Autumn Rooftop Beats" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/the-station-parkhurst-autumn-rooftop-beats-the-station-parkhurst-0a783827-1bb9-493b-8477-a2c9c875f20f" data-title="the station parkhurst autumn rooftop beats" data-venue="the station parkhurst" data-city="johannesburg" data-date="2027-04-24">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="The Station Parkhurst Autumn Rooftop Beats" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 24 Apr 2027 · 16:00</div>
         <h3 class="event-title">The Station Parkhurst Autumn Rooftop Beats</h3>
@@ -820,8 +920,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/freedom-day-eve-all-star-amapiano-festival-fnb-stadium-johannesburg-eb8f67e3-6367-478b-b1c9-80d1dfda02c8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Eve All-Star Amapiano Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/freedom-day-eve-all-star-amapiano-festival-fnb-stadium-johannesburg-eb8f67e3-6367-478b-b1c9-80d1dfda02c8" data-title="freedom day eve all-star amapiano festival" data-venue="fnb stadium" data-city="johannesburg" data-date="2027-04-26">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Eve All-Star Amapiano Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 26 Apr 2027 · 16:00</div>
         <h3 class="event-title">Freedom Day Eve All-Star Amapiano Festival</h3>
@@ -833,8 +933,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/freedom-day-freedom-songs-and-heritage-concert-constitution-hill-8078fa22-8446-4b99-946d-bc8137b1e542">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Freedom Songs &amp; Heritage Concert" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/freedom-day-freedom-songs-and-heritage-concert-constitution-hill-8078fa22-8446-4b99-946d-bc8137b1e542" data-title="freedom day freedom songs &amp; heritage concert" data-venue="constitution hill human rights precinct" data-city="johannesburg" data-date="2027-04-27">
+      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Freedom Songs &amp; Heritage Concert" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 27 Apr 2027 · 12:00</div>
         <h3 class="event-title">Freedom Day Freedom Songs &amp; Heritage Concert</h3>
@@ -846,8 +946,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-autumn-warmup-party-altitude-beach-johannesburg-35fa89c9-10b5-4b84-8e90-e798cd8d8a32">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Autumn Warmup Party" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-autumn-warmup-party-altitude-beach-johannesburg-35fa89c9-10b5-4b84-8e90-e798cd8d8a32" data-title="altitude beach autumn warmup party" data-venue="altitude beach" data-city="johannesburg" data-date="2027-05-07">
+      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach Autumn Warmup Party" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 07 May 2027 · 16:00</div>
         <h3 class="event-title">Altitude Beach Autumn Warmup Party</h3>
@@ -859,8 +959,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/the-station-parkhurst-cozy-winter-rooftop-the-station-parkhurst-2352cf7d-f1b2-47de-92b8-ab97a6040b26">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="The Station Parkhurst Cozy Winter Rooftop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/the-station-parkhurst-cozy-winter-rooftop-the-station-parkhurst-2352cf7d-f1b2-47de-92b8-ab97a6040b26" data-title="the station parkhurst cozy winter rooftop" data-venue="the station parkhurst" data-city="johannesburg" data-date="2027-05-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="The Station Parkhurst Cozy Winter Rooftop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 16 May 2027 · 15:00</div>
         <h3 class="event-title">The Station Parkhurst Cozy Winter Rooftop</h3>
@@ -872,8 +972,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/rosebank-winter-street-food-and-craft-market-the-zone-rosebank-7d50cd05-9102-410d-87a4-9eddd46f720b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Winter Street Food &amp; Craft Market" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/rosebank-winter-street-food-and-craft-market-the-zone-rosebank-7d50cd05-9102-410d-87a4-9eddd46f720b" data-title="rosebank winter street food &amp; craft market" data-venue="the zone @ rosebank" data-city="johannesburg" data-date="2027-05-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Winter Street Food &amp; Craft Market" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 22 May 2027 · 11:00</div>
         <h3 class="event-title">Rosebank Winter Street Food &amp; Craft Market</h3>
@@ -885,8 +985,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-day-grand-cultural-carnival-constitution-hill-human-rights-a3d04216-6703-4075-99b1-46b7f5181dc2">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Grand Cultural Carnival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-day-grand-cultural-carnival-constitution-hill-human-rights-a3d04216-6703-4075-99b1-46b7f5181dc2" data-title="africa day grand cultural carnival" data-venue="constitution hill human rights precinct" data-city="johannesburg" data-date="2027-05-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Grand Cultural Carnival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 25 May 2027 · 11:00</div>
         <h3 class="event-title">Africa Day Grand Cultural Carnival</h3>
@@ -898,8 +998,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-may-finale-night-swim-altitude-beach-johannesburg-2d5180d7-031a-4a9c-8381-509a2cfbd30b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach May Finale Night Swim" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/altitude-beach-may-finale-night-swim-altitude-beach-johannesburg-2d5180d7-031a-4a9c-8381-509a2cfbd30b" data-title="altitude beach may finale night swim" data-venue="altitude beach" data-city="johannesburg" data-date="2027-05-29">
+      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Altitude Beach May Finale Night Swim" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 29 May 2027 · 17:00</div>
         <h3 class="event-title">Altitude Beach May Finale Night Swim</h3>

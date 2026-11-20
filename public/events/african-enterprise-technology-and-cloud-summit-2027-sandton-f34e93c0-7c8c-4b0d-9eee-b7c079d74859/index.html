@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -273,6 +326,10 @@
     "name": "The Gruvs",
     "url": "https://thegruvs.com",
     "logo": "https://thegruvs.com/logo.png"
+  },
+  "performer": {
+    "@type": "PerformingGroup",
+    "name": "African Enterprise Technology & Cloud Summit 2027"
   }
 }
 </script>
@@ -346,11 +403,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "African Enterprise Technology & Cloud Summit 2027 — Sandton Convention Centre · Johannesburg | The Gruvs",
+  "description": "African Enterprise Technology & Cloud Summit 2027 taking place on Tue, 04 May 2027 · 08:30 at Sandton Convention Centre · Johannesburg. Book tickets and connect on The Gruvs.",
+  "url": "https://thegruvs.com/events/african-enterprise-technology-and-cloud-summit-2027-sandton-f34e93c0-7c8c-4b0d-9eee-b7c079d74859",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -374,7 +478,7 @@
 
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; align-items: start; margin-top: 16px;">
         <div>
-          <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Enterprise Technology &amp; Cloud Summit 2027" style="width:100%; border-radius:18px; border:1px solid var(--surface-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
+          <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Enterprise Technology &amp; Cloud Summit 2027" fetchpriority="high" decoding="async" width="800" height="450" style="width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:18px; border:1px solid var(--surface-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
           
           <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;">
             <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=African%20Enterprise%20Technology%20%26%20Cloud%20Summit%202027&dates=20270504T083000/20270504T235900&details=The%20premier%20enterprise%20tech%20summit%20gathering%20CIOs%2C%20CISOs%2C%20and%20cloud%20architects%20to%20discuss%20sovereign%20cloud%2C%20hybrid%20deployments%2C%20and%20enterprise%20AI%20safety.&location=Sandton%20Convention%20Centre%20%C2%B7%20Johannesburg&sprop=website:https://thegruvs.com" target="_blank" rel="noopener" style="flex:1; min-width:140px; text-align:center; background:#1a2327; border:1px solid #00f2ff44; color:#00f2ff; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none;">
@@ -421,6 +525,17 @@
               <span style="color:var(--muted); font-size:13px;">Claim this listing to update times, add tickets, and connect.</span>
             </div>
             <a href="https://thegruvs.com/?claim=f34e93c0-7c8c-4b0d-9eee-b7c079d74859" class="resident-btn" style="background:transparent; border:1px solid var(--primary); color:var(--primary); padding:6px 14px; font-size:13px;">Claim Listing →</a>
+          </div>
+
+          <div style="margin-top:24px;">
+            <strong style="color:#fff; font-size:13px; text-transform:uppercase; letter-spacing:0.6px;">Explore Related Hubs</strong>
+            <div class="explore-chips" style="margin-top:10px;">
+              <a class="explore-chip" href="https://thegruvs.com/events/johannesburg">More in Johannesburg</a>
+              <a class="explore-chip" href="https://thegruvs.com/venues/sandton-convention-centre">All at Sandton Convention Centre</a>
+              <a class="explore-chip" href="https://thegruvs.com/events/business">Business & Tech Summits</a>
+              <a class="explore-chip" href="https://thegruvs.com/events/may-2027">May 2027</a>
+              <a class="explore-chip" href="https://thegruvs.com/events/free">Free Events</a>
+            </div>
           </div>
         </div>
       </div>
