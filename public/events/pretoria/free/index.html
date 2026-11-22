@@ -397,14 +397,97 @@
       <h1 class="hero-title">Free Events in <span class="brand-accent">Pretoria</span></h1>
       <p class="hero-lead">Zero-cost festivals, free RSVP expos, and open community gatherings in Pretoria.</p>
       
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (5)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-biotech-and-pharmaceutical-spin-out-pitch-the-capital-menlyn-b3affdb6-de6d-4ccc-8a1d-b11f9a45c1cc" data-title="pretoria biotech &amp; pharmaceutical spin-out pitch" data-venue="the capital menlyn maine" data-city="pretoria" data-date="2027-02-19">
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-innovation-hub-smart-city-pitch-battle-the-innovation-hub-f76e0962-53fe-4994-bb53-79f30095ddb6" data-title="pretoria innovation hub smart city pitch battle" data-venue="the innovation hub pretoria" data-city="pretoria" data-date="2026-12-21">
+      <img class="event-img" src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Innovation Hub Smart City Pitch Battle" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 21 Dec 2026 · 10:00</div>
+        <h3 class="event-title">Pretoria Innovation Hub Smart City Pitch Battle</h3>
+        <p class="event-venue">The Innovation Hub Pretoria · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-medtech-and-clinical-devices-pitch-night-csir-international-123552d9-0614-49d9-ad60-3d55896e94f2" data-title="pretoria medtech &amp; clinical devices pitch night" data-venue="csir international convention centre" data-city="pretoria" data-date="2027-01-13">
+      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria MedTech &amp; Clinical Devices Pitch Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 13 Jan 2027 · 17:30</div>
+        <h3 class="event-title">Pretoria MedTech &amp; Clinical Devices Pitch Night</h3>
+        <p class="event-venue">CSIR International Convention Centre · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/women-in-stem-and-engineering-enterprise-pitch-the-innovation-hub-7ad55358-d059-4fc8-9839-2aae4be69c3f" data-title="women in stem &amp; engineering enterprise pitch" data-venue="the innovation hub pretoria" data-city="pretoria" data-date="2027-01-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in STEM &amp; Engineering Enterprise Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 25 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Women in STEM &amp; Engineering Enterprise Pitch</h3>
+        <p class="event-venue">The Innovation Hub Pretoria · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-biotech-and-pharmaceutical-spin-out-pitch-the-capital-menlyn-232606df-042f-4fe1-a7c9-be23670c42ec" data-title="pretoria biotech &amp; pharmaceutical spin-out pitch" data-venue="the capital menlyn maine" data-city="pretoria" data-date="2027-02-19">
       <img class="event-img" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Biotech &amp; Pharmaceutical Spin-Out Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 19 Feb 2027 · 10:00</div>
         <h3 class="event-title">Pretoria Biotech &amp; Pharmaceutical Spin-Out Pitch</h3>
         <p class="event-venue">The Capital Menlyn Maine · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-energy-storage-and-battery-assembly-pitch-the-innovation-hub-233bfd53-557d-4ec3-ab26-1f3420465ea7" data-title="pretoria energy storage &amp; battery assembly pitch" data-venue="the innovation hub pretoria" data-city="pretoria" data-date="2027-02-24">
+      <img class="event-img" src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Energy Storage &amp; Battery Assembly Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 24 Feb 2027 · 10:00</div>
+        <h3 class="event-title">Pretoria Energy Storage &amp; Battery Assembly Pitch</h3>
+        <p class="event-venue">The Innovation Hub Pretoria · Pretoria</p>
         <div class="event-footer">
           <span class="event-price">Tickets Available</span>
           <span class="btn-view">Get Tickets →</span>

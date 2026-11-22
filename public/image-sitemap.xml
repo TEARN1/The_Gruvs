@@ -191,7 +191,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/africa-venture-capital-and-private-equity-summit-2027-sandton-7382a852-7574-420e-b03c-49ae7fec0d3f</loc>
+    <loc>https://thegruvs.com/events/africa-venture-capital-and-private-equity-summit-2027-sandton-ab5a2e98-0224-4527-8c15-fe90ea0f93ba</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Africa Venture Capital &amp; Private Equity Summit 2027</image:title>
@@ -263,7 +263,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/agri-tech-and-rural-enterprise-showcase-riversands-i-hub-midrand-c449bd7b-c4e0-4d42-9dde-d00f7e014f84</loc>
+    <loc>https://thegruvs.com/events/agri-tech-and-rural-enterprise-showcase-riversands-i-hub-midrand-11b6bc53-3509-4a58-9dad-094ba2e7ee75</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Agri-Tech &amp; Rural Enterprise Showcase</image:title>
@@ -287,7 +287,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/ai-product-founders-and-llm-builders-workshop-tshimologong-digital-a6393ac3-429c-4fb4-a737-32e6b432bb82</loc>
+    <loc>https://thegruvs.com/events/ai-product-founders-and-llm-builders-workshop-tshimologong-digital-9cef81a6-bf83-468e-a634-6d4ea6f89ea4</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>AI Product Founders &amp; LLM Builders Workshop</image:title>
@@ -375,7 +375,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/b2b-sales-mastery-for-tech-founders-tshimologong-digital-innovation-975130e4-81e0-4161-94e5-c5421c5c5566</loc>
+    <loc>https://thegruvs.com/events/b2b-sales-mastery-for-tech-founders-tshimologong-digital-innovation-ac8e195b-4539-4a76-9955-044f87a8c7ae</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>B2B Sales Mastery for Tech Founders</image:title>
@@ -399,10 +399,18 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/braamfontein-digital-founders-demo-day-tshimologong-digital-94adb32f-70c5-4083-aaac-fae4b7467d85</loc>
+    <loc>https://thegruvs.com/events/braamfontein-digital-founders-demo-day-tshimologong-digital-0e1ed95c-7ca3-49a0-b960-0b860ec86501</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Braamfontein Digital Founders Demo Day</image:title>
+      <image:caption>Tshimologong Digital Innovation Precinct · Johannesburg · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/braamfontein-edtech-and-future-of-work-showcase-tshimologong-digital-9f9ed848-b514-4d99-9ddd-0331dcd82f7d</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Braamfontein EdTech &amp; Future of Work Showcase</image:title>
       <image:caption>Tshimologong Digital Innovation Precinct · Johannesburg · biz</image:caption>
     </image:image>
   </url>
@@ -543,35 +551,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/cape-town-angel-investors-and-founders-breakfast-workshop17-watershed-4991603c-262c-4196-90a2-85cb4437bfa6</loc>
+    <loc>https://thegruvs.com/events/centurion-saas-and-cloud-founders-roundtable-centurion-lake-business-d75e3b66-3b8c-4957-b279-8dfe5ff7d815</loc>
     <image:image>
-      <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Cape Town Angel Investors &amp; Founders Breakfast</image:title>
-      <image:caption>Workshop17 Watershed · Cape Town · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/cape-town-cleantech-and-water-innovation-summit-workshop17-watershed-7adfe913-d875-4ca0-894b-7246ecb56346</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Cape Town CleanTech &amp; Water Innovation Summit</image:title>
-      <image:caption>Workshop17 Watershed · Cape Town · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/cape-town-fintech-hackathon-and-pitch-challenge-cape-town-4cfc1cdc-23c6-425b-92b8-148a3096e6eb</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Cape Town FinTech Hackathon &amp; Pitch Challenge</image:title>
-      <image:caption>Cape Town International Convention Centre (CTICC) · Cape Town · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/cape-town-seedstars-pitch-competition-2027-cape-town-international-fae92651-7b72-4638-8b46-1b941f936fda</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Cape Town Seedstars Pitch Competition 2027</image:title>
-      <image:caption>Cape Town International Convention Centre (CTICC) · Cape Town · biz</image:caption>
+      <image:loc>https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Centurion SaaS &amp; Cloud Founders Roundtable</image:title>
+      <image:caption>Centurion Lake Business Hub · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -615,6 +599,14 @@
     </image:image>
   </url>
   <url>
+    <loc>https://thegruvs.com/events/constitution-hill-civic-tech-and-social-impact-pitch-constitution-67796836-cb52-477e-81ef-410b5f952ed0</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Constitution Hill Civic Tech &amp; Social Impact Pitch</image:title>
+      <image:caption>Constitution Hill Human Rights Precinct · Johannesburg · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
     <loc>https://thegruvs.com/events/constitution-hill-human-rights-festival-and-concert-constitution-hill-3210f31d-fbfe-43d9-aeec-22d83f6d7250</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
@@ -623,11 +615,19 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/cross-border-african-trade-and-afcfta-masterclass-riversands-i-hub-cd74ceda-5958-4afb-8cad-24aa77e50fe5</loc>
+    <loc>https://thegruvs.com/events/cross-border-african-trade-and-afcfta-masterclass-riversands-i-hub-334562e4-f240-4fb7-b073-8edce1bfbbdf</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Cross-Border African Trade &amp; AfCFTA Masterclass</image:title>
       <image:caption>Riversands I-Hub · Midrand · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/csir-deeptech-and-biotech-commercialization-summit-csir-international-c29d0de3-9b90-4ed9-ab44-98df006d18e4</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>CSIR DeepTech &amp; Biotech Commercialization Summit</image:title>
+      <image:caption>CSIR International Convention Centre · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -655,7 +655,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/digital-nomads-and-remote-solopreneur-meetup-radisson-blu-gautrain-eb9b715a-0076-49b3-8598-60a1a87fba84</loc>
+    <loc>https://thegruvs.com/events/digital-nomads-and-remote-solopreneur-meetup-radisson-blu-gautrain-56efe4ba-94f7-43b3-a693-77a6f065744b</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573164713988-8665fc963095?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Digital Nomads &amp; Remote Solopreneur Meetup</image:title>
@@ -671,35 +671,19 @@
     </image:image>
   </url>
   <url>
+    <loc>https://thegruvs.com/events/dunkeld-creators-and-media-production-studio-summit-the-greenhouse-0943ba5e-5d56-4647-bc8e-d77dc8d76650</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Dunkeld Creators &amp; Media Production Studio Summit</image:title>
+      <image:caption>The Greenhouse Oxford Parks · Johannesburg · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
     <loc>https://thegruvs.com/events/durban-all-white-beach-extravaganza-moses-mabhida-stadium-peoples-249e43a1-b95e-4316-ab80-1fe997288cb9</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Durban All-White Beach Extravaganza</image:title>
       <image:caption>Moses Mabhida Stadium Peoples Park · Durban · music</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/durban-coastal-founders-and-blue-economy-pitch-the-pencil-club-f9a034e4-a42d-4e0a-a060-a9ff6a624a8f</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Durban Coastal Founders &amp; Blue Economy Pitch</image:title>
-      <image:caption>The Pencil Club Umhlanga · Durban · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/durban-creative-solopreneurs-and-creators-summit-durban-icc-durban-0dc93d12-855a-41a4-a953-3bb3a7d88b1e</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Durban Creative Solopreneurs &amp; Creators Summit</image:title>
-      <image:caption>Durban ICC · Durban · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/durban-fashion-design-and-apparel-factory-incubator-the-pencil-club-aee777ca-eb3a-4358-b4ba-ff718f56613b</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Durban Fashion Design &amp; Apparel Factory Incubator</image:title>
-      <image:caption>The Pencil Club Umhlanga · Durban · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -735,35 +719,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/durban-retail-and-wholesale-importers-network-the-pencil-club-18a6e7b6-90aa-4dce-a6fe-180c5dfc2ff9</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Durban Retail &amp; Wholesale Importers Network</image:title>
-      <image:caption>The Pencil Club Umhlanga · Durban · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
     <loc>https://thegruvs.com/events/durban-summer-beach-jam-moses-mabhida-stadium-peoples-park-durban-41d77605-6649-4b2d-a80a-8f6e8028a7a6</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Durban Summer Beach Jam</image:title>
       <image:caption>Moses Mabhida Stadium Peoples Park · Durban · music</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/durban-tourism-and-hospitality-tech-incubator-durban-icc-durban-af5cc0fc-13fb-40a5-bc20-4463ccf90e4a</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Durban Tourism &amp; Hospitality Tech Incubator</image:title>
-      <image:caption>Durban ICC · Durban · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/e-commerce-brands-and-d2c-growth-conference-cape-town-international-20bb155e-e3ce-4bf0-871f-8e84c03f58d7</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>E-Commerce Brands &amp; D2C Growth Conference</image:title>
-      <image:caption>Cape Town International Convention Centre (CTICC) · Cape Town · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -791,30 +751,6 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/eastern-cape-automotive-innovation-and-sme-hub-genesis-hub-gqeberha-aa4e7a1c-d3e4-449f-ba98-f0fd19c5ed78</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1577495508048-b635879837f1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Eastern Cape Automotive Innovation &amp; SME Hub</image:title>
-      <image:caption>Genesis Hub Gqeberha · Gqeberha · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/eastern-cape-renewable-energy-microgrid-builders-genesis-hub-gqeberha-602455a6-11ee-4828-89c8-404b4d53e091</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Eastern Cape Renewable Energy Microgrid Builders</image:title>
-      <image:caption>Genesis Hub Gqeberha · Gqeberha · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/eastern-cape-tech-and-logistics-innovation-summit-genesis-hub-9b0e5040-2f43-476a-ab6b-e9bd9a2920d6</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Eastern Cape Tech &amp; Logistics Innovation Summit</image:title>
-      <image:caption>Genesis Hub Gqeberha · Gqeberha · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
     <loc>https://thegruvs.com/events/ecommerce-africa-logistics-and-payments-forum-sandton-convention-f52a871a-00df-47b6-8304-e46fea869106</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
@@ -823,11 +759,19 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/edtech-and-future-of-work-startup-showcase-bandwidth-barn-woodstock-1b820988-af39-4f99-bac1-98a4641e107e</loc>
+    <loc>https://thegruvs.com/events/ekurhuleni-manufacturing-and-industrial-sme-hub-emperors-palace-1f2a625c-4899-4242-ae92-4b1d1d2750e2</loc>
     <image:image>
-      <image:loc>https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>EdTech &amp; Future of Work Startup Showcase</image:title>
-      <image:caption>Bandwidth Barn Woodstock · Cape Town · biz</image:caption>
+      <image:loc>https://images.unsplash.com/photo-1577495508048-b635879837f1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Ekurhuleni Manufacturing &amp; Industrial SME Hub</image:title>
+      <image:caption>Emperors Palace Convention Centre · Ekurhuleni · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/emperors-palace-airport-logistics-and-cargo-trade-summit-emperors-3e222e76-a1b5-41ff-9fff-a917c72fba97</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Emperors Palace Airport Logistics &amp; Cargo Trade Summit</image:title>
+      <image:caption>Emperors Palace Convention Centre · Ekurhuleni · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -903,7 +847,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/founders-mental-resilience-and-high-performance-retreat-radisson-blu-ddfcff77-07d6-4b8c-845e-09b0a42f8196</loc>
+    <loc>https://thegruvs.com/events/founders-mental-resilience-and-high-performance-retreat-radisson-blu-8ebd31c8-7fe0-45fa-b05f-f11e934e72b0</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573164713988-8665fc963095?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Founders Mental Resilience &amp; High-Performance Retreat</image:title>
@@ -911,11 +855,19 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/franchise-and-licensed-business-opportunities-expo-durban-icc-durban-33542906-44b4-4bab-9cba-9afbe0eb8032</loc>
+    <loc>https://thegruvs.com/events/fourways-experiential-retail-and-entertainment-tech-incubator-the-9d363747-a9ad-4b92-942c-e213014478a3</loc>
     <image:image>
-      <image:loc>https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Franchise &amp; Licensed Business Opportunities Expo</image:title>
-      <image:caption>Durban ICC · Durban · biz</image:caption>
+      <image:loc>https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Fourways Experiential Retail &amp; Entertainment Tech Incubator</image:title>
+      <image:caption>The Pivot Montecasino · Johannesburg · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/fourways-hospitality-and-culinary-franchise-showcase-the-pivot-b63fe5a9-985e-4952-a47a-dc1f8709f43d</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1577495508048-b635879837f1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Fourways Hospitality &amp; Culinary Franchise Showcase</image:title>
+      <image:caption>The Pivot Montecasino · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -927,7 +879,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/franchising-your-existing-business-model-the-capital-menlyn-maine-0f1ce77b-6d4c-4416-9113-57e10b80695a</loc>
+    <loc>https://thegruvs.com/events/franchising-your-existing-business-model-the-capital-menlyn-maine-75929b72-62fd-4905-b23c-a22b300507db</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Franchising Your Existing Business Model</image:title>
@@ -959,7 +911,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/gauteng-angel-investor-pitch-dinner-radisson-blu-gautrain-hotel-fd882a02-4db2-43af-a4a9-cebdca76cd3c</loc>
+    <loc>https://thegruvs.com/events/gauteng-angel-investor-pitch-dinner-radisson-blu-gautrain-hotel-76fbca66-ef61-4221-bd69-a9eea20b0239</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Gauteng Angel Investor Pitch Dinner</image:title>
@@ -983,11 +935,19 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/gauteng-proptech-and-smart-buildings-forum-sandton-convention-centre-f13d57fb-0f08-441d-bf54-bf08f8f081dc</loc>
+    <loc>https://thegruvs.com/events/gauteng-proptech-and-smart-buildings-forum-sandton-convention-centre-0eae571e-6b86-4f42-a608-7fb682267cd7</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Gauteng PropTech &amp; Smart Buildings Forum</image:title>
       <image:caption>Sandton Convention Centre · Johannesburg · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/gauteng-seedstars-pitch-competition-2027-22-on-sloane-startup-campus-ae1743e9-927d-4d99-b4b0-8fbd3cf290e6</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Gauteng Seedstars Pitch Competition 2027</image:title>
+      <image:caption>22 On Sloane Startup Campus · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -1055,27 +1015,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/green-energy-and-solar-microgrid-entrepreneurs-forum-sunbet-arena-at-c581f182-92dd-4cc0-b33e-ceb87f36da73</loc>
+    <loc>https://thegruvs.com/events/green-energy-and-solar-microgrid-entrepreneurs-forum-sunbet-arena-at-ec6b331f-b550-4fe1-b623-eed80a5f0ea9</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Green Energy &amp; Solar Microgrid Entrepreneurs Forum</image:title>
       <image:caption>SunBet Arena at Time Square · Pretoria · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/green-tech-and-circular-economy-pitch-day-workshop17-watershed-cape-7d4ee1c1-47c8-4626-acfe-cae4d2344a52</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Green Tech &amp; Circular Economy Pitch Day</image:title>
-      <image:caption>Workshop17 Watershed · Cape Town · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/healthcare-and-medtech-innovators-pitch-night-stellenbosch-university-fa1f7769-3471-48bd-a0f4-1c986cf340b7</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Healthcare &amp; MedTech Innovators Pitch Night</image:title>
-      <image:caption>Stellenbosch University LaunchLab · Stellenbosch · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -1095,14 +1039,6 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/hospitality-and-culinary-startup-showcase-workshop17-watershed-cape-7a2a115c-7b14-42df-aacf-73f8ac2a3e7d</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1577495508048-b635879837f1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Hospitality &amp; Culinary Startup Showcase</image:title>
-      <image:caption>Workshop17 Watershed · Cape Town · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
     <loc>https://thegruvs.com/events/human-rights-day-sunset-concert-kirstenbosch-kirstenbosch-national-3373c182-f782-4e63-9a06-4b3a85928810</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
@@ -1119,11 +1055,27 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/johannesburg-fintech-founders-roundtable-the-marc-sandton-johannesburg-fec1353b-5c9d-41ce-9c30-40c162feecf6</loc>
+    <loc>https://thegruvs.com/events/johannesburg-fintech-founders-roundtable-the-marc-sandton-johannesburg-b687fd16-2e0f-43cc-9e80-5d84d9db8ee6</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Johannesburg FinTech Founders Roundtable</image:title>
       <image:caption>The Marc Sandton · Johannesburg · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/johannesburg-fintech-hackathon-and-pitch-challenge-tshimologong-cf50b47c-2724-4873-8553-a7072f18d99f</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Johannesburg FinTech Hackathon &amp; Pitch Challenge</image:title>
+      <image:caption>Tshimologong Digital Innovation Precinct · Johannesburg · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/johannesburg-tech-trend-and-founder-forecast-2027-workshop17-sandton-39e1e550-81f2-4f40-91f3-f23bcfc4a0fc</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Johannesburg Tech Trend &amp; Founder Forecast 2027</image:title>
+      <image:caption>Workshop17 Sandton · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -1271,6 +1223,14 @@
     </image:image>
   </url>
   <url>
+    <loc>https://thegruvs.com/events/kyalami-clean-mobility-and-ev-fleet-summit-kyalami-grand-prix-circuit-f7da67af-af2f-4ed5-a316-ddbc918dd79f</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Kyalami Clean Mobility &amp; EV Fleet Summit</image:title>
+      <image:caption>Kyalami Grand Prix Circuit Conference Centre · Midrand · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
     <loc>https://thegruvs.com/events/kyalami-night-track-festival-and-drifting-kyalami-grand-prix-circuit-b275f41b-f2f7-4a70-a4e5-d30f84607d39</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
@@ -1391,7 +1351,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/midrand-food-truck-and-mobile-catering-incubator-gallagher-convention-fd6681ee-3e37-420a-ac6c-28d1f6f10a58</loc>
+    <loc>https://thegruvs.com/events/midrand-food-truck-and-mobile-catering-incubator-gallagher-convention-9ef10545-3042-4877-b96a-fd789d228d3d</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573164713988-8665fc963095?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Midrand Food Truck &amp; Mobile Catering Incubator</image:title>
@@ -1399,7 +1359,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/midrand-industrial-robotics-and-automation-showcase-gallagher-8bcf7d1e-7435-47b5-ae40-dbce6690a0a3</loc>
+    <loc>https://thegruvs.com/events/midrand-industrial-robotics-and-automation-showcase-gallagher-dbecf3eb-dcc0-402e-a41b-24d78e5820dc</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Midrand Industrial Robotics &amp; Automation Showcase</image:title>
@@ -1407,7 +1367,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/midrand-logistics-and-trucking-business-workshop-riversands-i-hub-e37fa40b-3a31-4ef8-b422-eb27dce61189</loc>
+    <loc>https://thegruvs.com/events/midrand-logistics-and-trucking-business-workshop-riversands-i-hub-b19b7649-4c64-4744-a825-cc8a0ac2145a</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Midrand Logistics &amp; Trucking Business Workshop</image:title>
@@ -1415,7 +1375,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/midrand-manufacturing-and-hardware-incubator-day-gallagher-convention-d5817351-78a7-43c2-bb85-41078be36dd5</loc>
+    <loc>https://thegruvs.com/events/midrand-manufacturing-and-hardware-incubator-day-gallagher-convention-5feba739-0785-4602-bf86-c4d9c1474deb</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Midrand Manufacturing &amp; Hardware Incubator Day</image:title>
@@ -1439,7 +1399,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/mzansi-seed-stage-pitch-battle-2026-22-on-sloane-startup-campus-9d08a749-d0a0-4728-93df-4ddea217088f</loc>
+    <loc>https://thegruvs.com/events/mzansi-seed-stage-pitch-battle-2026-22-on-sloane-startup-campus-9ad84126-d398-4216-b2b8-1bc0e7865572</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Mzansi Seed Stage Pitch Battle 2026</image:title>
@@ -1455,7 +1415,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/new-year-startup-bootcamp-and-venture-kickoff-2027-22-on-sloane-a7413546-fdf4-4127-87f2-18a94d8ce31c</loc>
+    <loc>https://thegruvs.com/events/new-year-startup-bootcamp-and-venture-kickoff-2027-22-on-sloane-de969560-c8d1-424c-b36d-376b15248141</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>New Year Startup Bootcamp &amp; Venture Kickoff 2027</image:title>
@@ -1487,7 +1447,15 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/pretoria-ai-and-automation-for-small-businesses-sunbet-arena-at-time-cd8b89c3-713b-4078-b349-01195f25371d</loc>
+    <loc>https://thegruvs.com/events/pretoria-agri-fintech-and-crop-financing-forum-csir-international-13dd7193-d605-450d-bf70-5257d4506e01</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Pretoria Agri-FinTech &amp; Crop Financing Forum</image:title>
+      <image:caption>CSIR International Convention Centre · Pretoria · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/pretoria-ai-and-automation-for-small-businesses-sunbet-arena-at-time-82815af5-a17a-4fde-90de-ba62faf72edd</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Pretoria AI &amp; Automation for Small Businesses</image:title>
@@ -1503,7 +1471,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/pretoria-biotech-and-pharmaceutical-spin-out-pitch-the-capital-menlyn-b3affdb6-de6d-4ccc-8a1d-b11f9a45c1cc</loc>
+    <loc>https://thegruvs.com/events/pretoria-biotech-and-pharmaceutical-spin-out-pitch-the-capital-menlyn-232606df-042f-4fe1-a7c9-be23670c42ec</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Pretoria Biotech &amp; Pharmaceutical Spin-Out Pitch</image:title>
@@ -1535,7 +1503,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/pretoria-cybersecurity-and-defence-tech-pitch-sunbet-arena-at-time-95dadd7c-e41d-4718-820a-e3b93eb9ed1f</loc>
+    <loc>https://thegruvs.com/events/pretoria-cybersecurity-and-defence-tech-pitch-sunbet-arena-at-time-5c68eac4-be4e-444d-b1f7-5c66fb380b14</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Pretoria CyberSecurity &amp; Defence Tech Pitch</image:title>
@@ -1543,7 +1511,15 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/pretoria-govtech-and-public-procurement-masterclass-the-capital-892d11ab-0bfa-467c-82e6-46ae755e2204</loc>
+    <loc>https://thegruvs.com/events/pretoria-energy-storage-and-battery-assembly-pitch-the-innovation-hub-233bfd53-557d-4ec3-ab26-1f3420465ea7</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Pretoria Energy Storage &amp; Battery Assembly Pitch</image:title>
+      <image:caption>The Innovation Hub Pretoria · Pretoria · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/pretoria-govtech-and-public-procurement-masterclass-the-capital-1c2456ab-6735-4e84-b23f-aeeddd0066b6</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Pretoria GovTech &amp; Public Procurement Masterclass</image:title>
@@ -1564,6 +1540,22 @@
       <image:loc>https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Pretoria House Music Odyssey</image:title>
       <image:caption>SunBet Arena at Time Square · Pretoria · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/pretoria-innovation-hub-smart-city-pitch-battle-the-innovation-hub-f76e0962-53fe-4994-bb53-79f30095ddb6</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Pretoria Innovation Hub Smart City Pitch Battle</image:title>
+      <image:caption>The Innovation Hub Pretoria · Pretoria · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/pretoria-medtech-and-clinical-devices-pitch-night-csir-international-123552d9-0614-49d9-ad60-3d55896e94f2</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Pretoria MedTech &amp; Clinical Devices Pitch Night</image:title>
+      <image:caption>CSIR International Convention Centre · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -1591,7 +1583,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/raising-venture-debt-in-emerging-markets-22-on-sloane-startup-campus-be2b0cad-7b20-4825-8817-26e82107c6d8</loc>
+    <loc>https://thegruvs.com/events/raising-venture-debt-in-emerging-markets-22-on-sloane-startup-campus-e5ab62d8-f7f7-4339-80ce-1bd00ba7e049</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Raising Venture Debt in Emerging Markets</image:title>
@@ -1623,6 +1615,14 @@
     </image:image>
   </url>
   <url>
+    <loc>https://thegruvs.com/events/rosebank-e-commerce-and-d2c-growth-conference-the-zone-rosebank-7cd667f2-8eae-4134-991d-9f71a2422667</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Rosebank E-Commerce &amp; D2C Growth Conference</image:title>
+      <image:caption>The Zone @ Rosebank Innovation Hall · Johannesburg · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
     <loc>https://thegruvs.com/events/rosebank-street-art-and-sneaker-clash-the-zone-rosebank-johannesburg-cd947628-6848-48a5-bea0-0532648460aa</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
@@ -1636,6 +1636,14 @@
       <image:loc>https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Rosebank Street Culture &amp; Sneaker Festival</image:title>
       <image:caption>The Zone @ Rosebank · Johannesburg · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/rosebank-streetwear-and-apparel-brand-incubator-the-zone-rosebank-c4bbd86e-4c88-40a1-9f3f-7efb8925e6a0</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Rosebank Streetwear &amp; Apparel Brand Incubator</image:title>
+      <image:caption>The Zone @ Rosebank Innovation Hall · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -1655,7 +1663,15 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/sandton-corporate-venture-capital-and-m-and-a-forum-the-marc-sandton-6565580a-ac13-4d47-8b7e-a33bb893daca</loc>
+    <loc>https://thegruvs.com/events/sandton-angel-investors-and-founders-breakfast-workshop17-sandton-c569bb66-3337-47db-a63b-e22bc165a8c8</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Sandton Angel Investors &amp; Founders Breakfast</image:title>
+      <image:caption>Workshop17 Sandton · Johannesburg · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/sandton-corporate-venture-capital-and-m-and-a-forum-the-marc-sandton-5011f0e9-0cb1-42a7-b61f-b7a34ede61eb</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Sandton Corporate Venture Capital &amp; M&amp;A Forum</image:title>
@@ -1663,7 +1679,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/sandton-vc-dealmakers-and-scaleup-gala-sandton-convention-centre-60713724-3221-4c85-a877-3dec1ef2de49</loc>
+    <loc>https://thegruvs.com/events/sandton-vc-dealmakers-and-scaleup-gala-sandton-convention-centre-84f318c5-078f-4aa3-81c4-9fc88cae0d20</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Sandton VC Dealmakers &amp; Scaleup Gala</image:title>
@@ -1743,14 +1759,6 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/silicon-cape-tech-trend-and-founder-forecast-2027-workshop17-bfa2f179-9d22-44e8-8531-862558cb2c99</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Silicon Cape Tech Trend &amp; Founder Forecast 2027</image:title>
-      <image:caption>Workshop17 Watershed · Cape Town · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
     <loc>https://thegruvs.com/events/sme-accounting-cash-flow-and-payroll-masterclass-gallagher-convention-2ae9dc58-d24e-407f-8228-435481a5e454</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
@@ -1791,15 +1799,15 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/sme-tax-legal-and-compliance-masterclass-workshop17-sandton-dd197020-ba0a-4bb9-ab28-9663761aa283</loc>
+    <loc>https://thegruvs.com/events/sme-tax-legal-and-compliance-masterclass-the-marc-sandton-johannesburg-58d21867-d650-4e49-a45b-864b92801a5c</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>SME Tax, Legal &amp; Compliance Masterclass</image:title>
-      <image:caption>Workshop17 Sandton · Johannesburg · biz</image:caption>
+      <image:caption>The Marc Sandton · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/south-african-angel-syndicate-demo-day-finale-sandton-convention-fc4e777b-ae9f-454a-a3f3-688fce78cce4</loc>
+    <loc>https://thegruvs.com/events/south-african-angel-syndicate-demo-day-finale-sandton-convention-5b94e6ad-99da-4f56-b2d7-4b6f27ff5c31</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>South African Angel Syndicate Demo Day Finale</image:title>
@@ -1855,7 +1863,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/soweto-artisan-trades-and-construction-guild-launch-soweto-theatre-1feae4ab-0a67-47c8-8f38-25d359d4b6bd</loc>
+    <loc>https://thegruvs.com/events/soweto-artisan-trades-and-construction-guild-launch-soweto-theatre-dfac7de0-5fc1-4d69-802c-7a1590349413</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1577495508048-b635879837f1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Soweto Artisan Trades &amp; Construction Guild Launch</image:title>
@@ -1887,7 +1895,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/soweto-youth-business-incubator-open-day-soweto-theatre-business-and-7b654c9a-c064-4576-9961-401308f54347</loc>
+    <loc>https://thegruvs.com/events/soweto-youth-business-incubator-open-day-soweto-theatre-business-and-3ef17535-3b64-462d-bde5-6172ad45b423</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Soweto Youth Business Incubator Open Day</image:title>
@@ -1919,19 +1927,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/startup-valuation-and-cap-table-modeling-workshop-22-on-sloane-bebdccc5-6f98-4ea0-98e8-3f294d51ba8b</loc>
+    <loc>https://thegruvs.com/events/startup-valuation-and-cap-table-modeling-workshop-22-on-sloane-e15a6724-e33f-47a8-b2ed-b8789b84b5fc</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Startup Valuation &amp; Cap Table Modeling Workshop</image:title>
       <image:caption>22 On Sloane Startup Campus · Johannesburg · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/stellenbosch-agri-fintech-and-crop-insurance-forum-stellenbosch-bbd1f5a9-46d5-4d34-8bdc-ea926538fd2d</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Stellenbosch Agri-FinTech &amp; Crop Insurance Forum</image:title>
-      <image:caption>Stellenbosch University LaunchLab · Stellenbosch · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -1940,14 +1940,6 @@
       <image:loc>https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Stellenbosch Autumn Red Wine Festival</image:title>
       <image:caption>Spier Wine Farm · Stellenbosch · music</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/stellenbosch-biotech-and-deeptech-venture-summit-stellenbosch-b061d7e3-c4fa-456f-a905-2fdafd6c11db</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Stellenbosch Biotech &amp; DeepTech Venture Summit</image:title>
-      <image:caption>Stellenbosch University LaunchLab · Stellenbosch · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2047,7 +2039,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/township-e-commerce-and-delivery-hub-launch-soweto-theatre-business-6dd59ec7-3c93-46ca-bfc3-fb685ce7dece</loc>
+    <loc>https://thegruvs.com/events/township-e-commerce-and-delivery-hub-launch-soweto-theatre-business-48b92c66-ac7e-49b6-9e33-8b37fb9a4a4d</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Township E-Commerce &amp; Delivery Hub Launch</image:title>
@@ -2063,7 +2055,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/township-tech-and-sme-innovation-summit-soweto-theatre-business-and-d7441b5d-6eda-481c-a403-c3a6f8e2d724</loc>
+    <loc>https://thegruvs.com/events/township-tech-and-sme-innovation-summit-soweto-theatre-business-and-6a02563d-cf9a-4495-8566-85da39bb0b24</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Township Tech &amp; SME Innovation Summit</image:title>
@@ -2103,7 +2095,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/venture-capital-associate-and-analyst-mixer-the-marc-sandton-9a8d7a0e-0f91-472a-89e7-b33a33178643</loc>
+    <loc>https://thegruvs.com/events/venture-capital-associate-and-analyst-mixer-the-marc-sandton-3880ca38-e6e5-4a76-91aa-0972e231d715</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Venture Capital Associate &amp; Analyst Mixer</image:title>
@@ -2116,6 +2108,22 @@
       <image:loc>https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Waterfall City Beats &amp; Bites Carnival</image:title>
       <image:caption>Waterfall City Park · Midrand · music</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/waterfall-city-cleantech-and-esg-venture-forum-waterfall-city-park-c2d63480-253b-4b55-a3b0-7f16060f3e0c</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Waterfall City CleanTech &amp; ESG Venture Forum</image:title>
+      <image:caption>Waterfall City Park Event Pavilion · Midrand · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/events/waterfall-city-founders-and-venture-networking-breakfast-waterfall-8fde1dac-d0db-4b99-8b34-d228acd79073</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Waterfall City Founders &amp; Venture Networking Breakfast</image:title>
+      <image:caption>Waterfall City Park Event Pavilion · Midrand · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2143,7 +2151,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/women-angel-investors-masterclass-and-pitch-review-workshop17-sandton-ab0a6d6f-65ac-4d61-9b1b-fcadd93ca2c4</loc>
+    <loc>https://thegruvs.com/events/women-angel-investors-masterclass-and-pitch-review-workshop17-sandton-06dd2e1e-66be-49e2-b43a-a0a0c2abfba1</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Women Angel Investors Masterclass &amp; Pitch Review</image:title>
@@ -2151,11 +2159,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/women-founders-and-executive-leadership-forum-workshop17-sandton-8697417e-908d-4472-a6cc-e815f38a4643</loc>
+    <loc>https://thegruvs.com/events/women-founders-and-executive-leadership-forum-the-greenhouse-oxford-950d2e70-cf47-4bcf-92cd-e49c1f1388f8</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Women Founders &amp; Executive Leadership Forum</image:title>
-      <image:caption>Workshop17 Sandton · Johannesburg · biz</image:caption>
+      <image:caption>The Greenhouse Oxford Parks · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2191,27 +2199,19 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/women-in-stem-and-engineering-enterprise-pitch-bandwidth-barn-c6563080-ec67-40c6-8a56-c99d21836592</loc>
+    <loc>https://thegruvs.com/events/women-in-stem-and-engineering-enterprise-pitch-the-innovation-hub-7ad55358-d059-4fc8-9839-2aae4be69c3f</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Women in STEM &amp; Engineering Enterprise Pitch</image:title>
-      <image:caption>Bandwidth Barn Woodstock · Cape Town · biz</image:caption>
+      <image:caption>The Innovation Hub Pretoria · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/year-end-founders-toast-and-2027-vision-mixer-22-on-sloane-startup-98dccbb7-ea4b-4a31-9128-924534719f09</loc>
+    <loc>https://thegruvs.com/events/year-end-gauteng-founders-toast-and-2027-vision-mixer-22-on-sloane-554efa3a-cce7-47f4-b13a-2a0facdd8010</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Year-End Founders Toast &amp; 2027 Vision Mixer</image:title>
+      <image:title>Year-End Gauteng Founders Toast &amp; 2027 Vision Mixer</image:title>
       <image:caption>22 On Sloane Startup Campus · Johannesburg · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/events/youth-enterprise-and-creative-industries-pitch-bandwidth-barn-e0ecc449-7429-4e4e-8ee9-c700fe84920e</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Youth Enterprise &amp; Creative Industries Pitch</image:title>
-      <image:caption>Bandwidth Barn Woodstock · Cape Town · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2303,7 +2303,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/9d08a749-d0a0-4728-93df-4ddea217088f</loc>
+    <loc>https://thegruvs.com/share/event/9ad84126-d398-4216-b2b8-1bc0e7865572</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Mzansi Seed Stage Pitch Battle 2026</image:title>
@@ -2319,19 +2319,19 @@
     </image:image>
   </url>
   <url>
+    <loc>https://thegruvs.com/share/event/c569bb66-3337-47db-a63b-e22bc165a8c8</loc>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
+      <image:title>Sandton Angel Investors &amp; Founders Breakfast</image:title>
+      <image:caption>Workshop17 Sandton · Johannesburg · biz</image:caption>
+    </image:image>
+  </url>
+  <url>
     <loc>https://thegruvs.com/share/event/724795c6-798c-4fcf-b3b6-40669938cca1</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Township Economy &amp; Retail Entrepreneurship Expo</image:title>
       <image:caption>Zone 6 Venue · Soweto · biz</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/share/event/4991603c-262c-4196-90a2-85cb4437bfa6</loc>
-    <image:image>
-      <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Cape Town Angel Investors &amp; Founders Breakfast</image:title>
-      <image:caption>Workshop17 Watershed · Cape Town · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2375,7 +2375,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/d7441b5d-6eda-481c-a403-c3a6f8e2d724</loc>
+    <loc>https://thegruvs.com/share/event/6a02563d-cf9a-4495-8566-85da39bb0b24</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Township Tech &amp; SME Innovation Summit</image:title>
@@ -2415,7 +2415,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/60713724-3221-4c85-a877-3dec1ef2de49</loc>
+    <loc>https://thegruvs.com/share/event/84f318c5-078f-4aa3-81c4-9fc88cae0d20</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Sandton VC Dealmakers &amp; Scaleup Gala</image:title>
@@ -2431,11 +2431,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/8697417e-908d-4472-a6cc-e815f38a4643</loc>
+    <loc>https://thegruvs.com/share/event/950d2e70-cf47-4bcf-92cd-e49c1f1388f8</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Women Founders &amp; Executive Leadership Forum</image:title>
-      <image:caption>Workshop17 Sandton · Johannesburg · biz</image:caption>
+      <image:caption>The Greenhouse Oxford Parks · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2447,7 +2447,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/94adb32f-70c5-4083-aaac-fae4b7467d85</loc>
+    <loc>https://thegruvs.com/share/event/0e1ed95c-7ca3-49a0-b960-0b860ec86501</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Braamfontein Digital Founders Demo Day</image:title>
@@ -2471,11 +2471,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/f9a034e4-a42d-4e0a-a060-a9ff6a624a8f</loc>
+    <loc>https://thegruvs.com/share/event/8fde1dac-d0db-4b99-8b34-d228acd79073</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Durban Coastal Founders &amp; Blue Economy Pitch</image:title>
-      <image:caption>The Pencil Club Umhlanga · Durban · biz</image:caption>
+      <image:title>Waterfall City Founders &amp; Venture Networking Breakfast</image:title>
+      <image:caption>Waterfall City Park Event Pavilion · Midrand · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2519,7 +2519,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/c449bd7b-c4e0-4d42-9dde-d00f7e014f84</loc>
+    <loc>https://thegruvs.com/share/event/11b6bc53-3509-4a58-9dad-094ba2e7ee75</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Agri-Tech &amp; Rural Enterprise Showcase</image:title>
@@ -2559,11 +2559,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/b061d7e3-c4fa-456f-a905-2fdafd6c11db</loc>
+    <loc>https://thegruvs.com/share/event/c29d0de3-9b90-4ed9-ab44-98df006d18e4</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Stellenbosch Biotech &amp; DeepTech Venture Summit</image:title>
-      <image:caption>Stellenbosch University LaunchLab · Stellenbosch · biz</image:caption>
+      <image:title>CSIR DeepTech &amp; Biotech Commercialization Summit</image:title>
+      <image:caption>CSIR International Convention Centre · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2583,7 +2583,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/892d11ab-0bfa-467c-82e6-46ae755e2204</loc>
+    <loc>https://thegruvs.com/share/event/1c2456ab-6735-4e84-b23f-aeeddd0066b6</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Pretoria GovTech &amp; Public Procurement Masterclass</image:title>
@@ -2599,11 +2599,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/20bb155e-e3ce-4bf0-871f-8e84c03f58d7</loc>
+    <loc>https://thegruvs.com/share/event/7cd667f2-8eae-4134-991d-9f71a2422667</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>E-Commerce Brands &amp; D2C Growth Conference</image:title>
-      <image:caption>Cape Town International Convention Centre (CTICC) · Cape Town · biz</image:caption>
+      <image:title>Rosebank E-Commerce &amp; D2C Growth Conference</image:title>
+      <image:caption>The Zone @ Rosebank Innovation Hall · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2623,11 +2623,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/e0ecc449-7429-4e4e-8ee9-c700fe84920e</loc>
+    <loc>https://thegruvs.com/share/event/67796836-cb52-477e-81ef-410b5f952ed0</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Youth Enterprise &amp; Creative Industries Pitch</image:title>
-      <image:caption>Bandwidth Barn Woodstock · Cape Town · biz</image:caption>
+      <image:title>Constitution Hill Civic Tech &amp; Social Impact Pitch</image:title>
+      <image:caption>Constitution Hill Human Rights Precinct · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2647,7 +2647,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/fec1353b-5c9d-41ce-9c30-40c162feecf6</loc>
+    <loc>https://thegruvs.com/share/event/b687fd16-2e0f-43cc-9e80-5d84d9db8ee6</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Johannesburg FinTech Founders Roundtable</image:title>
@@ -2679,7 +2679,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/d5817351-78a7-43c2-bb85-41078be36dd5</loc>
+    <loc>https://thegruvs.com/share/event/5feba739-0785-4602-bf86-c4d9c1474deb</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Midrand Manufacturing &amp; Hardware Incubator Day</image:title>
@@ -2695,11 +2695,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/33542906-44b4-4bab-9cba-9afbe0eb8032</loc>
+    <loc>https://thegruvs.com/share/event/f76e0962-53fe-4994-bb53-79f30095ddb6</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Franchise &amp; Licensed Business Opportunities Expo</image:title>
-      <image:caption>Durban ICC · Durban · biz</image:caption>
+      <image:title>Pretoria Innovation Hub Smart City Pitch Battle</image:title>
+      <image:caption>The Innovation Hub Pretoria · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2711,7 +2711,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/c581f182-92dd-4cc0-b33e-ceb87f36da73</loc>
+    <loc>https://thegruvs.com/share/event/ec6b331f-b550-4fe1-b623-eed80a5f0ea9</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Green Energy &amp; Solar Microgrid Entrepreneurs Forum</image:title>
@@ -2727,11 +2727,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/9b0e5040-2f43-476a-ab6b-e9bd9a2920d6</loc>
+    <loc>https://thegruvs.com/share/event/3e222e76-a1b5-41ff-9fff-a917c72fba97</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Eastern Cape Tech &amp; Logistics Innovation Summit</image:title>
-      <image:caption>Genesis Hub Gqeberha · Gqeberha · biz</image:caption>
+      <image:title>Emperors Palace Airport Logistics &amp; Cargo Trade Summit</image:title>
+      <image:caption>Emperors Palace Convention Centre · Ekurhuleni · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2775,15 +2775,15 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/7a2a115c-7b14-42df-aacf-73f8ac2a3e7d</loc>
+    <loc>https://thegruvs.com/share/event/b63fe5a9-985e-4952-a47a-dc1f8709f43d</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1577495508048-b635879837f1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Hospitality &amp; Culinary Startup Showcase</image:title>
-      <image:caption>Workshop17 Watershed · Cape Town · biz</image:caption>
+      <image:title>Fourways Hospitality &amp; Culinary Franchise Showcase</image:title>
+      <image:caption>The Pivot Montecasino · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/eb9b715a-0076-49b3-8598-60a1a87fba84</loc>
+    <loc>https://thegruvs.com/share/event/56efe4ba-94f7-43b3-a693-77a6f065744b</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573164713988-8665fc963095?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Digital Nomads &amp; Remote Solopreneur Meetup</image:title>
@@ -2791,10 +2791,10 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/98dccbb7-ea4b-4a31-9128-924534719f09</loc>
+    <loc>https://thegruvs.com/share/event/554efa3a-cce7-47f4-b13a-2a0facdd8010</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Year-End Founders Toast &amp; 2027 Vision Mixer</image:title>
+      <image:title>Year-End Gauteng Founders Toast &amp; 2027 Vision Mixer</image:title>
       <image:caption>22 On Sloane Startup Campus · Johannesburg · biz</image:caption>
     </image:image>
   </url>
@@ -2855,7 +2855,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/a7413546-fdf4-4127-87f2-18a94d8ce31c</loc>
+    <loc>https://thegruvs.com/share/event/de969560-c8d1-424c-b36d-376b15248141</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>New Year Startup Bootcamp &amp; Venture Kickoff 2027</image:title>
@@ -2871,11 +2871,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/bfa2f179-9d22-44e8-8531-862558cb2c99</loc>
+    <loc>https://thegruvs.com/share/event/39e1e550-81f2-4f40-91f3-f23bcfc4a0fc</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Silicon Cape Tech Trend &amp; Founder Forecast 2027</image:title>
-      <image:caption>Workshop17 Watershed · Cape Town · biz</image:caption>
+      <image:title>Johannesburg Tech Trend &amp; Founder Forecast 2027</image:title>
+      <image:caption>Workshop17 Sandton · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2887,19 +2887,19 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/dd197020-ba0a-4bb9-ab28-9663761aa283</loc>
+    <loc>https://thegruvs.com/share/event/58d21867-d650-4e49-a45b-864b92801a5c</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>SME Tax, Legal &amp; Compliance Masterclass</image:title>
-      <image:caption>Workshop17 Sandton · Johannesburg · biz</image:caption>
+      <image:caption>The Marc Sandton · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/fa1f7769-3471-48bd-a0f4-1c986cf340b7</loc>
+    <loc>https://thegruvs.com/share/event/123552d9-0614-49d9-ad60-3d55896e94f2</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Healthcare &amp; MedTech Innovators Pitch Night</image:title>
-      <image:caption>Stellenbosch University LaunchLab · Stellenbosch · biz</image:caption>
+      <image:title>Pretoria MedTech &amp; Clinical Devices Pitch Night</image:title>
+      <image:caption>CSIR International Convention Centre · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2911,7 +2911,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/975130e4-81e0-4161-94e5-c5421c5c5566</loc>
+    <loc>https://thegruvs.com/share/event/ac8e195b-4539-4a76-9955-044f87a8c7ae</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>B2B Sales Mastery for Tech Founders</image:title>
@@ -2927,11 +2927,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/0dc93d12-855a-41a4-a953-3bb3a7d88b1e</loc>
+    <loc>https://thegruvs.com/share/event/0943ba5e-5d56-4647-bc8e-d77dc8d76650</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Durban Creative Solopreneurs &amp; Creators Summit</image:title>
-      <image:caption>Durban ICC · Durban · biz</image:caption>
+      <image:title>Dunkeld Creators &amp; Media Production Studio Summit</image:title>
+      <image:caption>The Greenhouse Oxford Parks · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -2951,7 +2951,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/7b654c9a-c064-4576-9961-401308f54347</loc>
+    <loc>https://thegruvs.com/share/event/3ef17535-3b64-462d-bde5-6172ad45b423</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Soweto Youth Business Incubator Open Day</image:title>
@@ -2975,7 +2975,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/f13d57fb-0f08-441d-bf54-bf08f8f081dc</loc>
+    <loc>https://thegruvs.com/share/event/0eae571e-6b86-4f42-a608-7fb682267cd7</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Gauteng PropTech &amp; Smart Buildings Forum</image:title>
@@ -2983,7 +2983,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/cd8b89c3-713b-4078-b349-01195f25371d</loc>
+    <loc>https://thegruvs.com/share/event/82815af5-a17a-4fde-90de-ba62faf72edd</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Pretoria AI &amp; Automation for Small Businesses</image:title>
@@ -2999,7 +2999,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/9a8d7a0e-0f91-472a-89e7-b33a33178643</loc>
+    <loc>https://thegruvs.com/share/event/3880ca38-e6e5-4a76-91aa-0972e231d715</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Venture Capital Associate &amp; Analyst Mixer</image:title>
@@ -3023,11 +3023,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/4cfc1cdc-23c6-425b-92b8-148a3096e6eb</loc>
+    <loc>https://thegruvs.com/share/event/cf50b47c-2724-4873-8553-a7072f18d99f</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Cape Town FinTech Hackathon &amp; Pitch Challenge</image:title>
-      <image:caption>Cape Town International Convention Centre (CTICC) · Cape Town · biz</image:caption>
+      <image:title>Johannesburg FinTech Hackathon &amp; Pitch Challenge</image:title>
+      <image:caption>Tshimologong Digital Innovation Precinct · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3047,7 +3047,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/e37fa40b-3a31-4ef8-b422-eb27dce61189</loc>
+    <loc>https://thegruvs.com/share/event/b19b7649-4c64-4744-a825-cc8a0ac2145a</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Midrand Logistics &amp; Trucking Business Workshop</image:title>
@@ -3071,11 +3071,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/c6563080-ec67-40c6-8a56-c99d21836592</loc>
+    <loc>https://thegruvs.com/share/event/7ad55358-d059-4fc8-9839-2aae4be69c3f</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Women in STEM &amp; Engineering Enterprise Pitch</image:title>
-      <image:caption>Bandwidth Barn Woodstock · Cape Town · biz</image:caption>
+      <image:caption>The Innovation Hub Pretoria · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3087,7 +3087,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/0f1ce77b-6d4c-4416-9113-57e10b80695a</loc>
+    <loc>https://thegruvs.com/share/event/75929b72-62fd-4905-b23c-a22b300507db</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Franchising Your Existing Business Model</image:title>
@@ -3103,11 +3103,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/18a6e7b6-90aa-4dce-a6fe-180c5dfc2ff9</loc>
+    <loc>https://thegruvs.com/share/event/d75e3b66-3b8c-4957-b279-8dfe5ff7d815</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Durban Retail &amp; Wholesale Importers Network</image:title>
-      <image:caption>The Pencil Club Umhlanga · Durban · biz</image:caption>
+      <image:title>Centurion SaaS &amp; Cloud Founders Roundtable</image:title>
+      <image:caption>Centurion Lake Business Hub · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3119,7 +3119,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/bebdccc5-6f98-4ea0-98e8-3f294d51ba8b</loc>
+    <loc>https://thegruvs.com/share/event/e15a6724-e33f-47a8-b2ed-b8789b84b5fc</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Startup Valuation &amp; Cap Table Modeling Workshop</image:title>
@@ -3143,19 +3143,19 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/7d4ee1c1-47c8-4626-acfe-cae4d2344a52</loc>
+    <loc>https://thegruvs.com/share/event/c2d63480-253b-4b55-a3b0-7f16060f3e0c</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Green Tech &amp; Circular Economy Pitch Day</image:title>
-      <image:caption>Workshop17 Watershed · Cape Town · biz</image:caption>
+      <image:title>Waterfall City CleanTech &amp; ESG Venture Forum</image:title>
+      <image:caption>Waterfall City Park Event Pavilion · Midrand · biz</image:caption>
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/aa4e7a1c-d3e4-449f-ba98-f0fd19c5ed78</loc>
+    <loc>https://thegruvs.com/share/event/1f2a625c-4899-4242-ae92-4b1d1d2750e2</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1577495508048-b635879837f1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Eastern Cape Automotive Innovation &amp; SME Hub</image:title>
-      <image:caption>Genesis Hub Gqeberha · Gqeberha · biz</image:caption>
+      <image:title>Ekurhuleni Manufacturing &amp; Industrial SME Hub</image:title>
+      <image:caption>Emperors Palace Convention Centre · Ekurhuleni · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3175,7 +3175,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/fd6681ee-3e37-420a-ac6c-28d1f6f10a58</loc>
+    <loc>https://thegruvs.com/share/event/9ef10545-3042-4877-b96a-fd789d228d3d</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573164713988-8665fc963095?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Midrand Food Truck &amp; Mobile Catering Incubator</image:title>
@@ -3183,7 +3183,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/fd882a02-4db2-43af-a4a9-cebdca76cd3c</loc>
+    <loc>https://thegruvs.com/share/event/76fbca66-ef61-4221-bd69-a9eea20b0239</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Gauteng Angel Investor Pitch Dinner</image:title>
@@ -3223,7 +3223,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/7382a852-7574-420e-b03c-49ae7fec0d3f</loc>
+    <loc>https://thegruvs.com/share/event/ab5a2e98-0224-4527-8c15-fe90ea0f93ba</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Africa Venture Capital &amp; Private Equity Summit 2027</image:title>
@@ -3239,11 +3239,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/fae92651-7b72-4638-8b46-1b941f936fda</loc>
+    <loc>https://thegruvs.com/share/event/ae1743e9-927d-4d99-b4b0-8fbd3cf290e6</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Cape Town Seedstars Pitch Competition 2027</image:title>
-      <image:caption>Cape Town International Convention Centre (CTICC) · Cape Town · biz</image:caption>
+      <image:title>Gauteng Seedstars Pitch Competition 2027</image:title>
+      <image:caption>22 On Sloane Startup Campus · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3255,7 +3255,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/6dd59ec7-3c93-46ca-bfc3-fb685ce7dece</loc>
+    <loc>https://thegruvs.com/share/event/48b92c66-ac7e-49b6-9e33-8b37fb9a4a4d</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Township E-Commerce &amp; Delivery Hub Launch</image:title>
@@ -3279,7 +3279,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/a6393ac3-429c-4fb4-a737-32e6b432bb82</loc>
+    <loc>https://thegruvs.com/share/event/9cef81a6-bf83-468e-a634-6d4ea6f89ea4</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>AI Product Founders &amp; LLM Builders Workshop</image:title>
@@ -3295,11 +3295,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/bbd1f5a9-46d5-4d34-8bdc-ea926538fd2d</loc>
+    <loc>https://thegruvs.com/share/event/13dd7193-d605-450d-bf70-5257d4506e01</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Stellenbosch Agri-FinTech &amp; Crop Insurance Forum</image:title>
-      <image:caption>Stellenbosch University LaunchLab · Stellenbosch · biz</image:caption>
+      <image:title>Pretoria Agri-FinTech &amp; Crop Financing Forum</image:title>
+      <image:caption>CSIR International Convention Centre · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3311,7 +3311,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/95dadd7c-e41d-4718-820a-e3b93eb9ed1f</loc>
+    <loc>https://thegruvs.com/share/event/5c68eac4-be4e-444d-b1f7-5c66fb380b14</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Pretoria CyberSecurity &amp; Defence Tech Pitch</image:title>
@@ -3319,11 +3319,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/af5cc0fc-13fb-40a5-bc20-4463ccf90e4a</loc>
+    <loc>https://thegruvs.com/share/event/9d363747-a9ad-4b92-942c-e213014478a3</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Durban Tourism &amp; Hospitality Tech Incubator</image:title>
-      <image:caption>Durban ICC · Durban · biz</image:caption>
+      <image:title>Fourways Experiential Retail &amp; Entertainment Tech Incubator</image:title>
+      <image:caption>The Pivot Montecasino · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3335,7 +3335,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/ab0a6d6f-65ac-4d61-9b1b-fcadd93ca2c4</loc>
+    <loc>https://thegruvs.com/share/event/06dd2e1e-66be-49e2-b43a-a0a0c2abfba1</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Women Angel Investors Masterclass &amp; Pitch Review</image:title>
@@ -3351,7 +3351,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/8bcf7d1e-7435-47b5-ae40-dbce6690a0a3</loc>
+    <loc>https://thegruvs.com/share/event/dbecf3eb-dcc0-402e-a41b-24d78e5820dc</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Midrand Industrial Robotics &amp; Automation Showcase</image:title>
@@ -3391,11 +3391,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/7adfe913-d875-4ca0-894b-7246ecb56346</loc>
+    <loc>https://thegruvs.com/share/event/f7da67af-af2f-4ed5-a316-ddbc918dd79f</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Cape Town CleanTech &amp; Water Innovation Summit</image:title>
-      <image:caption>Workshop17 Watershed · Cape Town · biz</image:caption>
+      <image:title>Kyalami Clean Mobility &amp; EV Fleet Summit</image:title>
+      <image:caption>Kyalami Grand Prix Circuit Conference Centre · Midrand · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3407,7 +3407,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/be2b0cad-7b20-4825-8817-26e82107c6d8</loc>
+    <loc>https://thegruvs.com/share/event/e5ab62d8-f7f7-4339-80ce-1bd00ba7e049</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Raising Venture Debt in Emerging Markets</image:title>
@@ -3415,11 +3415,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/1b820988-af39-4f99-bac1-98a4641e107e</loc>
+    <loc>https://thegruvs.com/share/event/9f9ed848-b514-4d99-9ddd-0331dcd82f7d</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>EdTech &amp; Future of Work Startup Showcase</image:title>
-      <image:caption>Bandwidth Barn Woodstock · Cape Town · biz</image:caption>
+      <image:title>Braamfontein EdTech &amp; Future of Work Showcase</image:title>
+      <image:caption>Tshimologong Digital Innovation Precinct · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3431,7 +3431,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/cd74ceda-5958-4afb-8cad-24aa77e50fe5</loc>
+    <loc>https://thegruvs.com/share/event/334562e4-f240-4fb7-b073-8edce1bfbbdf</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Cross-Border African Trade &amp; AfCFTA Masterclass</image:title>
@@ -3447,7 +3447,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/b3affdb6-de6d-4ccc-8a1d-b11f9a45c1cc</loc>
+    <loc>https://thegruvs.com/share/event/232606df-042f-4fe1-a7c9-be23670c42ec</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Pretoria Biotech &amp; Pharmaceutical Spin-Out Pitch</image:title>
@@ -3471,11 +3471,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/aee777ca-eb3a-4358-b4ba-ff718f56613b</loc>
+    <loc>https://thegruvs.com/share/event/c4bbd86e-4c88-40a1-9f3f-7efb8925e6a0</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Durban Fashion Design &amp; Apparel Factory Incubator</image:title>
-      <image:caption>The Pencil Club Umhlanga · Durban · biz</image:caption>
+      <image:title>Rosebank Streetwear &amp; Apparel Brand Incubator</image:title>
+      <image:caption>The Zone @ Rosebank Innovation Hall · Johannesburg · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3495,7 +3495,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/6565580a-ac13-4d47-8b7e-a33bb893daca</loc>
+    <loc>https://thegruvs.com/share/event/5011f0e9-0cb1-42a7-b61f-b7a34ede61eb</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Sandton Corporate Venture Capital &amp; M&amp;A Forum</image:title>
@@ -3511,11 +3511,11 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/602455a6-11ee-4828-89c8-404b4d53e091</loc>
+    <loc>https://thegruvs.com/share/event/233bfd53-557d-4ec3-ab26-1f3420465ea7</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
-      <image:title>Eastern Cape Renewable Energy Microgrid Builders</image:title>
-      <image:caption>Genesis Hub Gqeberha · Gqeberha · biz</image:caption>
+      <image:title>Pretoria Energy Storage &amp; Battery Assembly Pitch</image:title>
+      <image:caption>The Innovation Hub Pretoria · Pretoria · biz</image:caption>
     </image:image>
   </url>
   <url>
@@ -3527,7 +3527,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/1feae4ab-0a67-47c8-8f38-25d359d4b6bd</loc>
+    <loc>https://thegruvs.com/share/event/dfac7de0-5fc1-4d69-802c-7a1590349413</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1577495508048-b635879837f1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Soweto Artisan Trades &amp; Construction Guild Launch</image:title>
@@ -3551,7 +3551,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/ddfcff77-07d6-4b8c-845e-09b0a42f8196</loc>
+    <loc>https://thegruvs.com/share/event/8ebd31c8-7fe0-45fa-b05f-f11e934e72b0</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1573164713988-8665fc963095?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>Founders Mental Resilience &amp; High-Performance Retreat</image:title>
@@ -3583,7 +3583,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/share/event/fc4e777b-ae9f-454a-a3f3-688fce78cce4</loc>
+    <loc>https://thegruvs.com/share/event/5b94e6ad-99da-4f56-b2d7-4b6f27ff5c31</loc>
     <image:image>
       <image:loc>https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80</image:loc>
       <image:title>South African Angel Syndicate Demo Day Finale</image:title>
@@ -4367,19 +4367,19 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/profile/thegruvs</loc>
-    <image:image>
-      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/avatar_1779117952962.png</image:loc>
-      <image:title>The Gruvs</image:title>
-      <image:caption>@thegruvs on The Gruvs</image:caption>
-    </image:image>
-  </url>
-  <url>
     <loc>https://thegruvs.com/profile/Its_Haileyy</loc>
     <image:image>
       <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/842959c0-6c6e-4cf4-89c6-473c00387b07/avatar_1783162977093.jpeg</image:loc>
       <image:title>Haileyyy</image:title>
       <image:caption>@Its_Haileyy on The Gruvs</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/profile/thegruvs</loc>
+    <image:image>
+      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/avatar_1779117952962.png</image:loc>
+      <image:title>The Gruvs</image:title>
+      <image:caption>@thegruvs on The Gruvs</image:caption>
     </image:image>
   </url>
 </urlset>
