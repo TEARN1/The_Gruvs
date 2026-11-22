@@ -12,7 +12,25 @@
 // ping, it rings out and dies in ~35s (see CallContext's ringTimerRef), and
 // default quiet hours (22:00-08:00) are exactly when most calls on a
 // nightlife app will happen.
-const HIGH = new Set(['message', 'event_day', 'crew_out', 'waitlist', 'sport_goal', 'sport_result', 'now_playing', 'beacon', 'call']);
+const HIGH = new Set([
+  'message',
+  'event_day',
+  'crew_out',
+  'waitlist',
+  'sport_goal',
+  'sport_result',
+  'now_playing',
+  'beacon',
+  'call',
+  // Critical ecosystem & night-safety notifications (allowed during quiet hours)
+  'guardian_shield_timer',
+  'guardian_emergency',
+  'carpool_match',
+  'stage_drop',
+  'vendor_permit',
+  'instant_payout',
+  'host_booking',
+]);
 const LOW  = new Set(['profile_view', 'view', 'reel_view']);
 
 export function notificationPriority(type) {
