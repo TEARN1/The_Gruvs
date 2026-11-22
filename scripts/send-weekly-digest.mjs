@@ -100,6 +100,26 @@ async function fetchEligibleUsers() {
     }
   }
 
+  // Check for dedicated verified recipients list
+  const recipientsPath = path.join(ROOT, 'scripts', 'data', 'recipients.json');
+  if (fs.existsSync(recipientsPath)) {
+    try {
+      const customList = JSON.parse(fs.readFileSync(recipientsPath, 'utf8'));
+      if (Array.isArray(customList) && customList.length > 0) {
+        return customList.map((c, i) => ({
+          id: `recipient-${i + 1}`,
+          email: testEmail || c.email,
+          display_name: c.name || c.email.split('@')[0],
+          username: c.email.split('@')[0],
+          home_area: c.area || 'Johannesburg',
+          home_base_lat: c.lat || -26.2041,
+          home_base_lon: c.lon || 28.0473,
+          unsubscribe_token: `token-${i + 1}`,
+        }));
+      }
+    } catch {}
+  }
+
   // Fallback / mock sample users for testing and dry-run preview across major regions
   return [
     {

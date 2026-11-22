@@ -4,6 +4,13 @@
  * Sent every Monday morning.
  * Designed to render beautifully across Apple Mail, Gmail (Web, iOS, Android),
  * Outlook, and modern mobile clients with full dark mode support.
+ *
+ * Features:
+ * - Proximity-ranked upcoming events (closest first)
+ * - 1-click interactive emoji reactions (deep-linked into app)
+ * - WhatsApp squad sharing & viral referral unlock (Invite 3 friends for VIP perks)
+ * - Google Play Store app update announcement & transparent crash note
+ * - 1-tap feedback mailto & POPIA compliant 1-click unsubscribe
  */
 
 const CATEGORY_COLORS = {
@@ -47,8 +54,13 @@ export function renderWeeklyDigestHtml({
   unsubscribeUrl = 'https://thegruvs.com/unsubscribe',
 }) {
   const name = user.display_name || user.username || 'Gruver';
+  const userRef = user.username || user.id || 'crew';
   const hasEvents = events && events.length > 0;
   const closestEvent = hasEvents ? events[0] : null;
+
+  // Global viral WhatsApp share link for the entire 2-week radar
+  const generalShareText = `🔥 Hey squad! Check out the upcoming events across Gauteng over the next two weeks on The Gruvs: ${appUrl}/?invite=${encodeURIComponent(userRef)}`;
+  const globalWhatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(generalShareText)}`;
 
   const eventCardsHtml = events.map((event, idx) => {
     const cat = (event.category || 'music').toLowerCase();
@@ -58,6 +70,10 @@ export function renderWeeklyDigestHtml({
     const imgUrl = optimizeImageUrl(event.image_url || event.cover_url || (event.media_urls && event.media_urls[0]));
     const eventUrl = `${appUrl}/?event=${encodeURIComponent(event.id)}`;
     
+    // Individual event WhatsApp share text
+    const eventShareText = `Are we pulling up to ${event.title}? 🗓️ ${dateFormatted} @ ${event.venue_name || event.location || 'Gauteng'}. Check it out: ${eventUrl}&invite=${encodeURIComponent(userRef)}`;
+    const eventWhatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(eventShareText)}`;
+
     // Distance badge text
     let distanceBadge = '';
     if (typeof event.distance_km === 'number' && Number.isFinite(event.distance_km)) {
@@ -113,7 +129,7 @@ export function renderWeeklyDigestHtml({
               🏛️ ${event.venue_name || event.location || 'Johannesburg'}
             </p>
 
-            <!-- Bottom CTA Row -->
+            <!-- Bottom CTA Row (RSVP + WhatsApp Event Share) -->
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 14px;">
               <tr>
                 <td align="left" style="vertical-align: middle;">
@@ -122,6 +138,9 @@ export function renderWeeklyDigestHtml({
                   </span>
                 </td>
                 <td align="right" style="vertical-align: middle;">
+                  <a href="${eventWhatsappUrl}" target="_blank" style="display: inline-block; background: rgba(37, 211, 102, 0.15); color: #25d366; font-size: 11px; font-weight: 800; border: 1px solid rgba(37, 211, 102, 0.4); padding: 8px 12px; border-radius: 8px; text-decoration: none; margin-right: 6px;">
+                    📲 Share
+                  </a>
                   <a href="${eventUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #00f2fe 0%, #00b4d8 100%); color: #0a0e12; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; padding: 9px 18px; border-radius: 10px; text-decoration: none; text-transform: uppercase;">
                     Lock It In &rarr;
                   </a>
@@ -251,6 +270,59 @@ export function renderWeeklyDigestHtml({
                   <p style="margin: 0; font-size: 13px;">Check the live map to explore spontaneous popups and trending spots near you.</p>
                 </div>
               `}
+            </td>
+          </tr>
+
+          <!-- VIRAL GROWTH / SQUAD PERKS SECTION -->
+          <tr>
+            <td style="background: linear-gradient(135deg, rgba(37, 211, 102, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%); border-radius: 20px; border: 1px solid rgba(37, 211, 102, 0.35); padding: 26px 22px; margin-bottom: 26px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="display: inline-block; background-color: rgba(37, 211, 102, 0.15); color: #25d366; font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; border: 1px solid rgba(37, 211, 102, 0.4);">
+                      👥 Never Pull Up Alone · Unlock VIP Squad Perks
+                    </span>
+                    <h2 style="margin: 12px 0 8px 0; color: #ffffff; font-size: 20px; font-weight: 900; line-height: 1.3;">
+                      Bring Your Crew & Unlock VIP Access
+                    </h2>
+                    <p style="margin: 0 0 16px 0; color: #cbd5e1; font-size: 13px; line-height: 1.6;">
+                      Going out is 10x better with your circle. Forward this 14-day radar to your WhatsApp group chat. When 3 friends register through your link, your entire squad unlocks:
+                    </p>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 18px;">
+                      <tr>
+                        <td style="padding: 6px 0; color: #e2e8f0; font-size: 12px;">
+                          🔒 <strong style="color: #25d366;">Secret Pop-Up Coordinates:</strong> Access unlisted warehouse & rooftop afterparties.
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #e2e8f0; font-size: 12px;">
+                          ⚡ <strong style="color: #25d366;">VIP Queue Bypass:</strong> Fast-track door entrance at partner festivals.
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #e2e8f0; font-size: 12px;">
+                          🎟️ <strong style="color: #25d366;">200 Free Vibe Points:</strong> Redeemable for masterclass scholarships and merchandise.
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <!-- 1-Click WhatsApp Share Button -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                      <tr>
+                        <td style="background: #25d366; border-radius: 12px; box-shadow: 0 4px 16px rgba(37, 211, 102, 0.3);">
+                          <a href="${globalWhatsappUrl}" target="_blank" style="display: inline-block; color: #070a0d; font-size: 13px; font-weight: 900; letter-spacing: 0.5px; padding: 12px 24px; text-decoration: none; text-transform: uppercase;">
+                            📲 Share Radar on WhatsApp Group &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="margin: 0; font-size: 11px; color: #64748b;">
+                      Or share your direct invite link: <span style="color: #25d366; text-decoration: underline;">${appUrl}/?invite=${encodeURIComponent(userRef)}</span>
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
