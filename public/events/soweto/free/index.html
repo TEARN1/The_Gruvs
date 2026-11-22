@@ -397,6 +397,37 @@
       <h1 class="hero-title">Free Events in <span class="brand-accent">Soweto</span></h1>
       <p class="hero-lead">Zero-cost festivals, free RSVP expos, and open community gatherings in Soweto.</p>
       
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (5)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
       <div class="event-grid">
         
     <a class="event-card" href="https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1" data-title="township economy &amp; retail entrepreneurship expo" data-venue="zone 6 venue" data-city="soweto" data-date="2026-12-03">
@@ -407,6 +438,58 @@
         <p class="event-venue">Zone 6 Venue · Soweto</p>
         <div class="event-footer">
           <span class="event-price">Free (RSVP Required)</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/township-tech-and-sme-innovation-summit-soweto-theatre-business-and-d7441b5d-6eda-481c-a403-c3a6f8e2d724" data-title="township tech &amp; sme innovation summit" data-venue="soweto theatre business &amp; cultural centre" data-city="soweto" data-date="2026-12-05">
+      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Township Tech &amp; SME Innovation Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 05 Dec 2026 · 10:00</div>
+        <h3 class="event-title">Township Tech &amp; SME Innovation Summit</h3>
+        <p class="event-venue">Soweto Theatre Business &amp; Cultural Centre · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/soweto-youth-business-incubator-open-day-soweto-theatre-business-and-7b654c9a-c064-4576-9961-401308f54347" data-title="soweto youth business incubator open day" data-venue="soweto theatre business &amp; cultural centre" data-city="soweto" data-date="2027-01-16">
+      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Soweto Youth Business Incubator Open Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 16 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Soweto Youth Business Incubator Open Day</h3>
+        <p class="event-venue">Soweto Theatre Business &amp; Cultural Centre · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/township-e-commerce-and-delivery-hub-launch-soweto-theatre-business-6dd59ec7-3c93-46ca-bfc3-fb685ce7dece" data-title="township e-commerce &amp; delivery hub launch" data-venue="soweto theatre business &amp; cultural centre" data-city="soweto" data-date="2027-02-05">
+      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Township E-Commerce &amp; Delivery Hub Launch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 05 Feb 2027 · 10:00</div>
+        <h3 class="event-title">Township E-Commerce &amp; Delivery Hub Launch</h3>
+        <p class="event-venue">Soweto Theatre Business &amp; Cultural Centre · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/soweto-artisan-trades-and-construction-guild-launch-soweto-theatre-1feae4ab-0a67-47c8-8f38-25d359d4b6bd" data-title="soweto artisan trades &amp; construction guild launch" data-venue="soweto theatre business &amp; cultural centre" data-city="soweto" data-date="2027-02-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1577495508048-b635879837f1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Soweto Artisan Trades &amp; Construction Guild Launch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 25 Feb 2027 · 10:00</div>
+        <h3 class="event-title">Soweto Artisan Trades &amp; Construction Guild Launch</h3>
+        <p class="event-venue">Soweto Theatre Business &amp; Cultural Centre · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
           <span class="btn-view">Get Tickets →</span>
         </div>
       </div>

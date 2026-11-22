@@ -397,8 +397,52 @@
       <h1 class="hero-title">Free Events in <span class="brand-accent">Sandton</span></h1>
       <p class="hero-lead">Zero-cost festivals, free RSVP expos, and open community gatherings in Sandton.</p>
       
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (2)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
       <div class="event-grid">
         
+    <a class="event-card" href="https://thegruvs.com/events/venture-capital-associate-and-analyst-mixer-the-marc-sandton-9a8d7a0e-0f91-472a-89e7-b33a33178643" data-title="venture capital associate &amp; analyst mixer" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-01-20">
+      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Venture Capital Associate &amp; Analyst Mixer" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 20 Jan 2027 · 18:00</div>
+        <h3 class="event-title">Venture Capital Associate &amp; Analyst Mixer</h3>
+        <p class="event-venue">The Marc Sandton · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
     <a class="event-card" href="https://thegruvs.com/events/south-african-property-buyers-and-investment-expo-sandton-convention-0ad51aee-fa46-4ebd-83b0-0697e2df5861" data-title="south african property buyers &amp; investment expo" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-04-06">
       <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="South African Property Buyers &amp; Investment Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">

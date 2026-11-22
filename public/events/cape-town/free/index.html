@@ -397,8 +397,104 @@
       <h1 class="hero-title">Free Events in <span class="brand-accent">Cape Town</span></h1>
       <p class="hero-lead">Zero-cost festivals, free RSVP expos, and open community gatherings in Cape Town.</p>
       
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (6)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
       <div class="event-grid">
         
+    <a class="event-card" href="https://thegruvs.com/events/youth-enterprise-and-creative-industries-pitch-bandwidth-barn-e0ecc449-7429-4e4e-8ee9-c700fe84920e" data-title="youth enterprise &amp; creative industries pitch" data-venue="bandwidth barn woodstock" data-city="cape town" data-date="2026-12-17">
+      <img class="event-img" src="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Youth Enterprise &amp; Creative Industries Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 17 Dec 2026 · 11:00</div>
+        <h3 class="event-title">Youth Enterprise &amp; Creative Industries Pitch</h3>
+        <p class="event-venue">Bandwidth Barn Woodstock · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/cape-town-fintech-hackathon-and-pitch-challenge-cape-town-4cfc1cdc-23c6-425b-92b8-148a3096e6eb" data-title="cape town fintech hackathon &amp; pitch challenge" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-01-22">
+      <img class="event-img" src="https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cape Town FinTech Hackathon &amp; Pitch Challenge" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 22 Jan 2027 · 09:00</div>
+        <h3 class="event-title">Cape Town FinTech Hackathon &amp; Pitch Challenge</h3>
+        <p class="event-venue">Cape Town International Convention Centre (CTICC) · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/women-in-stem-and-engineering-enterprise-pitch-bandwidth-barn-c6563080-ec67-40c6-8a56-c99d21836592" data-title="women in stem &amp; engineering enterprise pitch" data-venue="bandwidth barn woodstock" data-city="cape town" data-date="2027-01-25">
+      <img class="event-img" src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in STEM &amp; Engineering Enterprise Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 25 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Women in STEM &amp; Engineering Enterprise Pitch</h3>
+        <p class="event-venue">Bandwidth Barn Woodstock · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/green-tech-and-circular-economy-pitch-day-workshop17-watershed-cape-7d4ee1c1-47c8-4626-acfe-cae4d2344a52" data-title="green tech &amp; circular economy pitch day" data-venue="workshop17 watershed" data-city="cape town" data-date="2027-01-29">
+      <img class="event-img" src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Green Tech &amp; Circular Economy Pitch Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 29 Jan 2027 · 09:00</div>
+        <h3 class="event-title">Green Tech &amp; Circular Economy Pitch Day</h3>
+        <p class="event-venue">Workshop17 Watershed · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/edtech-and-future-of-work-startup-showcase-bandwidth-barn-woodstock-1b820988-af39-4f99-bac1-98a4641e107e" data-title="edtech &amp; future of work startup showcase" data-venue="bandwidth barn woodstock" data-city="cape town" data-date="2027-02-17">
+      <img class="event-img" src="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="EdTech &amp; Future of Work Startup Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 17 Feb 2027 · 10:00</div>
+        <h3 class="event-title">EdTech &amp; Future of Work Startup Showcase</h3>
+        <p class="event-venue">Bandwidth Barn Woodstock · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
     <a class="event-card" href="https://thegruvs.com/events/mother-s-day-sunset-botanical-concert-kirstenbosch-national-botanical-0382c409-c933-4a43-abc1-baa053423cb5" data-title="mother's day sunset botanical concert" data-venue="kirstenbosch national botanical garden" data-city="cape town" data-date="2027-05-09">
       <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Mother's Day Sunset Botanical Concert" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">

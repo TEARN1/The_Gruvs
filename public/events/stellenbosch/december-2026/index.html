@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Events in Stellenbosch — December 2026 | The Gruvs</title>
-  <meta name="description" content="Discover all 1 verified events, concerts, nightlife, and business summits in Stellenbosch for December 2026." />
+  <meta name="description" content="Discover all 2 verified events, concerts, nightlife, and business summits in Stellenbosch for December 2026." />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://thegruvs.com/events/stellenbosch/december-2026" />
   <link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/events/stellenbosch/december-2026" />
@@ -33,7 +33,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="The Gruvs" />
   <meta property="og:title" content="Events in Stellenbosch — December 2026 | The Gruvs" />
-  <meta property="og:description" content="Discover all 1 verified events, concerts, nightlife, and business summits in Stellenbosch for December 2026." />
+  <meta property="og:description" content="Discover all 2 verified events, concerts, nightlife, and business summits in Stellenbosch for December 2026." />
   <meta property="og:url" content="https://thegruvs.com/events/stellenbosch/december-2026" />
   <meta property="og:image" content="https://thegruvs.com/og-default.jpg" />
   <meta property="og:image:width" content="1200" />
@@ -44,7 +44,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@thegruvs" />
   <meta name="twitter:title" content="Events in Stellenbosch — December 2026 | The Gruvs" />
-  <meta name="twitter:description" content="Discover all 1 verified events, concerts, nightlife, and business summits in Stellenbosch for December 2026." />
+  <meta name="twitter:description" content="Discover all 2 verified events, concerts, nightlife, and business summits in Stellenbosch for December 2026." />
   <meta name="twitter:image" content="https://thegruvs.com/og-default.jpg" />
 
   <!-- Styles -->
@@ -302,6 +302,16 @@
       "position": 1,
       "item": {
         "@type": "Event",
+        "name": "Stellenbosch Biotech & DeepTech Venture Summit",
+        "startDate": "2026-12-14T09:00:00+02:00",
+        "url": "https://thegruvs.com/events/stellenbosch-biotech-and-deeptech-venture-summit-stellenbosch-b061d7e3-c4fa-456f-a905-2fdafd6c11db"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "Event",
         "name": "Spier Secret Vineyard Sunset Soiree",
         "startDate": "2026-12-20T17:00:00+02:00",
         "url": "https://thegruvs.com/events/spier-secret-vineyard-sunset-soiree-spier-wine-farm-stellenbosch-33b87ecf-10ff-4967-b6f0-9cebf6f8c0aa"
@@ -359,7 +369,7 @@
   "@context": "https://schema.org",
   "@type": "WebPage",
   "name": "Events in Stellenbosch — December 2026 | The Gruvs",
-  "description": "Discover all 1 verified events, concerts, nightlife, and business summits in Stellenbosch for December 2026.",
+  "description": "Discover all 2 verified events, concerts, nightlife, and business summits in Stellenbosch for December 2026.",
   "url": "https://thegruvs.com/events/stellenbosch/december-2026",
   "speakable": {
     "@type": "SpeakableSpecification",
@@ -414,10 +424,54 @@
           <span style="color:#fff;">December 2026</span>
         </div>
         <h1 class="hero-title">Stellenbosch Events — <span class="brand-accent">December 2026</span></h1>
-        <p class="hero-lead">Discover all 1 verified events, concerts, nightlife, and business summits in Stellenbosch for December 2026.</p>
+        <p class="hero-lead">Discover all 2 verified events, concerts, nightlife, and business summits in Stellenbosch for December 2026.</p>
         
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (2)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
         <div class="event-grid">
           
+    <a class="event-card" href="https://thegruvs.com/events/stellenbosch-biotech-and-deeptech-venture-summit-stellenbosch-b061d7e3-c4fa-456f-a905-2fdafd6c11db" data-title="stellenbosch biotech &amp; deeptech venture summit" data-venue="stellenbosch university launchlab" data-city="stellenbosch" data-date="2026-12-14">
+      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Stellenbosch Biotech &amp; DeepTech Venture Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 14 Dec 2026 · 09:00</div>
+        <h3 class="event-title">Stellenbosch Biotech &amp; DeepTech Venture Summit</h3>
+        <p class="event-venue">Stellenbosch University LaunchLab · Stellenbosch</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
     <a class="event-card" href="https://thegruvs.com/events/spier-secret-vineyard-sunset-soiree-spier-wine-farm-stellenbosch-33b87ecf-10ff-4967-b6f0-9cebf6f8c0aa" data-title="spier secret vineyard sunset soiree" data-venue="spier wine farm" data-city="stellenbosch" data-date="2026-12-20">
       <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Spier Secret Vineyard Sunset Soiree" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
