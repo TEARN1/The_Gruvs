@@ -5,9 +5,27 @@
   <link>https://thegruvs.com/</link>
   <description>Live upcoming nightlife, festivals, music, and cultural events across South Africa.</description>
   <language>en-za</language>
-  <lastBuildDate>Sun, 22 Nov 2026 08:35:08 GMT</lastBuildDate>
+  <lastBuildDate>Sun, 22 Nov 2026 09:19:13 GMT</lastBuildDate>
   <atom:link href="https://thegruvs.com/feed.xml" rel="self" type="application/rss+xml" />
   
+    <item>
+      <title><![CDATA[Parkview Christmas Market]]></title>
+      <link>https://thegruvs.com/events/parkview-christmas-market-george-hay-park-johannesburg-59cedb3a-9191-49dd-8021-43518738a514</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/parkview-christmas-market-george-hay-park-johannesburg-59cedb3a-9191-49dd-8021-43518738a514</guid>
+      <pubDate>Sat, 15 Aug 2026 11:03:12 GMT</pubDate>
+      <description><![CDATA[Family Christmas market at George Hay Park, Parkview. Sourced from joburg.co.za's 2026 Christmas market guide.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>market</category>
+    </item>
+    <item>
+      <title><![CDATA[Christmas Village at Emperors Palace]]></title>
+      <link>https://thegruvs.com/events/christmas-village-at-emperors-palace-emperors-palace-kempton-park-8f13255e-8ccb-461b-bf71-e4dfe73ff7b6</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/christmas-village-at-emperors-palace-emperors-palace-kempton-park-8f13255e-8ccb-461b-bf71-e4dfe73ff7b6</guid>
+      <pubDate>Sat, 15 Aug 2026 11:03:12 GMT</pubDate>
+      <description><![CDATA[Festive family market and light displays at Emperors Palace. Sourced from joburg.co.za's 2026 Christmas market guide.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>family</category>
+    </item>
     <item>
       <title><![CDATA[Ride Joburg]]></title>
       <link>https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e</link>
@@ -27,6 +45,24 @@
       <category>music</category>
     </item>
     <item>
+      <title><![CDATA[Proteas v Bangladesh — 2nd Test]]></title>
+      <link>https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[South Africa v Bangladesh, second Test (World Test Championship). Five days, 23–27 November.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
+    </item>
+    <item>
+      <title><![CDATA[German Country Club Christmas Market]]></title>
+      <link>https://thegruvs.com/events/german-country-club-christmas-market-german-country-club-johannesburg-605def80-af38-4450-891e-a40f22223e76</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/german-country-club-christmas-market-german-country-club-johannesburg-605def80-af38-4450-891e-a40f22223e76</guid>
+      <pubDate>Sat, 15 Aug 2026 11:03:12 GMT</pubDate>
+      <description><![CDATA[Family Christmas market at the German Country Club, Paulshof. Sourced from joburg.co.za's 2026 Christmas market guide.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>market</category>
+    </item>
+    <item>
       <title><![CDATA[Kasi Restaurants Expo & Summit]]></title>
       <link>https://thegruvs.com/events/kasi-restaurants-expo-and-summit-letsheng-mall-sebokeng-9e52dc78-6815-4b50-8710-95abf8e46e6c</link>
       <guid isPermaLink="true">https://thegruvs.com/events/kasi-restaurants-expo-and-summit-letsheng-mall-sebokeng-9e52dc78-6815-4b50-8710-95abf8e46e6c</guid>
@@ -36,6 +72,15 @@
       <category>food</category>
     </item>
     <item>
+      <title><![CDATA[Nickel Christmas Market]]></title>
+      <link>https://thegruvs.com/events/nickel-christmas-market-nickel-market-pretoria-58a16b85-15a0-467d-a498-51db278f53c2</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/nickel-christmas-market-nickel-market-pretoria-58a16b85-15a0-467d-a498-51db278f53c2</guid>
+      <pubDate>Sat, 15 Aug 2026 11:03:12 GMT</pubDate>
+      <description><![CDATA[Handcrafted gifts, decorations and Christmas treats, Pretoria East. Sourced from joburg.co.za's 2026 Christmas market guide.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>market</category>
+    </item>
+    <item>
       <title><![CDATA[Afrikaans is Groot 2026: Konsert 6]]></title>
       <link>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383</link>
       <guid isPermaLink="true">https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383</guid>
@@ -43,6 +88,15 @@
       <description><![CDATA[Afrikaans music festival concert at Time Square.]]></description>
       <enclosure url="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" type="image/jpeg" />
       <category>music</category>
+    </item>
+    <item>
+      <title><![CDATA[Betway Summer Cup 2026]]></title>
+      <link>https://thegruvs.com/events/betway-summer-cup-2026-turffontein-racecourse-johannesburg-4c234abb-5ce8-4c48-9a13-150862763311</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/betway-summer-cup-2026-turffontein-racecourse-johannesburg-4c234abb-5ce8-4c48-9a13-150862763311</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[Grade 1 Summer Cup race day at Turffontein, one of Johannesburg's biggest days at the races.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
     </item>
     <item>
       <title><![CDATA[Piano People Johannesburg 2026]]></title>
@@ -81,6 +135,15 @@
       <category>music</category>
     </item>
     <item>
+      <title><![CDATA[Bedfordview Holiday Night Market]]></title>
+      <link>https://thegruvs.com/events/bedfordview-holiday-night-market-bedfordview-night-market-bedfordview-a69231f6-e770-485e-8d25-7ea2bf2d29c3</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/bedfordview-holiday-night-market-bedfordview-night-market-bedfordview-a69231f6-e770-485e-8d25-7ea2bf2d29c3</guid>
+      <pubDate>Sat, 15 Aug 2026 11:03:12 GMT</pubDate>
+      <description><![CDATA[Family holiday night market in Bedfordview. Sourced from joburg.co.za's 2026 Christmas market guide.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>market</category>
+    </item>
+    <item>
       <title><![CDATA[Afrikaans is Groot 2026: Konsert 10]]></title>
       <link>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e</link>
       <guid isPermaLink="true">https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e</guid>
@@ -99,39 +162,66 @@
       <category>sport</category>
     </item>
     <item>
+      <title><![CDATA[Proteas v Bangladesh — 1st ODI]]></title>
+      <link>https://thegruvs.com/events/proteas-v-bangladesh-1st-odi-buffalo-park-east-london-2295df42-b988-4169-a79b-809c9662a8f7</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/proteas-v-bangladesh-1st-odi-buffalo-park-east-london-2295df42-b988-4169-a79b-809c9662a8f7</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[South Africa v Bangladesh, first of three ODIs. Start time to be confirmed.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
+    </item>
+    <item>
+      <title><![CDATA[The Wanderers Christmas Market]]></title>
+      <link>https://thegruvs.com/events/the-wanderers-christmas-market-the-wanderers-club-johannesburg-92ef1643-dbe6-4777-af12-ec47c6ecf55b</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/the-wanderers-christmas-market-the-wanderers-club-johannesburg-92ef1643-dbe6-4777-af12-ec47c6ecf55b</guid>
+      <pubDate>Sat, 15 Aug 2026 11:03:12 GMT</pubDate>
+      <description><![CDATA[Family Christmas market at The Wanderers Club. Sourced from joburg.co.za's 2026 Christmas market guide.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>market</category>
+    </item>
+    <item>
       <title><![CDATA[Mzansi Seed Stage Pitch Battle 2026]]></title>
       <link>https://thegruvs.com/events/mzansi-seed-stage-pitch-battle-2026-22-on-sloane-startup-campus-9ad84126-d398-4216-b2b8-1bc0e7865572</link>
       <guid isPermaLink="true">https://thegruvs.com/events/mzansi-seed-stage-pitch-battle-2026-22-on-sloane-startup-campus-9ad84126-d398-4216-b2b8-1bc0e7865572</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Top 15 pre-seed and seed stage Gauteng tech startups compete head-to-head before premier angel syndicates and venture capitalists for R1,500,000 in equity-free prize capital and accelerator admission. High-impact networking with 350 founders and investors.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
     </item>
     <item>
       <title><![CDATA[Southern Africa Year-End Business & Tech Gala]]></title>
       <link>https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d</link>
       <guid isPermaLink="true">https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[An executive gala dinner uniting leaders in fintech, telecommunications, and venture capital. Celebrate annual milestones, recognize industry innovators, and build key partnerships for 2027.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
+    </item>
+    <item>
+      <title><![CDATA[Nedbank Golf Challenge 2026]]></title>
+      <link>https://thegruvs.com/events/nedbank-golf-challenge-2026-gary-player-country-club-sun-city-02a2cee5-7ad4-4d0f-8b8d-ead43ecc0cd5</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/nedbank-golf-challenge-2026-gary-player-country-club-sun-city-02a2cee5-7ad4-4d0f-8b8d-ead43ecc0cd5</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[DP World Tour event at the Gary Player Country Club, Sun City. Four rounds, 3–6 December.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
     </item>
     <item>
       <title><![CDATA[Sandton Angel Investors & Founders Breakfast]]></title>
       <link>https://thegruvs.com/events/sandton-angel-investors-and-founders-breakfast-workshop17-sandton-c569bb66-3337-47db-a63b-e22bc165a8c8</link>
       <guid isPermaLink="true">https://thegruvs.com/events/sandton-angel-investors-and-founders-breakfast-workshop17-sandton-c569bb66-3337-47db-a63b-e22bc165a8c8</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[An intimate, high-impact dealflow breakfast connecting Johannesburg high-net-worth angel syndicates with scalable SaaS, clean-tech, and fintech founders. Direct term-sheet discussions and confidential 1-on-1 breakout meetings.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
     </item>
     <item>
       <title><![CDATA[Township Economy & Retail Entrepreneurship Expo]]></title>
       <link>https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1</link>
       <guid isPermaLink="true">https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Connecting township entrepreneurs, spaza shop owners, and franchisors with FMCG suppliers, fintech payment providers, and government enterprise funding programs.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
     </item>
     <item>
@@ -142,6 +232,15 @@
       <description><![CDATA[Here is the complete operational and logistics profile for the festival based on the promotional asset and official booking database details: City:** Hartenbos (Mossel Bay, Western Cape) Good to Know (accessibility · safety · vibe): Accessibility: The amphitheater structure offers well-paved pathways, ramped approaches, and designated seating layouts broadly suitable for all guests. Safety: Strict]]></description>
       <enclosure url="https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1784615984067_y6dljqt351.jpg" type="image/jpeg" />
       <category>music</category>
+    </item>
+    <item>
+      <title><![CDATA[Proteas v Bangladesh — 2nd ODI]]></title>
+      <link>https://thegruvs.com/events/proteas-v-bangladesh-2nd-odi-st-george-s-park-gqeberha-06a308c9-a26f-43c9-a18e-9e5645a74c66</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/proteas-v-bangladesh-2nd-odi-st-george-s-park-gqeberha-06a308c9-a26f-43c9-a18e-9e5645a74c66</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[South Africa v Bangladesh, second ODI. Start time to be confirmed.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
     </item>
     <item>
       <title><![CDATA[Bearfest SA 2026]]></title>
@@ -156,10 +255,37 @@
       <title><![CDATA[Ke Dezemba Amapiano Explosive Launch]]></title>
       <link>https://thegruvs.com/events/ke-dezemba-amapiano-explosive-launch-zone-6-venue-soweto-c9cb2e2e-29eb-4057-8d84-84e41b11c6d3</link>
       <guid isPermaLink="true">https://thegruvs.com/events/ke-dezemba-amapiano-explosive-launch-zone-6-venue-soweto-c9cb2e2e-29eb-4057-8d84-84e41b11c6d3</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Kick off the iconic Ke Dezemba holiday season with a powerhouse Amapiano lineup featuring South Africa's premier producers and DJs. Massive sound, festival lighting, outdoor dance floor, and high-energy VIP table packages.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>music</category>
+    </item>
+    <item>
+      <title><![CDATA[HSBC SVNS Cape Town]]></title>
+      <link>https://thegruvs.com/events/hsbc-svns-cape-town-dhl-stadium-cape-town-3919dbce-f970-4065-a9e3-988198e603f6</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/hsbc-svns-cape-town-dhl-stadium-cape-town-3919dbce-f970-4065-a9e3-988198e603f6</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[The Cape Town leg of the HSBC SVNS series — two days of sevens rugby, 5–6 December. Gate and match times to be confirmed.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
+    </item>
+    <item>
+      <title><![CDATA[URC: Lions v Bulls]]></title>
+      <link>https://thegruvs.com/events/urc-lions-v-bulls-ellis-park-stadium-johannesburg-3bef2b2b-391f-443e-94b8-ac1d6d6dfe03</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/urc-lions-v-bulls-ellis-park-stadium-johannesburg-3bef2b2b-391f-443e-94b8-ac1d6d6dfe03</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[Vodacom United Rugby Championship — the Highveld derby at Ellis Park.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
+    </item>
+    <item>
+      <title><![CDATA[URC: Sharks v Stormers]]></title>
+      <link>https://thegruvs.com/events/urc-sharks-v-stormers-hollywoodbets-kings-park-durban-8a2432e2-bed6-4fcf-b3b5-e33b75ab6fd7</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/urc-sharks-v-stormers-hollywoodbets-kings-park-durban-8a2432e2-bed6-4fcf-b3b5-e33b75ab6fd7</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[Vodacom United Rugby Championship — SA derby at Kings Park.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
     </item>
     <item>
       <title><![CDATA[Pretoria's Vintage & Christmas Gift Market]]></title>
@@ -174,18 +300,18 @@
       <title><![CDATA[Shimmy Sunset White & Gold Rave]]></title>
       <link>https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369</link>
       <guid isPermaLink="true">https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Experience pure Atlantic bliss at Shimmy Beach Club with world-class Afro-tech and deep house beats right by the water. Strictly white and gold summer chic attire. Premium cocktails and signature beach cabana bottle service.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>music</category>
     </item>
     <item>
       <title><![CDATA[Township Tech & SME Innovation Summit]]></title>
       <link>https://thegruvs.com/events/township-tech-and-sme-innovation-summit-soweto-theatre-business-and-6a02563d-cf9a-4495-8566-85da39bb0b24</link>
       <guid isPermaLink="true">https://thegruvs.com/events/township-tech-and-sme-innovation-summit-soweto-theatre-business-and-6a02563d-cf9a-4495-8566-85da39bb0b24</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Unlocking high-growth township entrepreneurship, spaza shop point-of-sale digitization, last-mile logistics, and micro-loan financing. Featuring Gauteng economic development leaders and micro-grant announcements for 500+ local founders.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
     </item>
     <item>
@@ -201,10 +327,28 @@
       <title><![CDATA[Altitude Beach Dezemba Fest]]></title>
       <link>https://thegruvs.com/events/altitude-beach-dezemba-fest-altitude-beach-johannesburg-ce770e88-47ee-492e-9cfb-284fdfbb9550</link>
       <guid isPermaLink="true">https://thegruvs.com/events/altitude-beach-dezemba-fest-altitude-beach-johannesburg-ce770e88-47ee-492e-9cfb-284fdfbb9550</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Fourways turns into the ultimate summer oasis. Pool party vibes, live percussionists, top amapiano and hip-hop spinners, luxury daybeds, and illuminated evening swimming.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>music</category>
+    </item>
+    <item>
+      <title><![CDATA[Proteas v Bangladesh — 3rd ODI]]></title>
+      <link>https://thegruvs.com/events/proteas-v-bangladesh-3rd-odi-newlands-cricket-ground-cape-town-8ce10fc2-c7cc-4c50-bdcc-a9473ad13194</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/proteas-v-bangladesh-3rd-odi-newlands-cricket-ground-cape-town-8ce10fc2-c7cc-4c50-bdcc-a9473ad13194</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[South Africa v Bangladesh, third ODI. Start time to be confirmed.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
+    </item>
+    <item>
+      <title><![CDATA[Benoni Monkey & Bird Park Christmas Market]]></title>
+      <link>https://thegruvs.com/events/benoni-monkey-and-bird-park-christmas-market-benoni-monkey-and-bird-108752f4-87cf-4fd1-96b5-4bad9b0c4f1d</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/benoni-monkey-and-bird-park-christmas-market-benoni-monkey-and-bird-108752f4-87cf-4fd1-96b5-4bad9b0c4f1d</guid>
+      <pubDate>Sat, 15 Aug 2026 11:03:12 GMT</pubDate>
+      <description><![CDATA[Family Christmas market at the Monkey & Bird Park — a kids favourite. Sourced from joburg.co.za's 2026 Christmas market guide.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>kids</category>
     </item>
     <item>
       <title><![CDATA[The gruvs]]></title>
@@ -219,54 +363,63 @@
       <title><![CDATA[Gauteng Commercial Real Estate & Investment Summit]]></title>
       <link>https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57</link>
       <guid isPermaLink="true">https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Keynote panels exploring mixed-use precinct developments, logistics hubs, and green building financing across Johannesburg and Pretoria. High-level networking with property REITs.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
     </item>
     <item>
       <title><![CDATA[Sandton VC Dealmakers & Scaleup Gala]]></title>
       <link>https://thegruvs.com/events/sandton-vc-dealmakers-and-scaleup-gala-sandton-convention-centre-84f318c5-078f-4aa3-81c4-9fc88cae0d20</link>
       <guid isPermaLink="true">https://thegruvs.com/events/sandton-vc-dealmakers-and-scaleup-gala-sandton-convention-centre-84f318c5-078f-4aa3-81c4-9fc88cae0d20</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[The premier year-end gathering for Africa’s Series A and Series B founders, private equity partners, and corporate venture capital heads in Sandton. Keynotes on cross-border expansion, mergers, and 2027 macroeconomic growth trends.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
     </item>
     <item>
       <title><![CDATA[Western Cape Tech & Venture Showcase]]></title>
       <link>https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c</link>
       <guid isPermaLink="true">https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Connecting early-stage tech founders across Africa with angel syndicates and venture capital funds. 15 selected startups pitch live on stage for pre-seed and seed funding rounds.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
     </item>
     <item>
       <title><![CDATA[Women Founders & Executive Leadership Forum]]></title>
       <link>https://thegruvs.com/events/women-founders-and-executive-leadership-forum-the-greenhouse-oxford-950d2e70-cf47-4bcf-92cd-e49c1f1388f8</link>
       <guid isPermaLink="true">https://thegruvs.com/events/women-founders-and-executive-leadership-forum-the-greenhouse-oxford-950d2e70-cf47-4bcf-92cd-e49c1f1388f8</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Empowering female entrepreneurs building transformative businesses across healthcare, finance, logistics, and retail in Gauteng. Masterclasses on fundraising resilience, board governance, and enterprise customer acquisition.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
+    </item>
+    <item>
+      <title><![CDATA[Proteas v Bangladesh — 1st T20I]]></title>
+      <link>https://thegruvs.com/events/proteas-v-bangladesh-1st-t20i-diamond-oval-kimberley-f7324bdc-7980-4d67-b6a8-9284b0e69bc3</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/proteas-v-bangladesh-1st-t20i-diamond-oval-kimberley-f7324bdc-7980-4d67-b6a8-9284b0e69bc3</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[South Africa v Bangladesh, first of three T20Is. Start time to be confirmed.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
     </item>
     <item>
       <title><![CDATA[Africa Trade & Port Logistics Round-Table]]></title>
       <link>https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305</link>
       <guid isPermaLink="true">https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[High-level policy and maritime logistics symposium addressing supply chain resilience, border modernization, and AfCFTA trade corridor acceleration.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
     </item>
     <item>
       <title><![CDATA[Braamfontein Digital Founders Demo Day]]></title>
       <link>https://thegruvs.com/events/braamfontein-digital-founders-demo-day-tshimologong-digital-0e1ed95c-7ca3-49a0-b960-0b860ec86501</link>
       <guid isPermaLink="true">https://thegruvs.com/events/braamfontein-digital-founders-demo-day-tshimologong-digital-0e1ed95c-7ca3-49a0-b960-0b860ec86501</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Graduating cohort of 20 high-velocity AI, Web3, and mobile software ventures from Wits Tshimologong pitch their working prototypes to regional seed funds, corporate innovation partners, and angel investors.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
     </item>
     <item>
@@ -282,181 +435,28 @@
       <title><![CDATA[Konka Summer Anthem Weekend]]></title>
       <link>https://thegruvs.com/events/konka-summer-anthem-weekend-konka-soweto-soweto-f62d8757-30f7-4a92-936a-703f02e84e43</link>
       <guid isPermaLink="true">https://thegruvs.com/events/konka-summer-anthem-weekend-konka-soweto-soweto-f62d8757-30f7-4a92-936a-703f02e84e43</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[The benchmark of Soweto luxury nightlife. Elite bottle parades, surprise international guest appearances, and relentless basslines throughout the weekend.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>music</category>
     </item>
     <item>
       <title><![CDATA[Waterfall City Founders & Venture Networking Breakfast]]></title>
       <link>https://thegruvs.com/events/waterfall-city-founders-and-venture-networking-breakfast-waterfall-8fde1dac-d0db-4b99-8b34-d228acd79073</link>
       <guid isPermaLink="true">https://thegruvs.com/events/waterfall-city-founders-and-venture-networking-breakfast-waterfall-8fde1dac-d0db-4b99-8b34-d228acd79073</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
+      <pubDate>Sun, 22 Nov 2026 09:09:50 GMT</pubDate>
       <description><![CDATA[Connecting fast-scaling Midrand tech founders with institutional corporate venture capital and private equity syndicates overlooking Waterfall City. High-density dealflow and fireside discussions.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
     </item>
     <item>
-      <title><![CDATA[Fatboy Slim - Johannesburg 2026]]></title>
-      <link>https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3</guid>
-      <pubDate>Sun, 27 Sep 2026 02:29:03 GMT</pubDate>
-      <description><![CDATA[Fatboy Slim live at James & Ethel Gray Park, Sandton.]]></description>
-      <enclosure url="https://cdn2.allevents.in/thumbs/thumb6a33b7d965639.jpg" type="image/jpeg" />
-      <category>music</category>
-    </item>
-    <item>
-      <title><![CDATA[J. Cole: The Fall-Off Tour]]></title>
-      <link>https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659</guid>
-      <pubDate>Sun, 27 Sep 2026 02:28:48 GMT</pubDate>
-      <description><![CDATA[J. Cole's first South African show in 10 years — grand finale of the global Fall-Off Tour, supporting his album The Fall Off. FNB Stadium, Johannesburg.]]></description>
-      <enclosure url="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" type="image/jpeg" />
-      <category>music</category>
-    </item>
-    <item>
-      <title><![CDATA[+LIVE+ at Time Square (Night 2)]]></title>
-      <link>https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843</guid>
-      <pubDate>Sun, 27 Sep 2026 02:28:48 GMT</pubDate>
-      <description><![CDATA[+LIVE+ live at Time Square, Menlyn.]]></description>
-      <enclosure url="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" type="image/jpeg" />
-      <category>music</category>
-    </item>
-    <item>
-      <title><![CDATA[Candlelight: Christmas Classics (Sandton)]]></title>
-      <link>https://thegruvs.com/events/candlelight-christmas-classics-sandton-nh-johannesburg-sandton-sandton-71babd28-4ed8-457a-9b57-f2b669d39dd9</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/candlelight-christmas-classics-sandton-nh-johannesburg-sandton-sandton-71babd28-4ed8-457a-9b57-f2b669d39dd9</guid>
-      <pubDate>Sun, 27 Sep 2026 02:28:48 GMT</pubDate>
-      <description><![CDATA[Candlelight orchestral concert of Christmas classics at NH Johannesburg Sandton.]]></description>
-      <enclosure url="https://cdn-az.allevents.in/events5/banners/76149630-b957-11f1-b7ac-09eee28799fe-rimg-w550-h550-dcf8b808-gmir.jpg?v=1790392373" type="image/jpeg" />
-      <category>music</category>
-    </item>
-    <item>
-      <title><![CDATA[Durban All-White Beach Extravaganza]]></title>
-      <link>https://thegruvs.com/events/durban-all-white-beach-extravaganza-moses-mabhida-stadium-peoples-249e43a1-b95e-4316-ab80-1fe997288cb9</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/durban-all-white-beach-extravaganza-moses-mabhida-stadium-peoples-249e43a1-b95e-4316-ab80-1fe997288cb9</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
-      <description><![CDATA[Moses Mabhida Peoples Park transforms into an epic coastal summer festival. 12 hours of non-stop house, gqom, and afro-tech, with ocean breezes and stunning firework showcases.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>music</category>
-    </item>
-    <item>
-      <title><![CDATA[Agri-Tech & Rural Enterprise Showcase]]></title>
-      <link>https://thegruvs.com/events/agri-tech-and-rural-enterprise-showcase-riversands-i-hub-midrand-11b6bc53-3509-4a58-9dad-094ba2e7ee75</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/agri-tech-and-rural-enterprise-showcase-riversands-i-hub-midrand-11b6bc53-3509-4a58-9dad-094ba2e7ee75</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
-      <description><![CDATA[Connecting Gauteng peri-urban agricultural innovators, drone farming operators, hydroponic pioneers, and commercial distribution syndicates. Blended finance and agricultural supply chain workshops.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>biz</category>
-    </item>
-    <item>
-      <title><![CDATA[Limp Bizkit in Johannesburg]]></title>
-      <link>https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298</guid>
-      <pubDate>Sun, 27 Sep 2026 02:28:48 GMT</pubDate>
-      <description><![CDATA[Limp Bizkit's first-ever South African concert, FNB Stadium, Johannesburg.]]></description>
-      <enclosure url="https://dynamicmedia.livenationinternational.com/m/u/n/38f72e26-d769-4675-9001-82c2204da85a.png" type="image/jpeg" />
-      <category>music</category>
-    </item>
-    <item>
-      <title><![CDATA[SunBet Arena Afro-Tech Symphony]]></title>
-      <link>https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
-      <description><![CDATA[A fusion of classical strings and pulsating Afro-Tech rhythms featuring a 40-piece live orchestra collaborating with South Africa's legendary electronic producers.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>music</category>
-    </item>
-    <item>
-      <title><![CDATA[Kirstenbosch Summer Sunset: Soul & Afro-Jazz]]></title>
-      <link>https://thegruvs.com/events/kirstenbosch-summer-sunset-soul-and-afro-jazz-kirstenbosch-national-6ba678aa-a7dd-4409-8959-45bcf06e0672</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/kirstenbosch-summer-sunset-soul-and-afro-jazz-kirstenbosch-national-6ba678aa-a7dd-4409-8959-45bcf06e0672</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
-      <description><![CDATA[Lush greenery, mountain backdrops, and picnic baskets. Bring family and friends to experience live soul, afro-jazz, and neo-soul performances under the Cape Town summer sky.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>music</category>
-    </item>
-    <item>
-      <title><![CDATA[Midrand SME Cloud & Digital Mastery Workshop]]></title>
-      <link>https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
-      <description><![CDATA[Hands-on practical masterclasses for small and medium business owners: implementing cloud POS, CRM automation, online marketing funnels, and secure digital payments.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>biz</category>
-    </item>
-    <item>
-      <title><![CDATA[CSIR DeepTech & Biotech Commercialization Summit]]></title>
-      <link>https://thegruvs.com/events/csir-deeptech-and-biotech-commercialization-summit-csir-international-c29d0de3-9b90-4ed9-ab44-98df006d18e4</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/csir-deeptech-and-biotech-commercialization-summit-csir-international-c29d0de3-9b90-4ed9-ab44-98df006d18e4</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
-      <description><![CDATA[Gauteng scientific spin-outs, industrial biotechnology researchers, and patent commercialization ventures pitch to international venture funds and DFIs at the CSIR International Convention Centre.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>biz</category>
-    </item>
-    <item>
-      <title><![CDATA[The Kehlani World Tour: South Africa]]></title>
-      <link>https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee</guid>
-      <pubDate>Sun, 27 Sep 2026 02:28:48 GMT</pubDate>
-      <description><![CDATA[Kehlani with special guest Destin Conrad, SunBet Arena, Time Square, Pretoria.]]></description>
-      <enclosure url="https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png" type="image/jpeg" />
-      <category>music</category>
-    </item>
-    <item>
-      <title><![CDATA[Pretoria Public-Private Infrastructure Forum]]></title>
-      <link>https://thegruvs.com/events/pretoria-public-private-infrastructure-forum-menlyn-maine-central-c023efef-933f-4433-bea7-0bc2774197df</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/pretoria-public-private-infrastructure-forum-menlyn-maine-central-c023efef-933f-4433-bea7-0bc2774197df</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
-      <description><![CDATA[Convening municipal stakeholders, engineering contractors, and private financiers to deliberate on water, energy, and smart transit infrastructure deployment for the capital.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>biz</category>
-    </item>
-    <item>
-      <title><![CDATA[Pretoria GovTech & Public Procurement Masterclass]]></title>
-      <link>https://thegruvs.com/events/pretoria-govtech-and-public-procurement-masterclass-the-capital-1c2456ab-6735-4e84-b23f-aeeddd0066b6</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/pretoria-govtech-and-public-procurement-masterclass-the-capital-1c2456ab-6735-4e84-b23f-aeeddd0066b6</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
-      <description><![CDATA[A practical, high-value workshop teaching small business owners and SME suppliers how to successfully bid for national and provincial government tenders, municipal digitisation, and public infrastructure projects.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>biz</category>
-    </item>
-    <item>
-      <title><![CDATA[Soweto Street Food & Craft Beer Festival]]></title>
-      <link>https://thegruvs.com/events/soweto-street-food-and-craft-beer-festival-zone-6-venue-soweto-df0ea4a9-77a7-49fd-983e-54cb1123a66d</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/soweto-street-food-and-craft-beer-festival-zone-6-venue-soweto-df0ea4a9-77a7-49fd-983e-54cb1123a66d</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
-      <description><![CDATA[Celebrating authentic South African street culinary culture: gourmet kotas, sizzling mogodu, artisanal craft beers, live acoustic stages, and artisanal pop-up markets.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>music</category>
-    </item>
-    <item>
-      <title><![CDATA[Rosebank E-Commerce & D2C Growth Conference]]></title>
-      <link>https://thegruvs.com/events/rosebank-e-commerce-and-d2c-growth-conference-the-zone-rosebank-7cd667f2-8eae-4134-991d-9f71a2422667</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/rosebank-e-commerce-and-d2c-growth-conference-the-zone-rosebank-7cd667f2-8eae-4134-991d-9f71a2422667</guid>
-      <pubDate>Sun, 22 Nov 2026 08:33:17 GMT</pubDate>
-      <description><![CDATA[Gauteng direct-to-consumer brand founders, Shopify developers, and logistics specialists reveal how to scale from R100k to R10M monthly turnover. Live teardowns of high-converting storefronts.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>biz</category>
-    </item>
-    <item>
-      <title><![CDATA[Brandy Live in South Africa]]></title>
-      <link>https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f</guid>
-      <pubDate>Sun, 27 Sep 2026 02:28:48 GMT</pubDate>
-      <description><![CDATA[R&B concert at SunBet Arena, Menlyn. Sourced from joburg.co.za events listing.]]></description>
-      <enclosure url="https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694" type="image/jpeg" />
-      <category>rnb</category>
-    </item>
-    <item>
-      <title><![CDATA[Women in African Tech & Leadership Breakfast]]></title>
-      <link>https://thegruvs.com/events/women-in-african-tech-and-leadership-breakfast-sandton-convention-0fd1beed-8f56-4d8a-b773-a8b8942f2cb0</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/women-in-african-tech-and-leadership-breakfast-sandton-convention-0fd1beed-8f56-4d8a-b773-a8b8942f2cb0</guid>
-      <pubDate>Thu, 19 Nov 2026 08:37:11 GMT</pubDate>
-      <description><![CDATA[Inspiring keynote speeches, fireside chats, and structured networking with top female C-suite executives, tech founders, and venture partners from across the continent.]]></description>
-      <enclosure url="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80" type="image/jpeg" />
-      <category>biz</category>
+      <title><![CDATA[Proteas v Bangladesh — 2nd T20I]]></title>
+      <link>https://thegruvs.com/events/proteas-v-bangladesh-2nd-t20i-willowmoore-park-benoni-f0770794-aa10-4b63-9ec6-40d0a481b8c9</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/proteas-v-bangladesh-2nd-t20i-willowmoore-park-benoni-f0770794-aa10-4b63-9ec6-40d0a481b8c9</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[South Africa v Bangladesh, second T20I. Start time to be confirmed.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
     </item>
 </channel>
 </rss>

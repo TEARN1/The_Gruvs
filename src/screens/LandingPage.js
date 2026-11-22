@@ -1325,7 +1325,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         const { data } = await supabase.from('events').select('*').eq('id', id).maybeSingle();
         ev = data || null;
       }
-      if (alive && ev) setSelectedEvent(ev);
+      if (alive && ev) {
+        if (targetEvent.initialReaction) {
+          ev = { ...ev, initialReaction: targetEvent.initialReaction };
+        }
+        setSelectedEvent(ev);
+      }
       onTargetHandled?.();
     })().catch(() => onTargetHandled?.());
     return () => { alive = false; };

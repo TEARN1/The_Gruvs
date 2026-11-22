@@ -2,8 +2,8 @@ name: Weekly Email Digest
 
 on:
   schedule:
-    # Every Thursday at 07:00 UTC (09:00 South African Standard Time)
-    - cron: '0 7 * * 4'
+    # Every Monday at 07:00 UTC (09:00 South African Standard Time)
+    - cron: '0 7 * * 1'
   workflow_dispatch:
     inputs:
       mode:

@@ -933,7 +933,23 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
           {matchCard ? (
             <MatchVersus match={matchCard} height={HERO_H} isWeb={Platform.OS === 'web'} />
           ) : (
-            <MediaViewer media={media} containerWidth={undefined} aspectRatio={event.poster_mode ? 3 / 4 : 16 / 9} fitToImage={!!event.poster_mode} resizeMode={event.poster_mode ? 'contain' : 'cover'} eventId={event?.id} onAuthRequired={onAuthRequired} />
+            <MediaViewer
+              media={media}
+              containerWidth={undefined}
+              aspectRatio={event.poster_mode ? 3 / 4 : 16 / 9}
+              fitToImage={!!event.poster_mode}
+              resizeMode={event.poster_mode ? 'contain' : 'cover'}
+              eventId={event?.id}
+              onAuthRequired={onAuthRequired}
+              emptyPoster={{
+                title: event?.title,
+                category: event?.category,
+                date: event?.event_date,
+                time: event?.event_time,
+                venue: event?.venue_name,
+                color: primary
+              }}
+            />
           )}
           {!event.poster_mode && <View style={styles.heroScrim} pointerEvents="none" />}
 
@@ -1834,7 +1850,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
 
           {event?.id && (
             <SafeSection label="Reactions" primary={primary}>
-              <EventReactions eventId={event.id} primary={primary} muted={textMuted} />
+              <EventReactions eventId={event.id} primary={primary} muted={textMuted} initialReaction={event.initialReaction} />
             </SafeSection>
           )}
 

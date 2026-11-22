@@ -212,14 +212,16 @@ async function run() {
     const personalizedEvents = rankEventsForUser(user, events, { maxEvents: 6 });
     const closest = personalizedEvents[0];
     const subject = closest
-      ? `🔥 Weekend Horizon: ${closest.title} + ${personalizedEvents.length - 1} gruvs near you`
-      : "⚡ Don't get bored: Your 2-week Gruvs horizon";
+      ? `⚡ Monday Radar: ${closest.title} + ${personalizedEvents.length - 1} upcoming gruvs near you`
+      : "⚡ Don't get bored: Your Monday 2-week Gruvs radar";
 
     const unsubscribeUrl = `${APP_URL}/unsubscribe?token=${user.unsubscribe_token || user.id}`;
     const html = renderWeeklyDigestHtml({
       user,
       events: personalizedEvents,
       appUrl: APP_URL,
+      playStoreUrl: 'https://play.google.com/store/apps/details?id=com.thegruvs_tearn',
+      feedbackEmail: 'support@thegruvs.com',
       unsubscribeUrl,
     });
 

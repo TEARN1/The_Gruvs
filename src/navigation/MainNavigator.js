@@ -346,6 +346,7 @@ export const MainNavigator = () => {
       try {
         const params = new URLSearchParams(window.location.search);
         const eventId = params.get('event');
+        const reactParam = params.get('react');
         const profileId = params.get('profile');
         const reelId = params.get('reel');
         const cityParam = params.get('city');
@@ -355,7 +356,7 @@ export const MainNavigator = () => {
         const claimId = params.get('claim');
 
         if (eventId) {
-          setTargetEvent({ id: eventId });
+          setTargetEvent({ id: eventId, initialReaction: reactParam || null });
           setCurrentTab('feed');
           window.history.replaceState({}, '', window.location.pathname);
         } else if (claimId) {

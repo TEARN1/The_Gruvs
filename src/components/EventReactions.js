@@ -85,7 +85,7 @@ const ReactionPill = ({ reaction, count, active, onPress, primary, muted, index 
   );
 };
 
-export const EventReactions = ({ eventId, primary, muted }) => {
+export const EventReactions = ({ eventId, primary, muted, initialReaction }) => {
   const { user } = useAuth();
   const toast = useToast();
   const [counts, setCounts] = useState({});   // { fire: 12, gem: 3, ... }
@@ -93,6 +93,7 @@ export const EventReactions = ({ eventId, primary, muted }) => {
   const [ready, setReady] = useState(false);
   const [fx, setFx] = useState({ key: null, trigger: 0 }); // signature reaction burst
   const inFlightRef = useRef(false);
+  const initialTriggered = useRef(false);
 
   const fetchReactions = useCallback(async () => {
     if (!eventId) return;
@@ -174,6 +175,20 @@ export const EventReactions = ({ eventId, primary, muted }) => {
       inFlightRef.current = false;
     }
   };
+
+  // Auto-trigger reaction when opened via email reaction deep link
+  useEffect(() => {
+    if (ready && initialReaction && !initialTriggered.current) {
+      initialTriggered.current = true;
+      if (user) {
+        if (!myReactions.has(initialReaction)) {
+          handleReaction(initialReaction);
+        }
+      } else {
+        toast.show(`Sign in to react ${initialReaction} to this event`, 'info');
+      }
+    }
+  }, [ready, initialReaction, user, myReactions]);
 
   if (!ready) return null;
 

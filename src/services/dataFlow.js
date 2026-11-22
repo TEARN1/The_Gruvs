@@ -38,6 +38,8 @@ export const hasPosterOrImage = (event) => {
     if (typeof m === 'string' && m.trim().length > 5) return true;
     if (m && typeof m === 'object' && ((typeof m.uri === 'string' && m.uri.trim().length > 5) || (typeof m.url === 'string' && m.url.trim().length > 5))) return true;
   }
+  // Events with title & date dynamically render the native EventPoster card
+  if (event.title && (event.event_date || event.date_time || event.starts_at)) return true;
   return false;
 };
 

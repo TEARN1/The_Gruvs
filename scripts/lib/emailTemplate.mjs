@@ -1,6 +1,7 @@
 /**
  * Responsive HTML Email Template for The Gruvs Weekly 2-Week Event Digest
  *
+ * Sent every Monday morning.
  * Designed to render beautifully across Apple Mail, Gmail (Web, iOS, Android),
  * Outlook, and modern mobile clients with full dark mode support.
  */
@@ -32,7 +33,6 @@ function formatEventDate(dateStr, timeStr) {
 
 function optimizeImageUrl(url) {
   if (!url) return 'https://thegruvs.com/assets/events/pixel.jpg';
-  // Use weserv proxy for fast, lightweight WebP/JPEG delivery in email clients
   const clean = url.trim();
   if (/^https?:\/\/images\.weserv\.nl/i.test(clean)) return clean;
   return `https://images.weserv.nl/?url=${encodeURIComponent(clean.replace(/^https?:\/\//, ''))}&w=600&h=300&fit=cover&q=75&output=jpg`;
@@ -42,6 +42,8 @@ export function renderWeeklyDigestHtml({
   user = {},
   events = [],
   appUrl = 'https://thegruvs.com',
+  playStoreUrl = 'https://play.google.com/store/apps/details?id=com.thegruvs_tearn',
+  feedbackEmail = 'support@thegruvs.com',
   unsubscribeUrl = 'https://thegruvs.com/unsubscribe',
 }) {
   const name = user.display_name || user.username || 'Gruver';
@@ -54,7 +56,7 @@ export function renderWeeklyDigestHtml({
     const catLabel = (event.category || 'Event').toUpperCase();
     const dateFormatted = formatEventDate(event.event_date, event.event_time);
     const imgUrl = optimizeImageUrl(event.image_url || event.cover_url || (event.media_urls && event.media_urls[0]));
-    const eventUrl = `${appUrl}/events/${event.slug || event.id}`;
+    const eventUrl = `${appUrl}/?event=${encodeURIComponent(event.id)}`;
     
     // Distance badge text
     let distanceBadge = '';
@@ -126,6 +128,46 @@ export function renderWeeklyDigestHtml({
                 </td>
               </tr>
             </table>
+
+            <!-- Interactive 1-Click Reactions Row -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.08);">
+              <tr>
+                <td style="padding-bottom: 6px;">
+                  <span style="font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 0.8px; text-transform: uppercase;">
+                    ⚡ Tap to React in App:
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%;">
+                    <tr>
+                      <td style="padding: 2px; width: 25%;">
+                        <a href="${appUrl}/?event=${encodeURIComponent(event.id)}&react=fire" target="_blank" style="display: block; text-align: center; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 7px 4px; text-decoration: none; color: #ffffff; font-size: 11px; font-weight: 700;">
+                          🔥 Fire
+                        </a>
+                      </td>
+                      <td style="padding: 2px; width: 25%;">
+                        <a href="${appUrl}/?event=${encodeURIComponent(event.id)}&react=heart" target="_blank" style="display: block; text-align: center; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 7px 4px; text-decoration: none; color: #ffffff; font-size: 11px; font-weight: 700;">
+                          ❤️ Love
+                        </a>
+                      </td>
+                      <td style="padding: 2px; width: 25%;">
+                        <a href="${appUrl}/?event=${encodeURIComponent(event.id)}&react=hype" target="_blank" style="display: block; text-align: center; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 7px 4px; text-decoration: none; color: #ffffff; font-size: 11px; font-weight: 700;">
+                          🙌 Hyped
+                        </a>
+                      </td>
+                      <td style="padding: 2px; width: 25%;">
+                        <a href="${appUrl}/?event=${encodeURIComponent(event.id)}&react=star" target="_blank" style="display: block; text-align: center; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 7px 4px; text-decoration: none; color: #ffffff; font-size: 11px; font-weight: 700;">
+                          ⭐ Star
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
           </td>
         </tr>
       </table>
@@ -138,7 +180,7 @@ export function renderWeeklyDigestHtml({
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Your 2-Week Gruvs Radar</title>
+  <title>Your Monday Gruvs Radar · Next 2 Weeks</title>
   <style>
     body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
@@ -153,7 +195,7 @@ export function renderWeeklyDigestHtml({
 <body style="margin: 0; padding: 0; background-color: #070a0d; color: #ffffff;">
   <!-- Preview Text -->
   <div style="display: none; font-size: 1px; color: #070a0d; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
-    ${hasEvents ? `🔥 ${events.length} events coming up in the next 14 days, starting with ${closestEvent?.title || 'top gruvs'} near you.` : 'Stay locked into the hottest upcoming gruvs near you.'}
+    ${hasEvents ? `⚡ Monday Radar: ${events.length} events coming up in the next 14 days, starting with ${closestEvent?.title || 'top gruvs'} near you.` : 'Stay locked into the hottest upcoming gruvs near you.'}
   </div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #070a0d;">
@@ -166,7 +208,7 @@ export function renderWeeklyDigestHtml({
           <tr>
             <td align="center" style="padding: 16px 0 28px 0;">
               <a href="${appUrl}" target="_blank" style="text-decoration: none;">
-                <div style="font-size: 24px; font-weight: 900; letter-spacing: 2px; color: #00f2fe; text-transform: uppercase;">
+                <div style="font-size: 26px; font-weight: 900; letter-spacing: 2px; color: #00f2fe; text-transform: uppercase;">
                   THE GRUVS
                 </div>
                 <div style="font-size: 11px; letter-spacing: 3px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 4px;">
@@ -183,13 +225,13 @@ export function renderWeeklyDigestHtml({
                 <tr>
                   <td>
                     <span style="background-color: rgba(0, 242, 254, 0.12); color: #00f2fe; font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 4px 10px; border-radius: 8px; text-transform: uppercase;">
-                      ⚡ 2-Week Vibe Radar
+                      ⚡ Monday Vibe Radar · 14-Day Horizon
                     </span>
                     <h1 style="margin: 14px 0 8px 0; color: #ffffff; font-size: 22px; font-weight: 900; line-height: 1.3;">
-                      Don't get bored, ${name}. Here's what's on near you.
+                      Start the week locked in, ${name}.
                     </h1>
                     <p style="margin: 0; color: #94a3b8; font-size: 14px; line-height: 1.6;">
-                      We analyzed your area and pulled the top gruvs, concerts, and night markets coming up over the next 14 days so your plans are always locked in.
+                      Here are the top upcoming events and gatherings across Gauteng for the next two weeks, prioritized closest to your area so you never get bored. Tap any event to lock in your RSVP or drop a reaction.
                     </p>
                   </td>
                 </tr>
@@ -214,16 +256,95 @@ export function renderWeeklyDigestHtml({
 
           <!-- Big Feed CTA -->
           <tr>
-            <td align="center" style="padding: 16px 0 32px 0;">
+            <td align="center" style="padding: 10px 0 28px 0;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td align="center" style="background: linear-gradient(135deg, #00f2fe 0%, #00b4d8 100%); border-radius: 14px;">
-                    <a href="${appUrl}" target="_blank" style="display: inline-block; color: #070a0d; font-size: 14px; font-weight: 900; letter-spacing: 0.5px; padding: 14px 28px; text-decoration: none; text-transform: uppercase;">
+                  <td align="center" style="background: linear-gradient(135deg, #00f2fe 0%, #00b4d8 100%); border-radius: 14px; box-shadow: 0 4px 16px rgba(0, 242, 254, 0.25);">
+                    <a href="${appUrl}" target="_blank" style="display: inline-block; color: #070a0d; font-size: 13px; font-weight: 900; letter-spacing: 0.5px; padding: 14px 28px; text-decoration: none; text-transform: uppercase;">
                       Explore Live Map & Drop Feed &rarr;
                     </a>
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
+
+          <!-- Google Play App Update, Stability Warning & Feedback Card -->
+          <tr>
+            <td style="background: linear-gradient(180deg, #10161d 0%, #0c1015 100%); border-radius: 20px; border: 1px solid rgba(52, 211, 153, 0.25); padding: 26px 22px; margin-bottom: 28px;">
+              
+              <!-- Section Pill -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                <tr>
+                  <td>
+                    <span style="display: inline-block; background-color: rgba(52, 211, 153, 0.12); color: #34d399; font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; border: 1px solid rgba(52, 211, 153, 0.3);">
+                      📲 Android App · Google Play Store
+                    </span>
+                  </td>
+                </tr>
+              </table>
+
+              <h2 style="margin: 0 0 8px 0; color: #ffffff; font-size: 20px; font-weight: 900; line-height: 1.3;">
+                The Gruvs is live on Google Play
+              </h2>
+              <p style="margin: 0 0 18px 0; color: #94a3b8; font-size: 13px; line-height: 1.6;">
+                Get fast push notifications when your favorite DJs and venues drop tickets, discover radar events around your neighborhood, and access offline event passes right from your pocket.
+              </p>
+
+              <!-- Google Play Download Button -->
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                <tr>
+                  <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);">
+                    <a href="${playStoreUrl}" target="_blank" style="display: inline-block; color: #ffffff; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; padding: 12px 22px; text-decoration: none;">
+                      ▶️ Download / Update on Google Play &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Transparent Warning & Stability Notice Box -->
+              <div style="background-color: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 18px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align: top; width: 28px;">
+                      <span style="font-size: 20px; line-height: 1;">⚠️</span>
+                    </td>
+                    <td style="vertical-align: top; padding-left: 8px;">
+                      <strong style="color: #fbbf24; font-size: 13px; display: block; margin-bottom: 4px;">
+                        An Honest Note on Stability & Recent Crashes
+                      </strong>
+                      <p style="margin: 0; color: #cbd5e1; font-size: 12px; line-height: 1.6;">
+                        Over the past few months, we know some of you experienced frustrating app crashes or freezes on certain Android devices. We sincerely apologize for that. Our engineering team has rolled out a series of core graphics and memory caching overhauls to address this.
+                        <br/><br/>
+                        <strong>Please note:</strong> Because Android encompasses thousands of device models, you might still experience occasional hiccups or unexpected crashes as this release stabilizes.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Feedback Request Box -->
+              <div style="background-color: rgba(0, 242, 254, 0.06); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 12px; padding: 16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align: top; width: 28px;">
+                      <span style="font-size: 20px; line-height: 1;">💬</span>
+                    </td>
+                    <td style="vertical-align: top; padding-left: 8px;">
+                      <strong style="color: #00f2fe; font-size: 13px; display: block; margin-bottom: 4px;">
+                        We Need Your Feedback to Make It Bulletproof
+                      </strong>
+                      <p style="margin: 0 0 12px 0; color: #94a3b8; font-size: 12px; line-height: 1.6;">
+                        If the app crashes, freezes, or if something feels off on your device, please don't hesitate to reach out! Tell us your phone model and what happened. Every report goes straight to our dev desk so we can squash bugs immediately.
+                      </p>
+                      <a href="mailto:${feedbackEmail}?subject=The%20Gruvs%20Android%20Feedback%20%26%20Crash%20Report&body=Hi%20Gruvs%20Team%2C%0A%0AMy%20Phone%20Model%3A%20%0AAndroid%20Version%3A%20%0AWhat%20happened%20(crash%20or%20feedback)%3A%20%0A%0A" style="display: inline-block; background-color: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid rgba(0, 242, 254, 0.4); border-radius: 8px; font-size: 12px; font-weight: 700; padding: 8px 16px; text-decoration: none;">
+                        ✉️ Send Feedback / Report a Crash
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
             </td>
           </tr>
 
@@ -241,6 +362,7 @@ export function renderWeeklyDigestHtml({
               <p style="margin: 0 0 14px 0;">
                 <a href="${appUrl}" target="_blank" style="color: #00f2fe; text-decoration: none; margin: 0 8px;">The Drop</a> •
                 <a href="${appUrl}/#map" target="_blank" style="color: #00f2fe; text-decoration: none; margin: 0 8px;">Live Map</a> •
+                <a href="${playStoreUrl}" target="_blank" style="color: #34d399; text-decoration: none; margin: 0 8px;">Google Play</a> •
                 <a href="${unsubscribeUrl}" target="_blank" style="color: #64748b; text-decoration: underline; margin: 0 8px;">Unsubscribe</a>
               </p>
               <p style="margin: 0; font-size: 11px; color: #475569;">

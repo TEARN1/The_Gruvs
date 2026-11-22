@@ -961,10 +961,10 @@ VALUES (
   true,
   'published',
   false,
-  ${sqlEsc(img)},
-  ${sqlEsc(img)},
-  ${sqlEsc(img)},
-  ARRAY[${sqlEsc(img)}]
+  NULL,
+  NULL,
+  NULL,
+  NULL
 );`);
   }
 
