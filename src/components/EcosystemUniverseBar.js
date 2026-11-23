@@ -29,10 +29,12 @@ export function EcosystemUniverseBar({
   const isCompact = width < 370;
 
   const handlePress = (app) => {
-    cyberAudio.play('telemetryTick');
-    if (app.id === 'thegruvs') {
+    try {
+      cyberAudio.play('telemetryTick');
+    } catch {}
+    if (app?.id === 'thegruvs') {
       onSelectApp?.(app.id);
-    } else {
+    } else if (app) {
       // Open in-app ecosystem portal (never eject user out of app)
       setPortalApp(app);
     }
@@ -98,14 +100,16 @@ export function EcosystemUniverseBar({
       </View>
 
       {/* In-App Ecosystem Portal (The Resident & Excellency inside The Gruvs) */}
-      <EcosystemPortalModal
-        visible={!!portalApp}
-        app={portalApp}
-        onClose={() => setPortalApp(null)}
-        primary={primary}
-        textColor={textColor}
-        muted={muted}
-      />
+      {!!portalApp && (
+        <EcosystemPortalModal
+          visible={true}
+          app={portalApp}
+          onClose={() => setPortalApp(null)}
+          primary={primary}
+          textColor={textColor}
+          muted={muted}
+        />
+      )}
     </View>
   );
 }

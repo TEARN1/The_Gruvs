@@ -72,19 +72,6 @@ export function EcosystemPortalModal({
   const [enrolledCourseId, setEnrolledCourseId] = useState(null);
   const [courses, setCourses] = useState(EXCELLENCY_COURSES);
 
-  useEffect(() => {
-    if (app?.id === 'excellency' && visible) {
-      ExcellencyService.getCourses().then(data => {
-        if (data && data.length > 0) setCourses(data);
-      }).catch(() => {});
-    }
-  }, [app?.id, visible]);
-
-  if (!app) return null;
-
-  const isResident = app.id === 'theresident';
-  const themeColor = app.color || primary;
-
   // Resident Tabs & Safety States
   const [residentTab, setResidentTab] = useState('stays'); // 'stays' | 'lifts' | 'guardian' | 'host'
   const [stayFilter, setStayFilter] = useState('all');
@@ -106,6 +93,14 @@ export function EcosystemPortalModal({
   const [hostSubmitted, setHostSubmitted] = useState(false);
 
   useEffect(() => {
+    if (app?.id === 'excellency' && visible) {
+      ExcellencyService.getCourses().then(data => {
+        if (data && data.length > 0) setCourses(data);
+      }).catch(() => {});
+    }
+  }, [app?.id, visible]);
+
+  useEffect(() => {
     let interval = null;
     if (safeTimerActive && safeMinutesLeft > 0) {
       interval = setInterval(() => {
@@ -122,6 +117,13 @@ export function EcosystemPortalModal({
     }
     return () => { if (interval) clearInterval(interval); };
   }, [safeTimerActive, safeMinutesLeft, toast]);
+
+  if (!visible || !app) return null;
+
+  const isResident = app.id === 'theresident';
+  const themeColor = app.color || primary;
+  const contentText = '#ffffff';
+  const contentMuted = 'rgba(255,255,255,0.70)';
 
   const handleToggleTimer = () => {
     cyberAudio.play('lockVibe');
@@ -198,12 +200,12 @@ export function EcosystemPortalModal({
               <Text style={{ fontSize: 24 }}>{app.badge}</Text>
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={[styles.appName, { color: textColor }]}>{app.name}</Text>
+                  <Text style={[styles.appName, { color: contentText }]}>{app.name}</Text>
                   <View style={[styles.ecosystemPill, { borderColor: `${themeColor}60`, backgroundColor: `${themeColor}15` }]}>
                     <Text style={[styles.ecosystemPillText, { color: themeColor }]}>ECOSYSTEM PILLAR</Text>
                   </View>
                 </View>
-                <Text style={[styles.tagline, { color: muted }]}>{app.tagline}</Text>
+                <Text style={[styles.tagline, { color: contentMuted }]}>{app.tagline}</Text>
               </View>
             </View>
 
@@ -221,7 +223,7 @@ export function EcosystemPortalModal({
           {/* Unified Value Proposition Banner */}
           <View style={[styles.syncedBanner, { borderColor: `${themeColor}35`, backgroundColor: `${themeColor}0f` }]}>
             <Feather name="shield" size={14} color={themeColor} />
-            <Text style={[styles.syncedBannerText, { color: textColor }]}>
+            <Text style={[styles.syncedBannerText, { color: contentText }]}>
               Unified Single Sign-On Active · Your Gruvs Vibe Points & Credentials apply automatically.
             </Text>
           </View>
@@ -254,8 +256,8 @@ export function EcosystemPortalModal({
                           }
                         ]}
                       >
-                        <Feather name={t.icon} size={11} color={active ? '#000' : textColor} />
-                        <Text style={[styles.tabPillText, { color: active ? '#000' : textColor }]}>{t.label}</Text>
+                        <Feather name={t.icon} size={11} color={active ? '#000' : contentText} />
+                        <Text style={[styles.tabPillText, { color: active ? '#000' : contentText }]}>{t.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -267,13 +269,13 @@ export function EcosystemPortalModal({
                     <View style={styles.featureGrid}>
                       <View style={[styles.featureCard, { borderColor: `${themeColor}25` }]}>
                         <Feather name="home" size={20} color={themeColor} />
-                        <Text style={[styles.featureTitle, { color: textColor }]}>Verified Crash Pads</Text>
-                        <Text style={[styles.featureDesc, { color: muted }]}>Rooms & stays near nightlife clusters, verified by ID and community vouching.</Text>
+                        <Text style={[styles.featureTitle, { color: contentText }]}>Verified Crash Pads</Text>
+                        <Text style={[styles.featureDesc, { color: contentMuted }]}>Rooms & stays near nightlife clusters, verified by ID and community vouching.</Text>
                       </View>
                       <View style={[styles.featureCard, { borderColor: `${themeColor}25` }]}>
                         <Feather name="zap" size={20} color="#f59e0b" />
-                        <Text style={[styles.featureTitle, { color: textColor }]}>Power Guaranteed</Text>
-                        <Text style={[styles.featureDesc, { color: muted }]}>Solar, battery inverters, and backup generators for uninterrupted nights.</Text>
+                        <Text style={[styles.featureTitle, { color: contentText }]}>Power Guaranteed</Text>
+                        <Text style={[styles.featureDesc, { color: contentMuted }]}>Solar, battery inverters, and backup generators for uninterrupted nights.</Text>
                       </View>
                     </View>
 
@@ -298,7 +300,7 @@ export function EcosystemPortalModal({
                               }
                             ]}
                           >
-                            <Text style={[styles.filterPillText, { color: active ? themeColor : muted }]}>{f.label}</Text>
+                            <Text style={[styles.filterPillText, { color: active ? themeColor : contentMuted }]}>{f.label}</Text>
                           </TouchableOpacity>
                         );
                       })}
@@ -308,8 +310,8 @@ export function EcosystemPortalModal({
                       event={{ city: 'Johannesburg', id: 'portal-explore' }}
                       primary={themeColor}
                       surface="rgba(16,22,26,0.9)"
-                      textColor={textColor}
-                      muted={muted}
+                      textColor={contentText}
+                      muted={contentMuted}
                     />
                   </View>
                 )}
@@ -320,8 +322,8 @@ export function EcosystemPortalModal({
                     <View style={[styles.infoBannerBox, { borderColor: '#22c55e35', backgroundColor: '#22c55e10' }]}>
                       <Feather name="check-circle" size={16} color="#22c55e" />
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.infoBannerTitle, { color: textColor }]}>Verified Carpool Captains Active</Text>
-                        <Text style={[styles.infoBannerSub, { color: muted }]}>
+                        <Text style={[styles.infoBannerTitle, { color: contentText }]}>Verified Carpool Captains Active</Text>
+                        <Text style={[styles.infoBannerSub, { color: contentMuted }]}>
                           Dual-ID verified captains with zero incident records running safe corridors between Ivory Park, Tembisa, and major nightlife hubs.
                         </Text>
                       </View>
@@ -331,8 +333,8 @@ export function EcosystemPortalModal({
                       eventId="all"
                       primary={themeColor}
                       surface="rgba(16,22,26,0.9)"
-                      textColor={textColor}
-                      muted={muted}
+                      textColor={contentText}
+                      muted={contentMuted}
                     />
                   </View>
                 )}
@@ -344,7 +346,7 @@ export function EcosystemPortalModal({
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                           <View style={[styles.beaconDot, { backgroundColor: safeTimerActive ? '#ef4444' : themeColor }]} />
-                          <Text style={[styles.guardianTitle, { color: textColor }]}>
+                          <Text style={[styles.guardianTitle, { color: contentText }]}>
                             {safeTimerActive ? 'Guardian Dead-Man Timer Armed' : 'Nighttime Guardian Shield'}
                           </Text>
                         </View>
@@ -360,31 +362,31 @@ export function EcosystemPortalModal({
                           <Text style={[styles.timerCountdown, { color: safeMinutesLeft < 10 ? '#ef4444' : themeColor }]}>
                             {String(safeMinutesLeft).padStart(2, '0')}:00
                           </Text>
-                          <Text style={[styles.timerSub, { color: muted }]}>
+                          <Text style={[styles.timerSub, { color: contentMuted }]}>
                             If arrival isn't confirmed before 00:00, automated SOS SMS triggers to your family guardian.
                           </Text>
                         </View>
                       )}
 
                       <View style={styles.formGroup}>
-                        <Text style={[styles.inputLabel, { color: muted }]}>SAFE DESTINATION / RESIDENCE</Text>
+                        <Text style={[styles.inputLabel, { color: contentMuted }]}>SAFE DESTINATION / RESIDENCE</Text>
                         <TextInput
                           value={safeDestination}
                           onChangeText={setSafeDestination}
                           placeholder="e.g. Ivory Park Ext 2 / Kaalfontein"
                           placeholderTextColor="rgba(255,255,255,0.3)"
-                          style={[styles.textInput, { color: textColor, borderColor: `${themeColor}30` }]}
+                          style={[styles.textInput, { color: contentText, borderColor: `${themeColor}30` }]}
                         />
                       </View>
 
                       <View style={styles.formGroup}>
-                        <Text style={[styles.inputLabel, { color: muted }]}>FAMILY ANCHOR GUARDIAN PHONE</Text>
+                        <Text style={[styles.inputLabel, { color: contentMuted }]}>FAMILY ANCHOR GUARDIAN PHONE</Text>
                         <TextInput
                           value={guardianContact}
                           onChangeText={setGuardianContact}
                           placeholder="e.g. 082 123 4567"
                           placeholderTextColor="rgba(255,255,255,0.3)"
-                          style={[styles.textInput, { color: textColor, borderColor: `${themeColor}30` }]}
+                          style={[styles.textInput, { color: contentText, borderColor: `${themeColor}30` }]}
                         />
                       </View>
 
@@ -415,8 +417,8 @@ export function EcosystemPortalModal({
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                         <Feather name="maximize" size={20} color={themeColor} />
                         <View style={{ flex: 1 }}>
-                          <Text style={[styles.handshakeTitle, { color: textColor }]}>Doorstep QR Handshake Protocol</Text>
-                          <Text style={[styles.handshakeSub, { color: muted }]}>
+                          <Text style={[styles.handshakeTitle, { color: contentText }]}>Doorstep QR Handshake Protocol</Text>
+                          <Text style={[styles.handshakeSub, { color: contentMuted }]}>
                             Both guest and host scan a rotating dynamic QR upon arrival to confirm identity and unlock deposits.
                           </Text>
                         </View>
@@ -442,14 +444,14 @@ export function EcosystemPortalModal({
                 {residentTab === 'host' && (
                   <View style={{ gap: 14 }}>
                     <View style={[styles.hostHeaderBox, { borderColor: `${themeColor}35` }]}>
-                      <Text style={[styles.hostHeaderTitle, { color: textColor }]}>Earn Daily Income & Guard Your Kasi</Text>
-                      <Text style={[styles.hostHeaderSub, { color: muted }]}>
+                      <Text style={[styles.hostHeaderTitle, { color: contentText }]}>Earn Daily Income & Guard Your Kasi</Text>
+                      <Text style={[styles.hostHeaderSub, { color: contentMuted }]}>
                         Monetize your spare bedroom, backyard cottage, or 7-seater shuttle. Dual-ID and family anchor required.
                       </Text>
                     </View>
 
                     <View style={styles.formGroup}>
-                      <Text style={[styles.inputLabel, { color: muted }]}>HOSTING TYPE</Text>
+                      <Text style={[styles.inputLabel, { color: contentMuted }]}>HOSTING TYPE</Text>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         {[
                           { key: 'cottage', label: 'Backyard Cottage' },
@@ -467,7 +469,7 @@ export function EcosystemPortalModal({
                               }
                             ]}
                           >
-                            <Text style={{ fontSize: 10, fontWeight: '800', color: hostType === type.key ? '#000' : textColor }}>
+                            <Text style={{ fontSize: 10, fontWeight: '800', color: hostType === type.key ? '#000' : contentText }}>
                               {type.label}
                             </Text>
                           </TouchableOpacity>
@@ -476,48 +478,48 @@ export function EcosystemPortalModal({
                     </View>
 
                     <View style={styles.formGroup}>
-                      <Text style={[styles.inputLabel, { color: muted }]}>LISTING / SPACE NAME</Text>
+                      <Text style={[styles.inputLabel, { color: contentMuted }]}>LISTING / SPACE NAME</Text>
                       <TextInput
                         value={hostSpaceName}
                         onChangeText={setHostSpaceName}
                         placeholder="e.g. Ivory Park Sanctuary Cottage"
                         placeholderTextColor="rgba(255,255,255,0.3)"
-                        style={[styles.textInput, { color: textColor, borderColor: `${themeColor}30` }]}
+                        style={[styles.textInput, { color: contentText, borderColor: `${themeColor}30` }]}
                       />
                     </View>
 
                     <View style={{ flexDirection: 'row', gap: 10 }}>
                       <View style={[styles.formGroup, { flex: 1 }]}>
-                        <Text style={[styles.inputLabel, { color: muted }]}>TOWNSHIP / WARD</Text>
+                        <Text style={[styles.inputLabel, { color: contentMuted }]}>TOWNSHIP / WARD</Text>
                         <TextInput
                           value={hostSector}
                           onChangeText={setHostSector}
                           placeholder="e.g. Ivory Park Ext 3"
                           placeholderTextColor="rgba(255,255,255,0.3)"
-                          style={[styles.textInput, { color: textColor, borderColor: `${themeColor}30` }]}
+                          style={[styles.textInput, { color: contentText, borderColor: `${themeColor}30` }]}
                         />
                       </View>
                       <View style={[styles.formGroup, { flex: 1 }]}>
-                        <Text style={[styles.inputLabel, { color: muted }]}>NIGHTLY RATE (ZAR)</Text>
+                        <Text style={[styles.inputLabel, { color: contentMuted }]}>NIGHTLY RATE (ZAR)</Text>
                         <TextInput
                           value={hostPriceZar}
                           onChangeText={setHostPriceZar}
                           keyboardType="numeric"
                           placeholder="180"
                           placeholderTextColor="rgba(255,255,255,0.3)"
-                          style={[styles.textInput, { color: textColor, borderColor: `${themeColor}30` }]}
+                          style={[styles.textInput, { color: contentText, borderColor: `${themeColor}30` }]}
                         />
                       </View>
                     </View>
 
                     <View style={styles.formGroup}>
-                      <Text style={[styles.inputLabel, { color: muted }]}>FAMILY ANCHOR CO-SIGNER (SIBLING / MATRIARCH ON PREMISES)</Text>
+                      <Text style={[styles.inputLabel, { color: contentMuted }]}>FAMILY ANCHOR CO-SIGNER (SIBLING / MATRIARCH ON PREMISES)</Text>
                       <TextInput
                         value={hostAnchorName}
                         onChangeText={setHostAnchorName}
                         placeholder="e.g. Nomsa M. (Sister, Resident since 2012)"
                         placeholderTextColor="rgba(255,255,255,0.3)"
-                        style={[styles.textInput, { color: textColor, borderColor: `${themeColor}30` }]}
+                        style={[styles.textInput, { color: contentText, borderColor: `${themeColor}30` }]}
                       />
                     </View>
 
@@ -525,8 +527,8 @@ export function EcosystemPortalModal({
                       onPress={() => setHostHasSolar(s => !s)}
                       style={[styles.solarToggle, { borderColor: hostHasSolar ? '#f59e0b' : 'rgba(255,255,255,0.1)' }]}
                     >
-                      <Feather name={hostHasSolar ? "check-square" : "square"} size={16} color={hostHasSolar ? '#f59e0b' : muted} />
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: textColor, flex: 1 }}>
+                      <Feather name={hostHasSolar ? "check-square" : "square"} size={16} color={hostHasSolar ? '#f59e0b' : contentMuted} />
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: contentText, flex: 1 }}>
                         Has Solar / Battery Inverter / Generator Backup
                       </Text>
                     </TouchableOpacity>
@@ -544,7 +546,7 @@ export function EcosystemPortalModal({
                     {/* Vouch Tree Preview */}
                     <View style={[styles.vouchBox, { borderColor: `${themeColor}20` }]}>
                       <Feather name="shield" size={14} color={themeColor} />
-                      <Text style={{ fontSize: 10, color: muted, flex: 1, lineHeight: 14 }}>
+                      <Text style={{ fontSize: 10, color: contentMuted, flex: 1, lineHeight: 14 }}>
                         Resident Trust Score: +50 Vibe on Dual-ID, +30 on Sibling Co-Sign, +20 on CPF clear check.
                       </Text>
                     </View>
@@ -557,17 +559,17 @@ export function EcosystemPortalModal({
                 <View style={styles.featureGrid}>
                   <View style={[styles.featureCard, { borderColor: `${themeColor}25` }]}>
                     <Feather name="award" size={20} color={themeColor} />
-                    <Text style={[styles.featureTitle, { color: textColor }]}>Masterclass Accreditation</Text>
-                    <Text style={[styles.featureDesc, { color: muted }]}>Earn on-chain Vibe Badges certified by the Excellency Guild.</Text>
+                    <Text style={[styles.featureTitle, { color: contentText }]}>Masterclass Accreditation</Text>
+                    <Text style={[styles.featureDesc, { color: contentMuted }]}>Earn on-chain Vibe Badges certified by the Excellency Guild.</Text>
                   </View>
                   <View style={[styles.featureCard, { borderColor: `${themeColor}25` }]}>
                     <Feather name="cpu" size={20} color={themeColor} />
-                    <Text style={[styles.featureTitle, { color: textColor }]}>Creative Engineering</Text>
-                    <Text style={[styles.featureDesc, { color: muted }]}>Hands-on stagecraft, high-fidelity acoustics, and nightlife tech.</Text>
+                    <Text style={[styles.featureTitle, { color: contentText }]}>Creative Engineering</Text>
+                    <Text style={[styles.featureDesc, { color: contentMuted }]}>Hands-on stagecraft, high-fidelity acoustics, and nightlife tech.</Text>
                   </View>
                 </View>
 
-                <Text style={[styles.coursesHeading, { color: textColor }]}>Available Masterclasses</Text>
+                <Text style={[styles.coursesHeading, { color: contentText }]}>Available Masterclasses</Text>
                 {courses.map((course) => {
                   const isEnrolled = enrolledCourseId === course.id;
                   return (
@@ -576,11 +578,11 @@ export function EcosystemPortalModal({
                         <View style={[styles.courseBadge, { backgroundColor: `${course.color}20`, borderColor: course.color }]}>
                           <Text style={[styles.courseBadgeText, { color: course.color }]}>{course.badge}</Text>
                         </View>
-                        <Text style={[styles.courseDuration, { color: muted }]}>{course.duration}</Text>
+                        <Text style={[styles.courseDuration, { color: contentMuted }]}>{course.duration}</Text>
                       </View>
 
-                      <Text style={[styles.courseTitle, { color: textColor }]}>{course.title}</Text>
-                      <Text style={[styles.courseInstructor, { color: muted }]}>Instructor: {course.instructor}</Text>
+                      <Text style={[styles.courseTitle, { color: contentText }]}>{course.title}</Text>
+                      <Text style={[styles.courseInstructor, { color: contentMuted }]}>Instructor: {course.instructor}</Text>
 
                       <View style={[styles.discountPill, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
                         <Feather name="tag" size={11} color={course.color} />

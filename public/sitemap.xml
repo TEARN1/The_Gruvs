@@ -5747,19 +5747,6 @@
     <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://thegruvs.com/profile/thegruvs</loc>
-    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/profile/thegruvs" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/profile/thegruvs" />
-    <lastmod>2026-11-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.70</priority>
-    <image:image>
-      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/avatar_1779117952962.png</image:loc>
-      <image:title>The Gruvs</image:title>
-      <image:caption>@thegruvs on The Gruvs</image:caption>
-    </image:image>
-  </url>
-  <url>
     <loc>https://thegruvs.com/profile/refilwekgomo3gmailcom</loc>
     <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/profile/refilwekgomo3gmailcom" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/profile/refilwekgomo3gmailcom" />
@@ -5878,6 +5865,19 @@
     <lastmod>2026-07-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/profile/thegruvs</loc>
+    <xhtml:link rel="alternate" hreflang="en-ZA" href="https://thegruvs.com/profile/thegruvs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thegruvs.com/profile/thegruvs" />
+    <lastmod>2026-11-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+    <image:image>
+      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/avatar_1779117952962.png</image:loc>
+      <image:title>The Gruvs</image:title>
+      <image:caption>@thegruvs on The Gruvs</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://thegruvs.com/profile/beekay</loc>

@@ -64,7 +64,7 @@ const downloadImage = async (url) => {
 };
 
 // ── Single media item ────────────────────────────────────────────────────────
-const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover', onNaturalSize }) => {
+const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover', priority = 'normal', onNaturalSize }) => {
   const [loadFailed, setLoadFailed] = useState(false);
   const prevUrlRef = useRef(item?.url);
 
@@ -100,6 +100,7 @@ const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover', onNatu
       style={[{ backgroundColor: '#11161b' }, mediaStyle]}
       fallbackColor="#11161b"
       resizeMode={resizeMode}
+      priority={priority}
       onLoad={(e) => {
         // ONLY notify natural aspect ratio for actual real media items, never after a load failure / fallback
         if (!loadFailed) {
@@ -135,7 +136,7 @@ const HeartBurst = ({ onComplete }) => {
 // ── Main MediaViewer ─────────────────────────────────────────────────────────
 // emptyPoster: { title, category, date, time, venue, color } — drawn instead of
 // the "No photo added" box when the event has no picture at all.
-export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', fitToImage = false, maxHeightRatio = null, eventId = null, onAuthRequired, emptyPoster = null }) => {
+export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', fitToImage = false, maxHeightRatio = null, eventId = null, priority = 'normal', onAuthRequired, emptyPoster = null }) => {
   const { user } = useAuth();
   const [measuredWidth, setMeasuredWidth] = useState(containerWidth || SCREEN_WIDTH);
   // fitToImage: a poster/flyer should fill the frame with no letterbox bars and
@@ -227,6 +228,7 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
           width={MEDIA_WIDTH}
           height={MEDIA_HEIGHT}
           resizeMode={effectiveResize}
+          priority={priority}
           onNaturalSize={fitToImage && index === 0 ? handleNaturalSize : undefined}
         />
 

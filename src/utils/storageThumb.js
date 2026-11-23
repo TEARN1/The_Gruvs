@@ -25,6 +25,20 @@ export function storageThumb(url, width, height, quality = 70) {
   if (!url.startsWith('http://') && !url.startsWith('https://')) return url;
   if (url.startsWith('data:') || url.startsWith('blob:') || /^(localhost|127\.0\.0\.1)/.test(url)) return url;
 
+  if (url.includes('images.unsplash.com')) {
+    try {
+      const u = new URL(url);
+      if (width) u.searchParams.set('w', String(width));
+      if (height) u.searchParams.set('h', String(height));
+      u.searchParams.set('auto', 'format');
+      u.searchParams.set('fit', 'crop');
+      u.searchParams.set('q', String(quality || 70));
+      return u.toString();
+    } catch {
+      return url;
+    }
+  }
+
   const isSupabase = SUPABASE_URL
     ? url.startsWith(SUPABASE_URL)
     : /\.supabase\.(co|in|net)\//.test(url);
@@ -33,6 +47,7 @@ export function storageThumb(url, width, height, quality = 70) {
   // which often serve uncompressed application/octet-stream files or multi-MB PNGs and cause layout/render stuttering
   const isRawExternalBanner = /allevents\.in|eventbrite|quicket|livenation|ticketmaster|computicket|ticketpros/i.test(url) || url.includes('/banners/') || /\.png(\?|$)/i.test(url);
 
+  // Route any Supabase media or unoptimized external banners through CDN WebP optimization
   if (!isSupabase && !isRawExternalBanner) {
     return url;
   }

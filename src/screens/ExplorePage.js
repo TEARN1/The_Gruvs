@@ -17,9 +17,7 @@ import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 import { AuraEffect } from '../components/AuraEffect';
 import { LiquidBackground } from '../components/LiquidBackground';
 import { GlassView } from '../components/GlassView';
-import { TalentLeaderboardModal } from '../components/TalentLeaderboardModal';
 import { BrandLogo } from '../components/BrandLogo';
-import { ViberProfileModal } from '../components/ViberProfileModal';
 import { SmartImage } from '../components/SmartImage';
 import { MediaViewer } from '../components/MediaViewer';
 import { FeedManager, TrendingManager, DiscoveryManager, UserManager, RealtimeManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
@@ -35,16 +33,21 @@ import { filterByViewerAge } from '../utils/contentAgeRating';
 import { viewerAgeSync } from '../utils/viewerAge';
 import { ScoutScreen } from './ScoutScreen';
 import { DiscoverPeopleScreen } from './DiscoverPeopleScreen';
-import { WhoWasThereModal } from '../components/WhoWasThereModal';
 import { TutorialCenter } from '../components/TutorialCenter';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SurveyCard } from '../components/SurveyCard';
 import { MealCard } from '../components/MealCard';
-import { MealDetailModal } from '../components/MealDetailModal';
 import { MealService } from '../services/mealService';
 import { appInstallService } from '../services/appInstallService';
 import { fx } from '../styles/webFx';
 import { APP_CHANGELOG } from '../constants/changelog';
+import { deferred } from '../utils/deferred';
+
+// Panels deferred to first open (saves module evaluation at startup)
+const TalentLeaderboardModal = deferred(() => require('../components/TalentLeaderboardModal').TalentLeaderboardModal, 'TalentLeaderboardModal');
+const ViberProfileModal = deferred(() => require('../components/ViberProfileModal').ViberProfileModal, 'ViberProfileModal');
+const WhoWasThereModal = deferred(() => require('../components/WhoWasThereModal').WhoWasThereModal, 'WhoWasThereModal');
+const MealDetailModal = deferred(() => require('../components/MealDetailModal').MealDetailModal, 'MealDetailModal');
 
 // Module-level StyleSheets below (hero, cg, et) size from the window at load.
 // The component itself reads live dimensions through useWindowDimensions.

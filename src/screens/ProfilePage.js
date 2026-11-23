@@ -11,7 +11,6 @@ import { SmartImage } from '../components/SmartImage';
 import { WritingStylePicker } from '../components/WritingStylePicker';
 import { CurrencyPicker } from '../components/CurrencyPicker';
 import { SettingsScreen } from './SettingsScreen';
-import { CrossedPathsModal } from '../components/CrossedPathsModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
@@ -68,12 +67,8 @@ import { VerifiedRequestCard } from '../components/VerifiedRequestCard';
 import { ClubScreen } from './ClubScreen';
 import { getZodiacSign, daysUntilBirthday } from '../utils/birthday';
 
-// ── Static imports — avoids "unknown module" chunk failures on web ──
-import { DirectMessageModal }      from '../components/DirectMessageModal';
-import { CategoryPickerModal }     from '../components/CategoryPickerModal';
 import { deferred } from '../utils/deferred';
 import { PathMapScreen }           from './lazyScreens';
-import { FollowListModal } from '../components/FollowListModal';
 import { WalletScreen }            from './lazyScreens';
 import { MonetizationService }     from '../services/monetizationService';
 import projectDNA                  from '../services/projectDNA.json';
@@ -83,6 +78,10 @@ import { fx } from '../styles/webFx';
 import { cssLoop, IS_WEB as IS_WEB_FX } from '../utils/cssLoop';
 
 // ── Deferred heavy modals & sub-screens — load on first open ──
+const DirectMessageModal      = deferred(() => require('../components/DirectMessageModal').DirectMessageModal, 'DirectMessageModal');
+const CategoryPickerModal     = deferred(() => require('../components/CategoryPickerModal').CategoryPickerModal, 'CategoryPickerModal');
+const FollowListModal         = deferred(() => require('../components/FollowListModal').FollowListModal, 'FollowListModal');
+const CrossedPathsModal       = deferred(() => require('../components/CrossedPathsModal').CrossedPathsModal, 'CrossedPathsModal');
 const PostEventModal          = deferred(() => require('../components/PostEventModal').PostEventModal, 'PostEventModal');
 const EditEventModal          = deferred(() => require('../components/EditEventModal').EditEventModal, 'EditEventModal');
 const LeaderboardScreen       = deferred(() => require('./LeaderboardScreen').LeaderboardScreen, 'LeaderboardScreen');

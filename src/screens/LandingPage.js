@@ -512,6 +512,7 @@ const EventCard = React.memo(({
               fitToImage
               maxHeightRatio={1.5}
               emptyPoster={{ title, category: event.category, date: event.event_date, time: event.event_time, venue: event.venue_name, color: catColor }}
+              priority={index <= 1 ? 'high' : 'low'}
               media={resolvedMedia} />
             {/* Double-tap heart burst overlay */}
             {heartAnim && (
@@ -2969,11 +2970,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         // matter how far you scroll — "I only see 5 events"). Browsers handle a
         // few hundred cards fine, so render everything and let the DOM scroll.
         disableVirtualization={Platform.OS === 'web'}
-        maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 4}
-        windowSize={Platform.OS === 'web' ? 25 : 7}
-        // Native: the hero card fills most of the screen, so 3 covers what's visible;
-        // 7 heavy EventCards (~800-line component) cost ~1.5 s before first paint.
-        initialNumToRender={Platform.OS === 'web' ? 16 : 3}
+        maxToRenderPerBatch={Platform.OS === 'web' ? 8 : 4}
+        windowSize={Platform.OS === 'web' ? 11 : 7}
+        // Initial render: 5 covers the visible viewport so first paint is instantaneous
+        initialNumToRender={Platform.OS === 'web' ? 5 : 3}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>

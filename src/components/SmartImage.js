@@ -20,6 +20,7 @@ export const SmartImage = ({
   fallbackIcon = 'image',
   fallbackColor = 'rgba(255,255,255,0.05)',
   contentFit,
+  priority = 'normal',
   onLoad,
   onError,
 }) => {
@@ -74,6 +75,7 @@ export const SmartImage = ({
       // log showed it loaded.
       transition={Platform.OS === 'ios' ? 150 : 0}
       cachePolicy="disk"
+      priority={priority}
       onLoad={onLoad}
       onError={(e) => { setErrored(true); onError?.(e); }}
       recyclingKey={cacheKey}
