@@ -40,7 +40,7 @@ export async function mockFonts(page: Page) {
 
 /** Wait for Expo's React tree to hydrate */
 export async function waitForApp(page: Page) {
-  await page.waitForSelector('#root', { state: 'attached', timeout: 30_000 });
+  await page.waitForSelector('#root', { state: 'attached', timeout: 45_000 });
   await page.waitForLoadState('domcontentloaded');
   // Wait for the tab navigation elements to be visible (loading screen is gone)
   // Use 55s timeout to handle slow mobile-chrome hydration under parallel load
