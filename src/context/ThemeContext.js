@@ -138,9 +138,16 @@ export const ThemeProvider = ({ children }) => {
     });
   }, []);
 
+  const isLight = themeIndex >= 4;
+  const toggleLightDark = useCallback(() => {
+    const maxLen = THEMES[gender]?.length || 8;
+    const nextIdx = themeIndex < 4 ? Math.min(themeIndex + 4, maxLen - 1) : Math.max(themeIndex - 4, 0);
+    changeTheme(gender, nextIdx);
+  }, [gender, themeIndex, changeTheme]);
+
   const value = useMemo(
-    () => ({ currentTheme, gender, themeIndex, changeTheme, applyNeuralTheme, ready }),
-    [currentTheme, gender, themeIndex, changeTheme, applyNeuralTheme, ready],
+    () => ({ currentTheme, gender, themeIndex, changeTheme, applyNeuralTheme, ready, isLight, toggleLightDark }),
+    [currentTheme, gender, themeIndex, changeTheme, applyNeuralTheme, ready, isLight, toggleLightDark],
   );
 
   // Don't paint the app until the SAVED theme is known: rendering first drew
