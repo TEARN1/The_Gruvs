@@ -77,12 +77,8 @@ import { GoOutNudge } from '../components/GoOutNudge';
 import { appInstallService } from '../services/appInstallService';
 import birthdaySpotlight from '../services/birthdaySpotlight';
 import { deferred } from '../utils/deferred';
-import { ViberProfileModal }    from '../components/ViberProfileModal';
-import { ActivityCenterModal }  from '../components/ActivityCenterModal';
-import { QuickToolsSheet }      from '../components/QuickToolsSheet';
 import { QuickThemeBar }        from '../components/QuickThemeBar';
 import { PathMapScreen }        from './lazyScreens';
-import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
 import { friendsGoing, friendsLabel } from '../services/socialProof';
 import { insertStartHeaders } from '../utils/startGroup';
@@ -95,7 +91,11 @@ import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 import { fx } from '../styles/webFx';
 import { markStartup } from '../utils/startupTrace';
 
-// ── Deferred heavy modals — load on first open to keep startup instant ───────
+// ── Deferred heavy screens & modals — load on first open to keep startup instant ──
+const EventDetailScreen    = deferred(() => require('./EventDetailScreen').EventDetailScreen, 'EventDetailScreen');
+const ViberProfileModal    = deferred(() => require('../components/ViberProfileModal').ViberProfileModal, 'ViberProfileModal');
+const ActivityCenterModal  = deferred(() => require('../components/ActivityCenterModal').ActivityCenterModal, 'ActivityCenterModal');
+const QuickToolsSheet      = deferred(() => require('../components/QuickToolsSheet').QuickToolsSheet, 'QuickToolsSheet');
 const PostEventModal       = deferred(() => require('../components/PostEventModal').PostEventModal, 'PostEventModal');
 const EventAdminPanel      = deferred(() => require('../components/EventAdminPanel').EventAdminPanel, 'EventAdminPanel');
 const EditEventModal       = deferred(() => require('../components/EditEventModal').EditEventModal, 'EditEventModal');

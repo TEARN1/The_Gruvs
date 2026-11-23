@@ -926,19 +926,26 @@ export async function generatePersonalCalendar(userId, timeframe = 'week') {
 // FEED BOOST — inject routed events into an existing feed array
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Memory cache for collaborative recommendations — eliminates 3-query / 7,000-row churn on every feed load
+const _collabCache = new Map(); // userId -> { scores, at }
+const COLLAB_TTL_MS = 15 * 60 * 1000; // 15-minute TTL
+
 /**
  * applyPersonalisedBoost
  *
  * Takes a sorted feed array and re-ranks it using the user's traffic routes.
  * Events that were explicitly routed to this user get a score multiplier.
  * Called inside FeedManager after the base sort.
+ * Raced against a 250ms timeout so personalization NEVER blocks feed delivery.
  */
 export async function applyPersonalisedBoost(events, userId) {
   if (!userId || !events?.length) return events;
 
   try {
     const eventIds = events.map(e => e.id);
-    const [routesRes, collab] = await Promise.all([
+    
+    // Fast-path: race against 250ms deadline so personalization never delays feed render
+    const boostPromise = Promise.all([
       supabase.from('event_traffic_routes')
         .select('event_id, route_score')
         .eq('user_id', userId)
@@ -946,15 +953,18 @@ export async function applyPersonalisedBoost(events, userId) {
       collaborativeScores(userId, eventIds),
     ]);
 
-    const routeMap = {};
-    (routesRes.data || []).forEach(r => { routeMap[r.event_id] = r.route_score; });
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve([{ data: [] }, {}]), 250));
+    const [routesRes, collab] = await Promise.race([boostPromise, timeoutPromise]);
 
-    if (!Object.keys(routeMap).length && !Object.keys(collab).length) return events;
+    const routeMap = {};
+    (routesRes?.data || []).forEach(r => { routeMap[r.event_id] = r.route_score; });
+
+    if (!Object.keys(routeMap).length && !Object.keys(collab || {}).length) return events;
 
     // routed events get up to +80%, "people like you also liked" up to +50%.
     return [...events].sort((a, b) => {
-      const scoreA = (a._heatScore || 0) * (1 + (routeMap[a.id] || 0) * 0.8 + (collab[a.id] || 0) * 0.5);
-      const scoreB = (b._heatScore || 0) * (1 + (routeMap[b.id] || 0) * 0.8 + (collab[b.id] || 0) * 0.5);
+      const scoreA = (a._heatScore || 0) * (1 + (routeMap[a.id] || 0) * 0.8 + ((collab && collab[a.id]) || 0) * 0.5);
+      const scoreB = (b._heatScore || 0) * (1 + (routeMap[b.id] || 0) * 0.8 + ((collab && collab[b.id]) || 0) * 0.5);
       return scoreB - scoreA;
     });
   } catch {
@@ -968,10 +978,16 @@ export async function applyPersonalisedBoost(events, userId) {
  *   1. find events I vibed
  *   2. find OTHER users who vibed those same events (my taste neighbours)
  *   3. tally which of the candidate events those neighbours also vibed
- * Returns { eventId: score 0..1 }. Best-effort; empty on any failure.
+ * Returns { eventId: score 0..1 }. Cached in-memory with 15m TTL.
  */
 export async function collaborativeScores(userId, candidateEventIds = []) {
   if (!userId || !candidateEventIds?.length) return {};
+  
+  const cached = _collabCache.get(userId);
+  if (cached && (Date.now() - cached.at) < COLLAB_TTL_MS) {
+    return cached.scores;
+  }
+
   try {
     // 1. My liked items
     const { data: mine } = await supabase
@@ -999,13 +1015,15 @@ export async function collaborativeScores(userId, candidateEventIds = []) {
     const tally = {};
     (theirs || []).forEach(r => {
       if (mySet.has(r.event_id)) return; // don't recommend what I already liked
-      // weight by how strong a neighbour they are
       tally[r.event_id] = (tally[r.event_id] || 0) + (neighbourCounts[r.user_id] || 1);
     });
 
     const max = Math.max(1, ...Object.values(tally));
     const scores = {};
     Object.entries(tally).forEach(([id, v]) => { scores[id] = v / max; }); // normalise 0..1
+    
+    // Save to cache
+    _collabCache.set(userId, { scores, at: Date.now() });
     return scores;
   } catch {
     return {};
