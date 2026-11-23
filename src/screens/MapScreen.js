@@ -33,7 +33,7 @@ import { MapZones, ZONE_KINDS, ZONE_STATUS, parseZoneTags, calculateDetourNaviga
 import { supabase } from '../services/supabase';
 // Nearby vibers used DiscoveryManager without ever importing it — the FAB threw
 // a ReferenceError into a silent catch, so that layer has never once worked.
-import { DiscoveryManager } from '../services/dataFlow';
+import { DiscoveryManager, hasPosterOrImage } from '../services/dataFlow';
 import { useMapLayer } from '../hooks/useMapLayer';
 import { logError } from '../utils/logError';
 import { shouldRefetch, padBbox, bboxRadiusM, bboxCenter } from '../utils/mapViewport';
@@ -318,9 +318,10 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       const today = new Date().toISOString().split('T')[0];
       let q = supabase
         .from('events')
-        .select('id, title, category, cover_url, venue_name, latitude, longitude, lat, lon, going, event_date')
+        .select('id, title, category, cover_url, cover_image, image_url, media, venue_name, latitude, longitude, lat, lon, going, event_date')
         .gte('event_date', today)
         .is('deleted_at', null)
+        .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
         .limit(300);
       if (bbox) {
         // Filters the canonical lat/lon pair (what PostEventModal writes). The
@@ -329,7 +330,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         q = q.gte('lat', bbox.south).lte('lat', bbox.north).gte('lon', bbox.west).lte('lon', bbox.east);
       }
       const { data } = await q;
-      const rows = (data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null);
+      const rows = (data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null && hasPosterOrImage(e));
 
       // Real "here now" = a live tally of verified Touch-Downs. Counting these
       // client-side means fetching every check-in row for every pin, which gets

@@ -581,7 +581,7 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
       }
     }
     if (mediaItems.length === 0) {
-      setError('A poster or cover image is required for every Gruv listing.');
+      setError('A poster or flyer image is required. Every Gruv post must have its own poster before it can be added.');
       setStep(2);
       return;
     }
@@ -2088,10 +2088,17 @@ export const PostEventModal = ({ visible, onClose, onPostSuccess, onCreated }) =
                       <Text style={[pm.backText, { color: muted }]}>Back</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[pm.postBtn, { backgroundColor: primary }]}
-                      onPress={() => { setError(''); setStep(3); }}
+                      style={[pm.postBtn, { backgroundColor: mediaItems.length > 0 ? primary : 'rgba(255,255,255,0.12)' }]}
+                      onPress={() => {
+                        if (mediaItems.length === 0) {
+                          setError('A poster or flyer image is required. Every Gruv post must have its own poster.');
+                          return;
+                        }
+                        setError('');
+                        setStep(3);
+                      }}
                     >
-                      <Text style={pm.postBtnText}>NEXT →</Text>
+                      <Text style={[pm.postBtnText, { color: mediaItems.length > 0 ? '#000' : muted }]}>NEXT →</Text>
                     </TouchableOpacity>
                   </View>
                 </>

@@ -30,7 +30,7 @@ import { loadViewerAge, viewerAgeSync } from '../utils/viewerAge';
 import { SecurityService } from '../services/securityService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ShakeDetector, RichHaptics } from '../services/smartphoneFeatures';
-import { FeedManager, TrendingManager, VibeManager, BookmarkManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
+import { FeedManager, TrendingManager, VibeManager, BookmarkManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline, hasPosterOrImage } from '../services/dataFlow';
 import { recordEventView, flushEventViews } from '../services/personalizationEngine';
 import { collapseTourStops } from '../services/tours';
 import { resilient } from '../utils/resilience';
@@ -401,13 +401,9 @@ const EventCard = React.memo(({
     // the #1 cause of slow feed load. Videos are left untouched.
     if (m?.length) {
       m = m.map(x => (x && x.type !== 'video' && x.url) ? { ...x, url: thumb.feed(x.url) } : x);
-    } else {
-      // High-quality category fallback photography so cards never render empty or dark
-      const fallbackPhoto = getCategoryPhoto(event.category, title);
-      m = [{ url: thumb.feed(fallbackPhoto), type: 'image' }];
     }
-    return m;
-  }, [event.media, event.media_urls, event.cover_url, event.cover_image, event.image_url, event.event_date, event.category, title]);
+    return m?.length ? m : null;
+  }, [event.media, event.media_urls, event.cover_url, event.cover_image, event.image_url, event.event_date]);
 
   const showAd = index > 0 && index % 5 === 4;
   const todayStr = (() => {
@@ -1582,7 +1578,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       const _allowed = new Set(
         filterByViewerAge(orderedEvents, _vAge, e => `${e.title || ''} ${e.description || ''}`).map(e => e.id)
       );
-      const newEvents = orderedEvents.filter(e => _allowed.has(e.id) || (user?.id && e.author_id === user.id));
+      // Strict poster policy: only display events that have their own poster / flyer
+      const newEvents = orderedEvents.filter(e => hasPosterOrImage(e) && (_allowed.has(e.id) || (user?.id && e.author_id === user.id)));
 
       if (isRefreshing) {
         // Keep just-posted events that the fresh fetch hasn't caught up to yet,
@@ -1590,7 +1587,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         const recent = getRecentPosts();
         if (recent.length) {
           const fetchedIds = new Set(newEvents.map(e => e.id));
-          const missing = recent.filter(e => !fetchedIds.has(e.id));
+          const missing = recent.filter(e => hasPosterOrImage(e) && !fetchedIds.has(e.id));
           setEvents(missing.length ? [...missing, ...newEvents] : newEvents);
         } else {
           setEvents(newEvents);
@@ -1598,7 +1595,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       } else {
         setEvents(prev => {
           const existingIds = new Set(prev.map(e => e.id));
-          return [...prev, ...newEvents.filter(e => !existingIds.has(e.id))];
+          return [...prev.filter(hasPosterOrImage), ...newEvents.filter(e => !existingIds.has(e.id))];
         });
       }
       setHasMore(moreAvailable);
@@ -1758,7 +1755,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         const { data, ts } = JSON.parse(raw);
         // Only use cache if < 10 minutes old and we haven't loaded network data yet
         if (Date.now() - ts < 600000 && Array.isArray(data) && data.length) {
-          setEvents(prev => prev.length === 0 ? data : prev);
+          setEvents(prev => prev.length === 0 ? data.filter(hasPosterOrImage) : prev);
           setLoading(false);
         }
       })
