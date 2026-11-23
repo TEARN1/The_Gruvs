@@ -23,6 +23,7 @@ export function QuickToolsSheet({
   onOpenReels,
   onOpenCalendar,
   onOpenNotifications,
+  onOpenThemeBar,
   hasReels = true,
   hasSensory = true,
   primary: propPrimary,
@@ -32,6 +33,8 @@ export function QuickToolsSheet({
 }) {
   const themeContext = useTheme?.();
   const currentTheme = themeContext?.currentTheme;
+  const isLight = themeContext?.isLight;
+  const toggleLightDark = themeContext?.toggleLightDark;
   const primary = propPrimary || currentTheme?.primary || '#00f2ff';
   const surface = propSurface || currentTheme?.surface || '#12181b';
   const textColor = propTextColor || currentTheme?.text || '#ffffff';
@@ -40,6 +43,21 @@ export function QuickToolsSheet({
   if (!visible) return null;
 
   const tools = [
+    {
+      id: 'theme_toggle',
+      title: isLight ? 'Switch to Dark Theme' : 'Switch to Light Theme',
+      subtitle: `Currently using ${currentTheme?.name || 'Default'}. Tap to toggle themes & brightness`,
+      icon: isLight ? 'moon' : 'sun',
+      color: isLight ? '#0077b6' : '#ffd600',
+      onPress: () => {
+        onClose();
+        if (onOpenThemeBar) {
+          onOpenThemeBar();
+        } else {
+          toggleLightDark?.();
+        }
+      },
+    },
     {
       id: 'roulette',
       title: 'Vibe Roulette',

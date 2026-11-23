@@ -7,6 +7,8 @@ import Feather from '@expo/vector-icons/Feather';
 import { BrandLogo } from '../components/BrandLogo';
 import { feature } from '../constants/launchConfig';
 import { TABS, SIDEBAR_OPEN_WIDTH, SIDEBAR_CLOSED_WIDTH } from './navigationConfig';
+import { useTheme } from '../context/ThemeContext';
+import { cyberAudio } from '../utils/cyberAudio';
 
 export const SidebarNav = ({
   currentTab,
@@ -19,8 +21,11 @@ export const SidebarNav = ({
   onGodView,
   onBusiness,
   onDownloadApp,
-}) => (
-  <View
+}) => {
+  const { isLight, toggleLightDark, currentTheme } = useTheme() || {};
+
+  return (
+    <View
     // 'navigation' is web-only; Android rejects it and crashes. Web keeps the
     // landmark through the role prop.
     {...(Platform.OS === 'web' ? { role: 'navigation' } : { accessibilityRole: 'menu' })}
@@ -141,6 +146,39 @@ export const SidebarNav = ({
       </TouchableOpacity>
     )}
 
+    {/* Theme & Brightness Quick Toggle */}
+    <TouchableOpacity
+      style={[
+        styles.item,
+        {
+          justifyContent: isOpen ? 'flex-start' : 'center',
+          marginBottom: 4,
+        },
+      ]}
+      onPress={() => {
+        try { cyberAudio?.play?.('telemetryTick'); } catch {}
+        toggleLightDark?.();
+      }}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={`Switch to ${isLight ? 'Dark' : 'Light'} theme`}
+      {...(!isOpen && Platform.OS === 'web' ? { 'data-tooltip': isLight ? 'Dark Mode' : 'Light Mode' } : {})}
+    >
+      <Feather name={isLight ? 'moon' : 'sun'} size={19} color={primary} />
+      {isOpen && (
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={[styles.itemLabel, { color: primary, fontWeight: '800' }]}>
+            {isLight ? 'Dark Mode' : 'Light Mode'}
+          </Text>
+          <View style={{ backgroundColor: `${primary}20`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+            <Text style={{ color: primary, fontSize: 8.5, fontWeight: '900' }}>
+              {currentTheme?.name || 'THEME'}
+            </Text>
+          </View>
+        </View>
+      )}
+    </TouchableOpacity>
+
     {/* Toggle sidebar button */}
     <TouchableOpacity
       style={[styles.toggleBtn, { justifyContent: isOpen ? 'flex-start' : 'center' }]}
@@ -157,7 +195,8 @@ export const SidebarNav = ({
       {isOpen && <Text style={[styles.toggleLabel, { color: muted }]}>Collapse</Text>}
     </TouchableOpacity>
   </View>
-);
+  );
+};
 
 export default SidebarNav;
 

@@ -80,6 +80,7 @@ import { deferred } from '../utils/deferred';
 import { ViberProfileModal }    from '../components/ViberProfileModal';
 import { ActivityCenterModal }  from '../components/ActivityCenterModal';
 import { QuickToolsSheet }      from '../components/QuickToolsSheet';
+import { QuickThemeBar }        from '../components/QuickThemeBar';
 import { PathMapScreen }        from './lazyScreens';
 import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
@@ -1145,11 +1146,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const iconSize = tightHeader ? 32 : 36;
   const iconBox = { width: iconSize, height: iconSize, borderRadius: iconSize / 2 };
   const insets = useSafeAreaInsets();
-  const { currentTheme } = useTheme();
+  const { currentTheme, isLight, toggleLightDark } = useTheme();
   const { user, profile } = useAuth();
   const toast = useToast();
   const { identityMode, modeConfig } = useIdentity();
   const flatListRef = useRef(null);
+
+  const [themeBarOpen, setThemeBarOpen] = useState(false);
 
   const [events, setEvents] = useState([]);
   useEffect(() => { if (events.length > 0) markStartup('Feed: first events committed to screen'); }, [events.length]);
@@ -2373,6 +2376,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             </TouchableOpacity>
           )}
           <TouchableOpacity
+            style={[
+              styles.iconBtn,
+              iconBox,
+              {
+                backgroundColor: themeBarOpen ? `${primary}35` : isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+                borderColor: themeBarOpen ? primary : `${primary}35`,
+              },
+            ]}
+            onPress={() => setThemeBarOpen((v) => !v)}
+            onLongPress={() => toggleLightDark?.()}
+            accessibilityRole="button"
+            accessibilityLabel={`Toggle themes and light/dark brightness (currently ${isLight ? 'Light' : 'Dark'})`}
+          >
+            <Feather name={isLight ? 'sun' : 'moon'} size={16} color={primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: `${primary}35` }]}
             onPress={() => setQuickToolsVisible(true)}
             accessibilityRole="button"
@@ -2390,6 +2409,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Quick Theme & Brightness Bar directly accessible near top */}
+      <QuickThemeBar isOpen={themeBarOpen} onClose={() => setThemeBarOpen(false)} />
 
       <StoriesRow onAuthRequired={onAuthRequired} />
 
@@ -3080,6 +3102,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         onOpenReels={onNavigateToReels}
         onOpenCalendar={() => onNavigateToTab?.('calendar')}
         onOpenNotifications={() => onNavigateToTab?.('notifications')}
+        onOpenThemeBar={() => setThemeBarOpen(true)}
         hasReels={!!onNavigateToReels}
         hasSensory={feature('sensorySuite')}
         primary={primary}
