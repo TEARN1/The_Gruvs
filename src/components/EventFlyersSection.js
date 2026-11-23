@@ -80,10 +80,6 @@ export function EventFlyersSection({
   };
 
   const handleOpenSpread = () => {
-    if (!user && onAuthRequired) {
-      onAuthRequired();
-      return;
-    }
     setSpreadModalVisible(true);
   };
 

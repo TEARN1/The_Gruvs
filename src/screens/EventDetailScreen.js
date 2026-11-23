@@ -622,46 +622,69 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
   }, [visible, event?.id, fetchUserState, fetchAttendeePreview]);
 
   const handleRsvp = useCallback(async (status) => {
-    // Signed out: remember the tap, so signing in finishes it (effect below).
-    if (!user) { PendingIntent.set('rsvp', { eventId: event?.id, status }); onAuthRequired?.(); return; }
+    // Toggle off if tapping already selected status
+    const prev = rsvpStatus;
+    const targetStatus = prev === status ? null : status;
+
     // Age gate (the only legal hard restriction): no positive RSVP to an 18+
     // Gruv when the user is under the limit.
-    if (status === 'going' || status === 'maybe') {
+    if (targetStatus === 'going' || targetStatus === 'maybe') {
       const ageCheck = checkEventAge(profile, event);
       if (!ageCheck.allowed) { showToast(ageCheck.reason, 'error'); return; }
     }
     if (rsvpLoading) return;
-    // Optimistic update
-    const prev = rsvpStatus;
-    setRsvpStatus(status);
-    if (status === 'going' && prev !== 'going') {
+
+    // Optimistic state update immediately so buttons respond with zero delay
+    setRsvpStatus(targetStatus);
+    if (targetStatus === 'going' && prev !== 'going') {
       setGoingCount((c) => c + 1);
       setRsvpFx(Date.now());
       sensoryHaptics.triggerLogDrum('heavy');
     }
-    if (prev === 'going' && status !== 'going') setGoingCount((c) => Math.max(0, c - 1));
+    if (prev === 'going' && targetStatus !== 'going') {
+      setGoingCount((c) => Math.max(0, c - 1));
+    }
+
+    // Guest / Signed-out flow — activate instantly and remember intent
+    if (!user) {
+      if (targetStatus) {
+        PendingIntent.set('rsvp', { eventId: event?.id, status: targetStatus });
+        showToast(
+          targetStatus === 'going' ? "You're Locked In! (Guest)" : "Marked Maybe",
+          'success'
+        );
+      } else {
+        PendingIntent.take('rsvp', (p) => p?.eventId === event?.id);
+        showToast("Vibe Cleared", 'info');
+      }
+      return;
+    }
+
     setRsvpLoading(true);
     try {
-      const ok = await RSVPManager.upsert(event.id, user.id, status);
-      if (!ok) throw new Error('RSVP update failed');
-      if (status === 'going' || status === 'maybe') {
-        track('rsvp', { eventId: event.id, status });
-        ClipConversions.recordRsvp({ eventId: event.id, viewerId: user?.id }); // credits the clip that sent them, if one did
+      if (targetStatus) {
+        const ok = await RSVPManager.upsert(event.id, user.id, targetStatus);
+        if (!ok) throw new Error('RSVP update failed');
+        track('rsvp', { eventId: event.id, status: targetStatus });
+        ClipConversions.recordRsvp({ eventId: event.id, viewerId: user?.id });
+        showToast(
+          targetStatus === 'going' ? "You're Locked In!" : "Marked Maybe",
+          'success'
+        );
+      } else {
+        await RSVPManager.remove(event.id, user.id);
+        showToast("Vibe Cleared", 'info');
       }
-      showToast(
-        status === 'going' ? "You're Locked In!" : status === 'maybe' ? "Marked Maybe" : "Removed",
-        'success'
-      );
     } catch (err) {
-      // Rollback on failure
+      // Rollback on genuine server failure
       setRsvpStatus(prev);
-      if (status === 'going' && prev !== 'going') setGoingCount((c) => Math.max(0, c - 1));
-      if (prev === 'going' && status !== 'going') setGoingCount((c) => c + 1);
-      showToast('Could not Vibe. Try again.', 'error');
+      if (targetStatus === 'going' && prev !== 'going') setGoingCount((c) => Math.max(0, c - 1));
+      if (prev === 'going' && targetStatus !== 'going') setGoingCount((c) => c + 1);
+      showToast('Could not sync Vibe. Saved locally.', 'info');
     } finally {
       setRsvpLoading(false);
     }
-  }, [user, profile, rsvpStatus, rsvpLoading, event, onAuthRequired, showToast]);
+  }, [user, profile, rsvpStatus, rsvpLoading, event, showToast]);
 
   // They tapped RSVP while signed out and have now signed in: do what they
   // asked. Waits for the profile so the 18+ check sees their real birthday.
@@ -745,10 +768,27 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
 
   const handleShare = async () => {
     try {
-      // carry the LIVE Truth-Protocol signals (here now / locked in) into the share
+      const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://thegruvs.co.za'}/events/${event?.id || ''}`;
       const shareText = buildShareText({ ...event, here_count: hereCount, going: goingCount });
-      await Share.share({ message: shareText, title: event?.title });
-    } catch { }
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: event?.title || 'The Gruvs', text: shareText, url: shareUrl });
+            return;
+          } catch (e) {
+            if (e?.name === 'AbortError') return; // user dismissed system share
+          }
+        }
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+          showToast('Event link copied to clipboard! 📋', 'success');
+          return;
+        }
+      }
+      await Share.share({ message: `${shareText}\n${shareUrl}`, title: event?.title });
+    } catch {
+      showToast('Could not share event.', 'error');
+    }
   };
 
   const handleToggleReminder = async () => {
@@ -1113,7 +1153,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
           )}
 
           <View style={styles.metaRow}>
-            <MetaChip icon="calendar" label={event?.end_date && event.end_date !== event.event_date ? `${formatDate(event?.event_date)} → ${formatDate(event.end_date)}` : formatDate(event?.event_date)} color={primary} />
+            <MetaChip icon="calendar" label={event?.end_date && event.end_date !== event.event_date ? `${formatDate(event?.event_date)} → ${formatDate(event.end_date)}` : formatDate(event?.event_date)} color={primary} textColor={textColor} />
             {!!(event?.event_time || event?.date_time) && (
               <MetaChip
                 icon="clock"
@@ -1122,27 +1162,29 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
                   (event?.end_time ? ` – ${formatTime(event.end_time)}` : '')
                 }
                 color={primary}
+                textColor={textColor}
               />
             )}
             {!!event?.venue_name && (
               <TouchableOpacity onPress={openMaps}>
-                <MetaChip icon="map-pin" label={event.venue_name} color={primary} pressable />
+                <MetaChip icon="map-pin" label={event.venue_name} color={primary} textColor={textColor} pressable />
               </TouchableOpacity>
             )}
             {weather && (
-              <MetaChip icon={weather.icon} label={`${weather.tempMax}° · ${weather.label}`} color="#38bdf8" />
+              <MetaChip icon={weather.icon} label={`${weather.tempMax}° · ${weather.label}`} color="#38bdf8" textColor={textColor} />
             )}
             {event?.power_backup && (() => {
               const PMAP = { generator: ['Generator', 'zap'], solar: ['Solar', 'sun'], ups: ['UPS / Inverter', 'battery-charging'], grid: ['Grid only', 'zap-off'] };
               const [plabel, picon] = PMAP[event.power_backup] || ['Power', 'zap'];
-              return <MetaChip icon={picon} label={plabel} color={event.power_backup !== 'grid' ? '#10b981' : '#f59e0b'} />;
+              return <MetaChip icon={picon} label={plabel} color={event.power_backup !== 'grid' ? '#10b981' : '#f59e0b'} textColor={textColor} />;
             })()}
-            <MetaChip icon="tag" label={formatPrice(event?.price)} color={primary} />
+            <MetaChip icon="tag" label={formatPrice(event?.price)} color={primary} textColor={textColor} />
             {!!event?.age_restriction && (
               <MetaChip
                 icon="shield"
                 label={event.age_max && event.age_max !== 99 ? `${event.age_restriction}–${event.age_max}` : `${event.age_restriction}+`}
                 color="#f59e0b"
+                textColor={textColor}
               />
             )}
             {(event?.tags || []).map((key) => {
@@ -1157,12 +1199,12 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
             })}
             {!!event?.contact_phone && (
               <TouchableOpacity onPress={() => SecurityService.safeOpenURL(`tel:${event.contact_phone}`)}>
-                <MetaChip icon="phone" label={event.contact_phone} color={primary} pressable />
+                <MetaChip icon="phone" label={event.contact_phone} color={primary} textColor={textColor} pressable />
               </TouchableOpacity>
             )}
             {!!event?.contact_email && (
               <TouchableOpacity onPress={() => SecurityService.safeOpenURL(`mailto:${event.contact_email}`)}>
-                <MetaChip icon="mail" label={event.contact_email} color={primary} pressable />
+                <MetaChip icon="mail" label={event.contact_email} color={primary} textColor={textColor} pressable />
               </TouchableOpacity>
             )}
           </View>
@@ -1848,11 +1890,7 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
             </View>
           )}
 
-          {event?.id && (
-            <SafeSection label="Reactions" primary={primary}>
-              <EventReactions eventId={event.id} primary={primary} muted={textMuted} initialReaction={event.initialReaction} />
-            </SafeSection>
-          )}
+
 
           {/* Fan win-prediction (self-hides if the event has no teams to predict between) */}
           {event?.id && (
@@ -1900,7 +1938,6 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
                 ) : (
                   <TouchableOpacity
                     onPress={() => {
-                      if (!user) { onAuthRequired?.(); return; }
                       setPitchModalOpen(true);
                     }}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: `${primary}30`, backgroundColor: pitchSent ? `${primary}20` : 'transparent' }}
@@ -2330,19 +2367,30 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
 
           {/* ── Tab switcher: Info / Manage / Polls / Playlist ──────── */}
           {event?.id && (
-            <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}20` }}>
+            <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: `${primary}35`, backgroundColor: surface }}>
               {[
-                { key: 'info',    label: 'Info' },
-                ...(isOrganiser || isCoHost ? [{ key: 'manage', label: 'Manage' }] : []),
-                { key: 'polls',   label: 'Polls' },
-                { key: 'playlist', label: 'Playlist' },
+                { key: 'info',    label: 'Info', icon: 'info' },
+                ...(isOrganiser || isCoHost ? [{ key: 'manage', label: 'Manage', icon: 'settings' }] : []),
+                { key: 'polls',   label: 'Polls', icon: 'bar-chart-2' },
+                { key: 'playlist', label: 'Playlist', icon: 'music' },
               ].map(tab => (
                 <TouchableOpacity
                   key={tab.key}
-                  style={{ flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: activeTab === tab.key ? `${primary}20` : 'transparent' }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 5,
+                    backgroundColor: activeTab === tab.key ? `${primary}25` : 'transparent',
+                    borderBottomWidth: activeTab === tab.key ? 2 : 0,
+                    borderBottomColor: primary,
+                  }}
                   onPress={() => setActiveTab(tab.key)}
                 >
-                  <Text style={{ color: activeTab === tab.key ? primary : textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  <Feather name={tab.icon} size={11} color={activeTab === tab.key ? primary : textMuted} />
+                  <Text style={{ color: activeTab === tab.key ? primary : textColor, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {tab.label}
                   </Text>
                 </TouchableOpacity>
@@ -2423,10 +2471,10 @@ export const EventDetailScreen = ({ event, visible, onClose, onAuthRequired, onO
           )}
 
           <View style={styles.sectionDivider} />
-          {media.length > 0 && (
+          {media.length > 1 && (
             <View style={{ marginBottom: 20 }}>
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>EVENT PREVIEW</Text>
-              <MediaViewer media={media} eventId={event?.id} onAuthRequired={onAuthRequired} />
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>ADDITIONAL PHOTOS & CLIPS ({media.length - 1})</Text>
+              <MediaViewer media={media.slice(1)} eventId={event?.id} onAuthRequired={onAuthRequired} />
             </View>
           )}
 
@@ -3038,10 +3086,10 @@ const CountdownUnit = ({ value, label, primary, textColor }) => (
   </View>
 );
 
-const MetaChip = ({ icon, label, color, pressable }) => (
-  <View style={[styles.metaChip, pressable && { borderBottomWidth: 1, borderBottomColor: color + '88' }]}>
+const MetaChip = ({ icon, label, color, textColor, pressable }) => (
+  <View style={[styles.metaChip, { backgroundColor: `${color}15`, borderColor: `${color}30` }, pressable && { borderBottomWidth: 1, borderBottomColor: color + '88' }]}>
     <Feather name={icon} size={12} color={color} />
-    <Text style={[styles.metaChipText, { color: pressable ? color : 'rgba(255,255,255,0.75)' }]}>{label}</Text>
+    <Text style={[styles.metaChipText, { color: pressable ? color : (textColor || 'rgba(255,255,255,0.85)') }]}>{label}</Text>
   </View>
 );
 

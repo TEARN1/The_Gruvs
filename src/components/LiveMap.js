@@ -12,6 +12,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Platform, StyleSheet } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
+import { LiveRain3DOverlay } from './LiveRain3DOverlay';
 import {
   emptyFC, eventsToGeoJSON, zonesToGeoJSON, zonesToMarkersGeoJSON, reportsToGeoJSON,
   pointsToGeoJSON, staysToGeoJSON, poisToGeoJSON, crewToGeoJSON,
@@ -799,8 +800,22 @@ export function LiveMap({
       const url = `https://tilecache.rainviewer.com/v2/radar/${ts}/256/{z}/{x}/{y}/2/1_1.png`;
 
       if (m.getSource('weather-radar')) m.removeSource('weather-radar');
-      m.addSource('weather-radar', { type: 'raster', tiles: [url], tileSize: 256 });
-      m.addLayer({ id: 'weather-radar', type: 'raster', source: 'weather-radar', paint: { 'raster-opacity': 0.6 } }, 'ev-glow');
+      m.addSource('weather-radar', {
+        type: 'raster',
+        tiles: [url],
+        tileSize: 256,
+        maxzoom: 6,
+        attribution: 'RainViewer',
+      });
+      m.addLayer({
+        id: 'weather-radar',
+        type: 'raster',
+        source: 'weather-radar',
+        paint: {
+          'raster-opacity': 0.55,
+          'raster-fade-duration': 300,
+        }
+      }, 'ev-glow');
     } catch { /* weather failed — silent */ }
   }
 
@@ -831,10 +846,15 @@ export function LiveMap({
   // Rendered while the engine is still in flight too, so the container exists
   // the moment it arrives — and it is the same dark ground the map paints over,
   // so there is no flash between the two.
-  return React.createElement('div', {
-    ref: containerRef,
-    style: { position: 'absolute', inset: 0, width: '100%', height: '100%', background: '#0d1112' },
-  });
+  return (
+    <View style={[{ position: 'absolute', inset: 0, width: '100%', height: '100%' }, style]}>
+      {React.createElement('div', {
+        ref: containerRef,
+        style: { position: 'absolute', inset: 0, width: '100%', height: '100%', background: '#0d1112' },
+      })}
+      {showWeather && <LiveRain3DOverlay />}
+    </View>
+  );
 }
 
 const cs = StyleSheet.create({

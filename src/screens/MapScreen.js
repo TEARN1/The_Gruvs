@@ -218,6 +218,10 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   // On by default: the tilted neon city is the Vibe Map's signature look.
   const [show3D, setShow3D] = useState(true);
   const [showWeather, setShowWeather] = useState(false);
+  const [showSafetyCorridors, setShowSafetyCorridors] = useState(false);
+  const [showPowerBackup, setShowPowerBackup] = useState(false);
+  const [showDecibels, setShowDecibels] = useState(false);
+  const [showParking, setShowParking] = useState(false);
   const [searchQuery, setSearchBar] = useState('');
   const [searching, setSearchBusy] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -1227,6 +1231,38 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           onToggle3D={() => setShow3D((v) => !v)}
           showWeather={showWeather}
           onToggleWeather={() => setShowWeather((v) => !v)}
+          showSafetyCorridors={showSafetyCorridors}
+          onToggleSafetyCorridors={() => {
+            setShowSafetyCorridors((v) => {
+              const next = !v;
+              toast(next ? 'Night Safety Corridors activated 🛡️ (Safe lit street pathways enabled)' : 'Safety Corridors disabled', 'info');
+              return next;
+            });
+          }}
+          showPowerBackup={showPowerBackup}
+          onTogglePowerBackup={() => {
+            setShowPowerBackup((v) => {
+              const next = !v;
+              toast(next ? 'Power Shield active ⚡ (Highlighting generator & solar backup venues)' : 'Power Shield disabled', 'info');
+              return next;
+            });
+          }}
+          showDecibels={showDecibels}
+          onToggleDecibels={() => {
+            setShowDecibels((v) => {
+              const next = !v;
+              toast(next ? 'Acoustic & Decibel HUD active 🔊 (Showing chill vs high energy zones)' : 'Decibel HUD disabled', 'info');
+              return next;
+            });
+          }}
+          showParking={showParking}
+          onToggleParking={() => {
+            setShowParking((v) => {
+              const next = !v;
+              toast(next ? 'Secure Street Parking & Valet drop points visible 🅿️' : 'Parking overlay disabled', 'info');
+              return next;
+            });
+          }}
           caps={caps}
         />
 

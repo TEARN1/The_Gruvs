@@ -36,7 +36,7 @@ import { collapseTourStops } from '../services/tours';
 import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
-import { CategoryCover } from '../components/EventPoster';
+import { CategoryCover, getCategoryPhoto } from '../components/EventPoster';
 import { priceLabel } from '../constants/currencies';
 import { ReelsObservers } from '../services/reelsDataFlow';
 import { FONT } from '../constants/DesignTokens';
@@ -399,9 +399,15 @@ const EventCard = React.memo(({
     }
     // Serve feed images downscaled (weserv) — full-res photos here were
     // the #1 cause of slow feed load. Videos are left untouched.
-    if (m?.length) m = m.map(x => (x && x.type !== 'video' && x.url) ? { ...x, url: thumb.feed(x.url) } : x);
-    return m?.length ? m : null;
-  }, [event.media, event.media_urls, event.cover_url, event.cover_image, event.image_url, event.event_date]);
+    if (m?.length) {
+      m = m.map(x => (x && x.type !== 'video' && x.url) ? { ...x, url: thumb.feed(x.url) } : x);
+    } else {
+      // High-quality category fallback photography so cards never render empty or dark
+      const fallbackPhoto = getCategoryPhoto(event.category, title);
+      m = [{ url: thumb.feed(fallbackPhoto), type: 'image' }];
+    }
+    return m;
+  }, [event.media, event.media_urls, event.cover_url, event.cover_image, event.image_url, event.event_date, event.category, title]);
 
   const showAd = index > 0 && index % 5 === 4;
   const todayStr = (() => {

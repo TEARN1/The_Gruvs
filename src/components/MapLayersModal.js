@@ -36,6 +36,15 @@ export function MapLayersModal({
   onToggle3D,
   showWeather = false,
   onToggleWeather,
+  // Infrastructure & Night Safety Settings
+  showSafetyCorridors = false,
+  onToggleSafetyCorridors,
+  showPowerBackup = false,
+  onTogglePowerBackup,
+  showDecibels = false,
+  onToggleDecibels,
+  showParking = false,
+  onToggleParking,
   // Capabilities
   caps = {},
 }) {
@@ -186,6 +195,59 @@ export function MapLayersModal({
                 desc="Rooms & verified stays near your favorite venues"
                 active={showStays}
                 onToggle={onToggleStays}
+                primary={primary}
+                surface={surface}
+                text={text}
+                muted={muted}
+              />
+            </View>
+
+            {/* 4. Infrastructure & Night Safety Settings */}
+            <Text style={[s.sectionHeader, { color: primary, marginTop: 18 }]}>INFRASTRUCTURE & SAFETY</Text>
+            <View style={s.toggleList}>
+              <ToggleRow
+                icon="shield"
+                iconColor="#10b981"
+                title="Night Safety Corridors"
+                desc="Illuminated street pathways, safe transit zones & security points"
+                active={showSafetyCorridors}
+                onToggle={onToggleSafetyCorridors}
+                primary={primary}
+                surface={surface}
+                text={text}
+                muted={muted}
+              />
+              <ToggleRow
+                icon="zap"
+                iconColor="#f59e0b"
+                title="Power Backup / Solar Shield"
+                desc="Highlight venues with verified backup generators & load-shedding immunity"
+                active={showPowerBackup}
+                onToggle={onTogglePowerBackup}
+                primary={primary}
+                surface={surface}
+                text={text}
+                muted={muted}
+              />
+              <ToggleRow
+                icon="volume-2"
+                iconColor="#06b6d4"
+                title="Sound Decibel & Acoustics HUD"
+                desc="Show quiet chill corners vs. high-energy acoustic dancefloors"
+                active={showDecibels}
+                onToggle={onToggleDecibels}
+                primary={primary}
+                surface={surface}
+                text={text}
+                muted={muted}
+              />
+              <ToggleRow
+                icon="truck"
+                iconColor="#ec4899"
+                title="Street Parking & Valet Zones"
+                desc="Verified secure street parking lots and venue valet drop points"
+                active={showParking}
+                onToggle={onToggleParking}
                 primary={primary}
                 surface={surface}
                 text={text}
