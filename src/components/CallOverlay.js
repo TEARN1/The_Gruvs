@@ -83,13 +83,18 @@ const FloatingReaction = ({ emoji, mine }) => {
   );
 };
 
-const RoundBtn = ({ icon, onPress, active, danger, color }) => (
+const RoundBtn = ({ icon, onPress, active, danger, color, label, disabled }) => (
   <TouchableOpacity
     onPress={onPress}
+    disabled={disabled}
+    accessibilityRole="button"
+    accessibilityLabel={label}
+    accessibilityState={{ disabled: !!disabled, selected: !!active }}
     style={[
       cs.roundBtn,
       danger && { backgroundColor: '#ef4444' },
       active && { backgroundColor: 'rgba(255,255,255,0.9)' },
+      disabled && { opacity: 0.35 },
     ]}
   >
     <Feather name={icon} size={22} color={danger ? '#fff' : active ? '#000' : (color || '#fff')} />
@@ -304,26 +309,27 @@ export const CallOverlay = ({
       <View style={[cs.controls, { bottom: bottomOffset + 24 }]}>
         {isIncoming ? (
           <>
-            <RoundBtn icon="phone-off" danger onPress={onReject} />
-            <RoundBtn icon="message-square" onPress={() => setShowQuickDecline(true)} color="#3b82f6" />
-            <RoundBtn icon="phone" onPress={onAccept} color="#10b981" />
+            <RoundBtn icon="phone-off" danger onPress={onReject} label="Decline call" />
+            <RoundBtn icon="message-square" onPress={() => setShowQuickDecline(true)} color="#3b82f6" label="Decline with a message" />
+            <RoundBtn icon="phone" onPress={onAccept} color="#10b981" label="Answer call" />
           </>
         ) : (
           <>
-            <RoundBtn icon={muted ? 'mic-off' : 'mic'} active={muted} onPress={onToggleMute} />
+            <RoundBtn icon={muted ? 'mic-off' : 'mic'} active={muted} onPress={onToggleMute} label={muted ? 'Unmute microphone' : 'Mute microphone'} />
             {video ? (
               <>
-                <RoundBtn icon={camOff ? 'video-off' : 'video'} active={camOff} onPress={onToggleCamera} />
-                {!camOff && <RoundBtn icon="refresh-cw" onPress={onSwitchCamera} />}
+                <RoundBtn icon={camOff ? 'video-off' : 'video'} active={camOff} onPress={onToggleCamera} label={camOff ? 'Turn camera on' : 'Turn camera off'} />
+                {/* Kept in place (disabled) when the camera is off, so Hang up never moves under the user's thumb. */}
+                <RoundBtn icon="refresh-cw" onPress={onSwitchCamera} disabled={camOff} label="Switch camera" />
               </>
             ) : null}
             {canShareScreen && status === 'connected'
-              ? <RoundBtn icon="monitor" active={sharingScreen} onPress={onToggleScreenShare} />
+              ? <RoundBtn icon="monitor" active={sharingScreen} onPress={onToggleScreenShare} label={sharingScreen ? 'Stop sharing screen' : 'Share screen'} />
               : null}
             {canRecord && status === 'connected'
-              ? <RoundBtn icon={recording ? 'square' : 'circle'} active={recording} onPress={onToggleRecord} color="#ef4444" />
+              ? <RoundBtn icon={recording ? 'square' : 'circle'} active={recording} onPress={onToggleRecord} color="#ef4444" label={recording ? 'Stop recording' : 'Record call'} />
               : null}
-            <RoundBtn icon="phone-off" danger onPress={onHangUp} />
+            <RoundBtn icon="phone-off" danger onPress={onHangUp} label="Hang up" />
           </>
         )}
       </View>

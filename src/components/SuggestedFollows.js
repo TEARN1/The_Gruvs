@@ -8,7 +8,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Image,
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { thumb } from '../utils/storageThumb';
@@ -120,7 +120,10 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
   }, [user]);
 
   if (!user) return null;
-  if (!loading && people.length === 0) return null;
+  // Stay hidden until there's someone to show. Showing a spinner first, then
+  // collapsing when the list came back empty (common for new users), held a
+  // spinner on The Drop for ~10 s and then jumped the whole feed up.
+  if (loading || people.length === 0) return null;
 
   return (
     <View style={sf.wrap}>
@@ -129,10 +132,7 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
         <Text style={[sf.title, { color: textColor }]}>Suggested for you</Text>
       </View>
 
-      {loading ? (
-        <ActivityIndicator color={primary} style={{ marginVertical: 26 }} />
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 12, paddingBottom: 4 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 12, paddingBottom: 4 }}>
           {people.map(p => {
             const isFollowed = followed.has(p.id);
             const name = p.display_name || p.username || 'Viber';
@@ -171,7 +171,6 @@ export const SuggestedFollows = ({ onNavigateToEvent }) => {
             );
           })}
         </ScrollView>
-      )}
 
       <ViberProfileModal
         visible={!!openId}

@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -250,44 +303,24 @@
       "position": 1,
       "item": {
         "@type": "Event",
-        "name": "INGRID: 'n Vlam in die Sneeu",
-        "startDate": "2026-11-20T19:30:00+02:00",
+        "name": "Proteas v Bangladesh — 2nd Test",
+        "startDate": "2026-11-23T10:00:00+02:00",
         "location": {
           "@type": "Place",
-          "name": "Die Centurion Teater",
+          "name": "SuperSport Park",
           "address": {
             "@type": "PostalAddress",
             "addressLocality": "Centurion",
             "addressCountry": "ZA"
           }
         },
-        "image": "https://cdn-az.allevents.in/events1/banners/58caf8e949976fa70a6552f017790f19835959f2e1c6e022b16eb5586ee33b3c-rimg-w1200-h628-dc080808-gmir?v=1788323782",
-        "url": "https://thegruvs.com/events/ingrid-n-vlam-in-die-sneeu-die-centurion-teater-centurion-bd82d9a2-48a1-41af-8429-a5cca33a44ae"
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8"
       }
     },
     {
       "@type": "ListItem",
       "position": 2,
-      "item": {
-        "@type": "Event",
-        "name": "HOORT met Stephanie Baartman",
-        "startDate": "2026-11-28T15:00:00+02:00",
-        "location": {
-          "@type": "Place",
-          "name": "Die Centurion Teater",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Centurion",
-            "addressCountry": "ZA"
-          }
-        },
-        "image": "https://cdn-az.allevents.in/events2/banners/2cb6fcc397bd636f2f64715c4110a47068a82a7e931c8f6f90df2377e79c5312-rimg-w1200-h628-dc080808-gmir?v=1788259661",
-        "url": "https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
       "item": {
         "@type": "Event",
         "name": "Prime Circle at Railways Cafe",
@@ -307,7 +340,47 @@
     },
     {
       "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "Event",
+        "name": "HOORT met Stephanie Baartman",
+        "startDate": "2026-11-28T15:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Die Centurion Teater",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events2/banners/2cb6fcc397bd636f2f64715c4110a47068a82a7e931c8f6f90df2377e79c5312-rimg-w1200-h628-dc080808-gmir?v=1788259661",
+        "url": "https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5"
+      }
+    },
+    {
+      "@type": "ListItem",
       "position": 4,
+      "item": {
+        "@type": "Event",
+        "name": "Nutcracker Bedazzle and Bubbly",
+        "startDate": "2026-12-02T20:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Rooihuiskraal Noord Ext 16, Centurion",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events2/banners/88de60260db071838b9de43bbf707814e029df2ab704790fabe30e253657c31f-rimg-w600-h600-dc080808-gmir?v=1795068647",
+        "url": "https://thegruvs.com/events/nutcracker-bedazzle-and-bubbly-rooihuiskraal-noord-ext-16-centurion-c93950fc-1dbb-4a79-9e5c-a5348a6f1320"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
       "item": {
         "@type": "Event",
         "name": "Pretoria's Vintage & Christmas Gift Market",
@@ -323,6 +396,226 @@
         },
         "image": "https://cdn-az.allevents.in/events10/banners/6a701facb33f52d20b32f8a7b8d8c87ae2d684b0a7590ba7a4b8710b5ed6f4f8-rimg-w1200-h600-dcf8f8f8-gmir?v=1787823323",
         "url": "https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v Bangladesh — 3rd T20I",
+        "startDate": "2026-12-13T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-bangladesh-3rd-t20i-supersport-park-centurion-3721c6ac-6f33-40c5-abae-f4adcfdda8fb"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v England — Boxing Day Test",
+        "startDate": "2026-12-26T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-england-boxing-day-test-supersport-park-centurion-8ba8845b-0853-4424-b455-a81a7d239d7d"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
+      "item": {
+        "@type": "Event",
+        "name": "happy happy new year",
+        "startDate": "2027-01-01T02:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Highveld Ext 13, Centurion",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events10/banners/7e7056f978bdbb70d78414165419b26355a2af4932bda6541e0a638574430cce-rimg-w1080-h1488-dcc8d8f8-gmir?v=1792801810",
+        "url": "https://thegruvs.com/events/happy-happy-new-year-highveld-ext-13-centurion-centurion-b3706065-4e83-4be8-9f5b-a55c5722d907"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 9,
+      "item": {
+        "@type": "Event",
+        "name": "We are through 🗣️🇿🇦🚨",
+        "startDate": "2027-01-03T16:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Copperleaf, Centurion, South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events8/banners/1f7c316a76639ec152f8a1f11d12b12e637808cf92a405f86ef90593b75829bb-rimg-w1100-h1100-dc080808-gmir?v=1791261494",
+        "url": "https://thegruvs.com/events/we-are-through-copperleaf-centurion-south-africa-centurion-babc3d07-c5d1-4cba-855f-85dd4a3ba983"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 10,
+      "item": {
+        "@type": "Event",
+        "name": "Board exam workshop",
+        "startDate": "2027-01-15T11:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Centurion, Gauteng",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events2/banners/6856f0fe54e3d2ab7f81d86f4785577bca1db92bcdd66693f540d0e3181c66ce-rimg-w1131-h1600-dcc8b8a8-gmir?v=1794023180",
+        "url": "https://thegruvs.com/events/board-exam-workshop-centurion-gauteng-centurion-ba2d4fdc-776d-43df-8629-3f323a6f0f5f"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 11,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Pretoria Capitals v Durban's Super Giants",
+        "startDate": "2027-01-19T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-pretoria-capitals-v-durban-s-super-giants-supersport-park-ceed7cf2-58eb-48df-8e4d-6373711c8829"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 12,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Pretoria Capitals v Sunrisers Eastern Cape",
+        "startDate": "2027-01-26T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-pretoria-capitals-v-sunrisers-eastern-cape-supersport-park-6e09bb1c-2139-4cb4-bc9d-c032c4bf7077"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 13,
+      "item": {
+        "@type": "Event",
+        "name": "ZA Wit Open Day",
+        "startDate": "2027-01-27T12:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "20 Oxford Office Park, 3 Bauhinia Street, 0167 Centurion, South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events4/banners/17cf18dcc225c7693f7e3a47bc3eed0200d9445564df9c71d4a743a297f51936-rimg-w796-h517-dc18b898-gmir?v=1793951268",
+        "url": "https://thegruvs.com/events/za-wit-open-day-20-oxford-office-park-3-bauhinia-street-0167-b58d7ea2-94b7-465e-a6ef-93eb89d80986"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 14,
+      "item": {
+        "@type": "Event",
+        "name": "Centurion SaaS & Cloud Founders Roundtable",
+        "startDate": "2027-01-27T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Centurion Lake Business Hub",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/centurion-saas-and-cloud-founders-roundtable-centurion-lake-business-d75e3b66-3b8c-4957-b279-8dfe5ff7d815"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 15,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Pretoria Capitals v Paarl Royals",
+        "startDate": "2027-01-31T15:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-pretoria-capitals-v-paarl-royals-supersport-park-centurion-f8c05c66-60f0-41d7-8e8a-6a89fde69732"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 16,
+      "item": {
+        "@type": "Event",
+        "name": "FOKOFPOLISIEKAR - 10 jaar van Selfmedikasie (Railways Cafe, Prertoria)",
+        "startDate": "2027-02-12T21:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Railways Cafe",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events8/banners/15223a8cc9df9eccc0548fc5cdd6a03852ea134abca47360d49f74f5204b6463-rimg-w1200-h628-dc080808-gmir?v=1793004097",
+        "url": "https://thegruvs.com/events/fokofpolisiekar-10-jaar-van-selfmedikasie-railways-cafe-prertoria-d4eb2b88-9480-4a2d-9349-2d9d4338defe"
       }
     }
   ]
@@ -384,11 +677,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events in Centurion (2026) — The Gruvs",
+  "description": "Discover upcoming events, nightlife, and festivals in Centurion. Dates, venues and directions on The Gruvs.",
+  "url": "https://thegruvs.com/events/centurion",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -412,6 +752,8 @@
       <h1 class="hero-title">Events in <span class="brand-accent">Centurion</span></h1>
       <p class="hero-lead">Outdoor amphitheatre concerts, rooftop jazz, and lakeside lifestyle festivals in Centurion. Browse what's listed, with dates, venues and directions.</p>
 
+      
+
       <div class="resident-banner">
         <div class="resident-banner-text">
           <h3>Need Accommodation in Centurion?</h3>
@@ -420,14 +762,47 @@
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
+      
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (16)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
+
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/ingrid-n-vlam-in-die-sneeu-die-centurion-teater-centurion-bd82d9a2-48a1-41af-8429-a5cca33a44ae">
-      <img class="event-img" src="https://cdn-az.allevents.in/events1/banners/58caf8e949976fa70a6552f017790f19835959f2e1c6e022b16eb5586ee33b3c-rimg-w1200-h628-dc080808-gmir?v=1788323782" alt="INGRID: 'n Vlam in die Sneeu" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8" data-title="proteas v bangladesh — 2nd test" data-venue="supersport park" data-city="centurion" data-date="2026-11-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v Bangladesh — 2nd Test" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
-        <div class="event-date">Fri, 20 Nov 2026 · 19:30</div>
-        <h3 class="event-title">INGRID: 'n Vlam in die Sneeu</h3>
-        <p class="event-venue">Die Centurion Teater · Centurion</p>
+        <div class="event-date">Mon, 23 Nov 2026 · 10:00</div>
+        <h3 class="event-title">Proteas v Bangladesh — 2nd Test</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
         <div class="event-footer">
           <span class="event-price">Paid</span>
           <span class="btn-view">Get Tickets →</span>
@@ -435,21 +810,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5">
-      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/2cb6fcc397bd636f2f64715c4110a47068a82a7e931c8f6f90df2377e79c5312-rimg-w1200-h628-dc080808-gmir?v=1788259661" alt="HOORT met Stephanie Baartman" loading="lazy" />
-      <div class="event-body">
-        <div class="event-date">Sat, 28 Nov 2026 · 15:00</div>
-        <h3 class="event-title">HOORT met Stephanie Baartman</h3>
-        <p class="event-venue">Die Centurion Teater · Centurion</p>
-        <div class="event-footer">
-          <span class="event-price">Paid</span>
-          <span class="btn-view">Get Tickets →</span>
-        </div>
-      </div>
-    </a>
-  
-    <a class="event-card" href="https://thegruvs.com/events/prime-circle-at-railways-cafe-railways-cafe-centurion-cbc848aa-a8e7-4038-aa6e-38077ef5205d">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/e69674e92a898ee5ca10fbae234e7f117bfc4842d5ec8fd46ed2157d9bc0c6c1-rimg-w800-h400-dc282828-gmir?v=1788188881" alt="Prime Circle at Railways Cafe" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/prime-circle-at-railways-cafe-railways-cafe-centurion-cbc848aa-a8e7-4038-aa6e-38077ef5205d" data-title="prime circle at railways cafe" data-venue="railways cafe" data-city="centurion" data-date="2026-11-28">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/e69674e92a898ee5ca10fbae234e7f117bfc4842d5ec8fd46ed2157d9bc0c6c1-rimg-w800-h400-dc282828-gmir?v=1788188881" alt="Prime Circle at Railways Cafe" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 28 Nov 2026 · 18:00</div>
         <h3 class="event-title">Prime Circle at Railways Cafe</h3>
@@ -461,8 +823,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb">
-      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/6a701facb33f52d20b32f8a7b8d8c87ae2d684b0a7590ba7a4b8710b5ed6f4f8-rimg-w1200-h600-dcf8f8f8-gmir?v=1787823323" alt="Pretoria's Vintage &amp; Christmas Gift Market" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/hoort-met-stephanie-baartman-die-centurion-teater-centurion-f71400fa-4612-4705-8ee9-b5e0df5f2fb5" data-title="hoort met stephanie baartman" data-venue="die centurion teater" data-city="centurion" data-date="2026-11-28">
+      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/2cb6fcc397bd636f2f64715c4110a47068a82a7e931c8f6f90df2377e79c5312-rimg-w1200-h628-dc080808-gmir?v=1788259661" alt="HOORT met Stephanie Baartman" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 28 Nov 2026 · 15:00</div>
+        <h3 class="event-title">HOORT met Stephanie Baartman</h3>
+        <p class="event-venue">Die Centurion Teater · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/nutcracker-bedazzle-and-bubbly-rooihuiskraal-noord-ext-16-centurion-c93950fc-1dbb-4a79-9e5c-a5348a6f1320" data-title="nutcracker bedazzle and bubbly" data-venue="rooihuiskraal noord ext 16, centurion" data-city="centurion" data-date="2026-12-02">
+      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/88de60260db071838b9de43bbf707814e029df2ab704790fabe30e253657c31f-rimg-w600-h600-dc080808-gmir?v=1795068647" alt="Nutcracker Bedazzle and Bubbly" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 02 Dec 2026 · 20:00</div>
+        <h3 class="event-title">Nutcracker Bedazzle and Bubbly</h3>
+        <p class="event-venue">Rooihuiskraal Noord Ext 16, Centurion · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb" data-title="pretoria's vintage &amp; christmas gift market" data-venue="irene village mall" data-city="centurion" data-date="2026-12-05">
+      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/6a701facb33f52d20b32f8a7b8d8c87ae2d684b0a7590ba7a4b8710b5ed6f4f8-rimg-w1200-h600-dcf8f8f8-gmir?v=1787823323" alt="Pretoria's Vintage &amp; Christmas Gift Market" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 05 Dec 2026 · 09:00</div>
         <h3 class="event-title">Pretoria's Vintage &amp; Christmas Gift Market</h3>
@@ -474,6 +862,154 @@
       </div>
     </a>
   
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-bangladesh-3rd-t20i-supersport-park-centurion-3721c6ac-6f33-40c5-abae-f4adcfdda8fb" data-title="proteas v bangladesh — 3rd t20i" data-venue="supersport park" data-city="centurion" data-date="2026-12-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v Bangladesh — 3rd T20I" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 13 Dec 2026</div>
+        <h3 class="event-title">Proteas v Bangladesh — 3rd T20I</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-england-boxing-day-test-supersport-park-centurion-8ba8845b-0853-4424-b455-a81a7d239d7d" data-title="proteas v england — boxing day test" data-venue="supersport park" data-city="centurion" data-date="2026-12-26">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v England — Boxing Day Test" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 26 Dec 2026</div>
+        <h3 class="event-title">Proteas v England — Boxing Day Test</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/happy-happy-new-year-highveld-ext-13-centurion-centurion-b3706065-4e83-4be8-9f5b-a55c5722d907" data-title="happy happy new year" data-venue="highveld ext 13, centurion" data-city="centurion" data-date="2027-01-01">
+      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/7e7056f978bdbb70d78414165419b26355a2af4932bda6541e0a638574430cce-rimg-w1080-h1488-dcc8d8f8-gmir?v=1792801810" alt="happy happy new year" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 01 Jan 2027 · 02:00</div>
+        <h3 class="event-title">happy happy new year</h3>
+        <p class="event-venue">Highveld Ext 13, Centurion · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/we-are-through-copperleaf-centurion-south-africa-centurion-babc3d07-c5d1-4cba-855f-85dd4a3ba983" data-title="we are through 🗣️🇿🇦🚨" data-venue="copperleaf, centurion, south africa" data-city="centurion" data-date="2027-01-03">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/1f7c316a76639ec152f8a1f11d12b12e637808cf92a405f86ef90593b75829bb-rimg-w1100-h1100-dc080808-gmir?v=1791261494" alt="We are through 🗣️🇿🇦🚨" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 03 Jan 2027 · 16:00</div>
+        <h3 class="event-title">We are through 🗣️🇿🇦🚨</h3>
+        <p class="event-venue">Copperleaf, Centurion, South Africa · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/board-exam-workshop-centurion-gauteng-centurion-ba2d4fdc-776d-43df-8629-3f323a6f0f5f" data-title="board exam workshop" data-venue="centurion, gauteng" data-city="centurion" data-date="2027-01-15">
+      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/6856f0fe54e3d2ab7f81d86f4785577bca1db92bcdd66693f540d0e3181c66ce-rimg-w1131-h1600-dcc8b8a8-gmir?v=1794023180" alt="Board exam workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 15 Jan 2027 · 11:00</div>
+        <h3 class="event-title">Board exam workshop</h3>
+        <p class="event-venue">Centurion, Gauteng · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-durban-s-super-giants-supersport-park-ceed7cf2-58eb-48df-8e4d-6373711c8829" data-title="sa20: pretoria capitals v durban's super giants" data-venue="supersport park" data-city="centurion" data-date="2027-01-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Pretoria Capitals v Durban's Super Giants" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 19 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Pretoria Capitals v Durban's Super Giants</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-sunrisers-eastern-cape-supersport-park-6e09bb1c-2139-4cb4-bc9d-c032c4bf7077" data-title="sa20: pretoria capitals v sunrisers eastern cape" data-venue="supersport park" data-city="centurion" data-date="2027-01-26">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Pretoria Capitals v Sunrisers Eastern Cape" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 26 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Pretoria Capitals v Sunrisers Eastern Cape</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/za-wit-open-day-20-oxford-office-park-3-bauhinia-street-0167-b58d7ea2-94b7-465e-a6ef-93eb89d80986" data-title="za wit open day" data-venue="20 oxford office park, 3 bauhinia street, 0167 centurion, south africa" data-city="centurion" data-date="2027-01-27">
+      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/17cf18dcc225c7693f7e3a47bc3eed0200d9445564df9c71d4a743a297f51936-rimg-w796-h517-dc18b898-gmir?v=1793951268" alt="ZA Wit Open Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 27 Jan 2027 · 12:00</div>
+        <h3 class="event-title">ZA Wit Open Day</h3>
+        <p class="event-venue">20 Oxford Office Park, 3 Bauhinia Street, 0167 Centurion, South Africa · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/centurion-saas-and-cloud-founders-roundtable-centurion-lake-business-d75e3b66-3b8c-4957-b279-8dfe5ff7d815" data-title="centurion saas &amp; cloud founders roundtable" data-venue="centurion lake business hub" data-city="pretoria" data-date="2027-01-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Centurion SaaS &amp; Cloud Founders Roundtable" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 27 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Centurion SaaS &amp; Cloud Founders Roundtable</h3>
+        <p class="event-venue">Centurion Lake Business Hub · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-paarl-royals-supersport-park-centurion-f8c05c66-60f0-41d7-8e8a-6a89fde69732" data-title="sa20: pretoria capitals v paarl royals" data-venue="supersport park" data-city="centurion" data-date="2027-01-31">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Pretoria Capitals v Paarl Royals" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 31 Jan 2027 · 15:30</div>
+        <h3 class="event-title">SA20: Pretoria Capitals v Paarl Royals</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/fokofpolisiekar-10-jaar-van-selfmedikasie-railways-cafe-prertoria-d4eb2b88-9480-4a2d-9349-2d9d4338defe" data-title="fokofpolisiekar - 10 jaar van selfmedikasie (railways cafe, prertoria)" data-venue="railways cafe" data-city="centurion" data-date="2027-02-12">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/15223a8cc9df9eccc0548fc5cdd6a03852ea134abca47360d49f74f5204b6463-rimg-w1200-h628-dc080808-gmir?v=1793004097" alt="FOKOFPOLISIEKAR - 10 jaar van Selfmedikasie (Railways Cafe, Prertoria)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 12 Feb 2027 · 21:00</div>
+        <h3 class="event-title">FOKOFPOLISIEKAR - 10 jaar van Selfmedikasie (Railways Cafe, Prertoria)</h3>
+        <p class="event-venue">Railways Cafe · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+      </div>
+
+      <div class="hub-guide-box">
+        <h2>Insider Guide to Centurion Events & Nightlife</h2>
+        <p>Explore verified concerts, nightlife, business conferences, and cultural festivals in Centurion. Check live venue coordinates, ticket prices in ZAR, and RSVP directly on The Gruvs.</p>
       </div>
     
   </div>

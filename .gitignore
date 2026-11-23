@@ -40,3 +40,4 @@ dist.tgz
 d.tgz
 android/
 supabase/.temp/
+scripts/data/recipients.json

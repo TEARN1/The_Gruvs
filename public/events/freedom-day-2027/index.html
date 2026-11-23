@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -324,11 +377,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Freedom Day 2027 Celebrations & Heritage Concerts — The Gruvs",
+  "description": "Commemorating 33 years of democracy with all-star stadium festivals, heritage concerts at Constitution Hill, and coastal gatherings.",
+  "url": "https://thegruvs.com/events/freedom-day-2027",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -352,8 +452,8 @@
       <p class="hero-lead">Commemorating 33 years of democracy with all-star stadium festivals, heritage concerts at Constitution Hill, and coastal gatherings.</p>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/freedom-day-eve-all-star-amapiano-festival-fnb-stadium-johannesburg-eb8f67e3-6367-478b-b1c9-80d1dfda02c8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Eve All-Star Amapiano Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/freedom-day-eve-all-star-amapiano-festival-fnb-stadium-johannesburg-eb8f67e3-6367-478b-b1c9-80d1dfda02c8" data-title="freedom day eve all-star amapiano festival" data-venue="fnb stadium" data-city="johannesburg" data-date="2027-04-26">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Freedom Day Eve All-Star Amapiano Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 26 Apr 2027 · 16:00</div>
         <h3 class="event-title">Freedom Day Eve All-Star Amapiano Festival</h3>
@@ -365,8 +465,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/freedom-day-freedom-songs-and-heritage-concert-constitution-hill-8078fa22-8446-4b99-946d-bc8137b1e542">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Freedom Songs &amp; Heritage Concert" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/freedom-day-freedom-songs-and-heritage-concert-constitution-hill-8078fa22-8446-4b99-946d-bc8137b1e542" data-title="freedom day freedom songs &amp; heritage concert" data-venue="constitution hill human rights precinct" data-city="johannesburg" data-date="2027-04-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Freedom Day Freedom Songs &amp; Heritage Concert" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 27 Apr 2027 · 12:00</div>
         <h3 class="event-title">Freedom Day Freedom Songs &amp; Heritage Concert</h3>
@@ -378,8 +478,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/freedom-day-beach-festival-durban-moses-mabhida-stadium-peoples-park-578b02c6-5bc5-4f70-a45f-56824b354694">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Beach Festival Durban" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/freedom-day-beach-festival-durban-moses-mabhida-stadium-peoples-park-578b02c6-5bc5-4f70-a45f-56824b354694" data-title="freedom day beach festival durban" data-venue="moses mabhida stadium peoples park" data-city="durban" data-date="2027-04-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Freedom Day Beach Festival Durban" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 27 Apr 2027 · 11:00</div>
         <h3 class="event-title">Freedom Day Beach Festival Durban</h3>
@@ -391,8 +491,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gqeberha-boardwalk-freedom-sunset-fest-the-boardwalk-gqeberha-gqeberha-2af033d1-a255-40ab-b74c-97456e7deaa2">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gqeberha Boardwalk Freedom Sunset Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gqeberha-boardwalk-freedom-sunset-fest-the-boardwalk-gqeberha-gqeberha-2af033d1-a255-40ab-b74c-97456e7deaa2" data-title="gqeberha boardwalk freedom sunset fest" data-venue="the boardwalk gqeberha" data-city="gqeberha" data-date="2027-04-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Gqeberha Boardwalk Freedom Sunset Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 27 Apr 2027 · 13:00</div>
         <h3 class="event-title">Gqeberha Boardwalk Freedom Sunset Fest</h3>
@@ -404,8 +504,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-freedom-celebration-shisanyama-max-s-lifestyle-cbd3935c-cc05-4fc0-9850-44b0de947078">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Freedom Celebration Shisanyama" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-freedom-celebration-shisanyama-max-s-lifestyle-cbd3935c-cc05-4fc0-9850-44b0de947078" data-title="max's lifestyle freedom celebration shisanyama" data-venue="max's lifestyle village" data-city="durban" data-date="2027-04-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Max's Lifestyle Freedom Celebration Shisanyama" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 27 Apr 2027 · 12:00</div>
         <h3 class="event-title">Max's Lifestyle Freedom Celebration Shisanyama</h3>

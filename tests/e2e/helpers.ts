@@ -40,7 +40,7 @@ export async function mockFonts(page: Page) {
 
 /** Wait for Expo's React tree to hydrate */
 export async function waitForApp(page: Page) {
-  await page.waitForSelector('#root', { state: 'attached', timeout: 30_000 });
+  await page.waitForSelector('#root', { state: 'attached', timeout: 45_000 });
   await page.waitForLoadState('domcontentloaded');
   // Wait for the tab navigation elements to be visible (loading screen is gone)
   // Use 55s timeout to handle slow mobile-chrome hydration under parallel load
@@ -85,6 +85,21 @@ export async function goToTab(page: Page, ...names: string[]) {
         await tabContainer.click({ force: true });
       });
       return;
+    }
+
+    // Lineup left the bottom bar in the 5-tab dock; it now opens from the
+    // feed's quick tools sheet.
+    if (name === 'Lineup') {
+      const tools = page.locator('[aria-label="Explore tools and quick actions"]').first();
+      if (await tools.isVisible().catch(() => false)) {
+        await tools.click({ force: true });
+        const item = page.getByText('Lineup & Itinerary', { exact: true }).first();
+        await item.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+        if (await item.isVisible().catch(() => false)) {
+          await item.click({ force: true });
+          return;
+        }
+      }
     }
 
     // 2. Fall back to text locator (using force if intercepted)

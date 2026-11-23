@@ -367,9 +367,9 @@ const BlockEditorModal = ({ visible, block, onClose, onSave, primary, textColor,
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[bem.modal, { backgroundColor: bg }]}>
         <View style={[bem.modalHeader, { borderBottomColor: `${primary}15` }]}>
-          <TouchableOpacity onPress={onClose}><Feather name="x" size={20} color={textColor} /></TouchableOpacity>
+          <TouchableOpacity onPress={() => onClose?.()}><Feather name="x" size={20} color={textColor} /></TouchableOpacity>
           <Text style={[bem.modalTitle, { color: textColor }]}>Edit {BLOCK_TYPES.find(b => b.type === block.block_type)?.label}</Text>
-          <TouchableOpacity onPress={() => onSave(config)} style={[bem.saveBtn, { backgroundColor: primary }]}>
+          <TouchableOpacity onPress={() => onSave?.(config)} style={[bem.saveBtn, { backgroundColor: primary }]}>
             <Text style={bem.saveBtnText}>SAVE</Text>
           </TouchableOpacity>
         </View>

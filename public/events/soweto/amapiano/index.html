@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -440,11 +493,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Amapiano Parties & Street Bashes in Soweto — The Gruvs",
+  "description": "High-voltage Amapiano sets, Zone 6 blowouts, and Konka VIP celebrations in Soweto.",
+  "url": "https://thegruvs.com/events/soweto/amapiano",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -468,8 +568,8 @@
       <p class="hero-lead">High-voltage Amapiano sets, Zone 6 blowouts, and Konka VIP celebrations in Soweto.</p>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Township Economy &amp; Retail Entrepreneurship Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1" data-title="township economy &amp; retail entrepreneurship expo" data-venue="zone 6 venue" data-city="soweto" data-date="2026-12-03">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Township Economy &amp; Retail Entrepreneurship Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 03 Dec 2026 · 09:00</div>
         <h3 class="event-title">Township Economy &amp; Retail Entrepreneurship Expo</h3>
@@ -481,8 +581,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ke-dezemba-amapiano-explosive-launch-zone-6-venue-soweto-c9cb2e2e-29eb-4057-8d84-84e41b11c6d3">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Ke Dezemba Amapiano Explosive Launch" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ke-dezemba-amapiano-explosive-launch-zone-6-venue-soweto-c9cb2e2e-29eb-4057-8d84-84e41b11c6d3" data-title="ke dezemba amapiano explosive launch" data-venue="zone 6 venue" data-city="soweto" data-date="2026-12-04">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Ke Dezemba Amapiano Explosive Launch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 04 Dec 2026 · 18:00</div>
         <h3 class="event-title">Ke Dezemba Amapiano Explosive Launch</h3>
@@ -494,8 +594,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-summer-anthem-weekend-konka-soweto-soweto-f62d8757-30f7-4a92-936a-703f02e84e43">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka Summer Anthem Weekend" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-summer-anthem-weekend-konka-soweto-soweto-f62d8757-30f7-4a92-936a-703f02e84e43" data-title="konka summer anthem weekend" data-venue="konka soweto" data-city="soweto" data-date="2026-12-11">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Konka Summer Anthem Weekend" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 11 Dec 2026 · 20:00</div>
         <h3 class="event-title">Konka Summer Anthem Weekend</h3>
@@ -507,8 +607,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/soweto-street-food-and-craft-beer-festival-zone-6-venue-soweto-df0ea4a9-77a7-49fd-983e-54cb1123a66d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Soweto Street Food &amp; Craft Beer Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/soweto-street-food-and-craft-beer-festival-zone-6-venue-soweto-df0ea4a9-77a7-49fd-983e-54cb1123a66d" data-title="soweto street food &amp; craft beer festival" data-venue="zone 6 venue" data-city="soweto" data-date="2026-12-16">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Soweto Street Food &amp; Craft Beer Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 16 Dec 2026 · 11:00</div>
         <h3 class="event-title">Soweto Street Food &amp; Craft Beer Festival</h3>
@@ -520,8 +620,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-soweto-2027-midnight-countdown-konka-soweto-soweto-42d67bce-789d-44f9-b2dc-0aa205a2fdc0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka Soweto 2027 Midnight Countdown" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-soweto-2027-midnight-countdown-konka-soweto-soweto-42d67bce-789d-44f9-b2dc-0aa205a2fdc0" data-title="konka soweto 2027 midnight countdown" data-venue="konka soweto" data-city="soweto" data-date="2026-12-31">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Konka Soweto 2027 Midnight Countdown" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 31 Dec 2026 · 20:00</div>
         <h3 class="event-title">Konka Soweto 2027 Midnight Countdown</h3>
@@ -533,8 +633,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/soweto-new-year-kickoff-celebration-zone-6-venue-soweto-4e06eee8-d0d4-4277-97ee-04a35d604ece">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Soweto New Year Kickoff Celebration" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/soweto-new-year-kickoff-celebration-zone-6-venue-soweto-4e06eee8-d0d4-4277-97ee-04a35d604ece" data-title="soweto new year kickoff celebration" data-venue="zone 6 venue" data-city="soweto" data-date="2027-01-01">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Soweto New Year Kickoff Celebration" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 01 Jan 2027 · 14:00</div>
         <h3 class="event-title">Soweto New Year Kickoff Celebration</h3>
@@ -546,8 +646,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-january-elite-soiree-konka-soweto-soweto-88d470b7-7dad-42fb-8b2b-54048e02244b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka January Elite Soiree" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-january-elite-soiree-konka-soweto-soweto-88d470b7-7dad-42fb-8b2b-54048e02244b" data-title="konka january elite soiree" data-venue="konka soweto" data-city="soweto" data-date="2027-01-22">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Konka January Elite Soiree" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 22 Jan 2027 · 20:00</div>
         <h3 class="event-title">Konka January Elite Soiree</h3>
@@ -559,8 +659,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-valentine-red-and-black-night-konka-soweto-soweto-3c66dc47-ab2b-4dd2-baf1-ff64f2067fc5">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka Valentine Red &amp; Black Night" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-valentine-red-and-black-night-konka-soweto-soweto-3c66dc47-ab2b-4dd2-baf1-ff64f2067fc5" data-title="konka valentine red &amp; black night" data-venue="konka soweto" data-city="soweto" data-date="2027-02-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Konka Valentine Red &amp; Black Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 13 Feb 2027 · 20:00</div>
         <h3 class="event-title">Konka Valentine Red &amp; Black Night</h3>
@@ -572,8 +672,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/zone-6-lovers-and-friends-amapiano-jam-zone-6-venue-soweto-e80ac3c1-0ee7-4e3e-a0a3-e3a0e08b5f6f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Zone 6 Lovers &amp; Friends Amapiano Jam" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/zone-6-lovers-and-friends-amapiano-jam-zone-6-venue-soweto-e80ac3c1-0ee7-4e3e-a0a3-e3a0e08b5f6f" data-title="zone 6 lovers &amp; friends amapiano jam" data-venue="zone 6 venue" data-city="soweto" data-date="2027-02-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Zone 6 Lovers &amp; Friends Amapiano Jam" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 19 Feb 2027 · 18:00</div>
         <h3 class="event-title">Zone 6 Lovers &amp; Friends Amapiano Jam</h3>
@@ -585,8 +685,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-autumn-high-energy-soiree-konka-soweto-soweto-c756ae3d-f06e-48f2-8e0c-d6f7b3d66f08">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka Autumn High-Energy Soiree" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-autumn-high-energy-soiree-konka-soweto-soweto-c756ae3d-f06e-48f2-8e0c-d6f7b3d66f08" data-title="konka autumn high-energy soiree" data-venue="konka soweto" data-city="soweto" data-date="2027-03-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Konka Autumn High-Energy Soiree" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 13 Mar 2027 · 20:00</div>
         <h3 class="event-title">Konka Autumn High-Energy Soiree</h3>
@@ -598,8 +698,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/soweto-human-rights-weekend-cultural-fiesta-zone-6-venue-soweto-25fcd62e-d58f-4b06-bd60-c42f089491d5">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Soweto Human Rights Weekend Cultural Fiesta" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/soweto-human-rights-weekend-cultural-fiesta-zone-6-venue-soweto-25fcd62e-d58f-4b06-bd60-c42f089491d5" data-title="soweto human rights weekend cultural fiesta" data-venue="zone 6 venue" data-city="soweto" data-date="2027-03-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Soweto Human Rights Weekend Cultural Fiesta" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 19 Mar 2027 · 16:00</div>
         <h3 class="event-title">Soweto Human Rights Weekend Cultural Fiesta</h3>
@@ -611,8 +711,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/easter-weekend-amapiano-super-jam-zone-6-venue-soweto-c3d308ae-26c6-4ea1-9d91-69a9053745a0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Easter Weekend Amapiano Super Jam" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/easter-weekend-amapiano-super-jam-zone-6-venue-soweto-c3d308ae-26c6-4ea1-9d91-69a9053745a0" data-title="easter weekend amapiano super jam" data-venue="zone 6 venue" data-city="soweto" data-date="2027-04-02">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Easter Weekend Amapiano Super Jam" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 02 Apr 2027 · 18:00</div>
         <h3 class="event-title">Easter Weekend Amapiano Super Jam</h3>
@@ -624,8 +724,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-april-saturday-extravaganza-konka-soweto-soweto-f8f7421e-29ca-47a9-9696-cc34c46f4fd3">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka April Saturday Extravaganza" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-april-saturday-extravaganza-konka-soweto-soweto-f8f7421e-29ca-47a9-9696-cc34c46f4fd3" data-title="konka april saturday extravaganza" data-venue="konka soweto" data-city="soweto" data-date="2027-04-10">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Konka April Saturday Extravaganza" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 10 Apr 2027 · 20:00</div>
         <h3 class="event-title">Konka April Saturday Extravaganza</h3>
@@ -637,8 +737,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/may-day-workers-celebration-music-concert-zone-6-venue-soweto-1f98bd25-523a-4bb9-9e6e-66ccafa72d8b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="May Day Workers Celebration Music Concert" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/may-day-workers-celebration-music-concert-zone-6-venue-soweto-1f98bd25-523a-4bb9-9e6e-66ccafa72d8b" data-title="may day workers celebration music concert" data-venue="zone 6 venue" data-city="soweto" data-date="2027-05-01">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="May Day Workers Celebration Music Concert" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 01 May 2027 · 12:00</div>
         <h3 class="event-title">May Day Workers Celebration Music Concert</h3>
@@ -650,8 +750,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/konka-may-luxury-saturday-konka-soweto-soweto-2addda82-fb4c-4c42-b56b-d80d90750910">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Konka May Luxury Saturday" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/konka-may-luxury-saturday-konka-soweto-soweto-2addda82-fb4c-4c42-b56b-d80d90750910" data-title="konka may luxury saturday" data-venue="konka soweto" data-city="soweto" data-date="2027-05-14">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Konka May Luxury Saturday" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 14 May 2027 · 20:00</div>
         <h3 class="event-title">Konka May Luxury Saturday</h3>
@@ -663,8 +763,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-day-eve-unity-fest-soweto-zone-6-venue-soweto-62f11268-7865-4cbf-a2d5-818b3fae216a">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Day Eve Unity Fest Soweto" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-day-eve-unity-fest-soweto-zone-6-venue-soweto-62f11268-7865-4cbf-a2d5-818b3fae216a" data-title="africa day eve unity fest soweto" data-venue="zone 6 venue" data-city="soweto" data-date="2027-05-24">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa Day Eve Unity Fest Soweto" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 24 May 2027 · 18:00</div>
         <h3 class="event-title">Africa Day Eve Unity Fest Soweto</h3>

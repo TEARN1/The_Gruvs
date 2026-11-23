@@ -35,7 +35,7 @@
   <meta property="og:title" content="Upcoming Events at Sandton Convention Centre, Johannesburg — Schedule &amp; Tickets | The Gruvs" />
   <meta property="og:description" content="View upcoming events, concerts, and parties at Sandton Convention Centre in Johannesburg. Dates, directions and how to RSVP on The Gruvs." />
   <meta property="og:url" content="https://thegruvs.com/venues/sandton-convention-centre" />
-  <meta property="og:image" content="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" />
+  <meta property="og:image" content="https://thegruvs.com/og-default.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:locale" content="en_ZA" />
@@ -45,7 +45,7 @@
   <meta name="twitter:site" content="@thegruvs" />
   <meta name="twitter:title" content="Upcoming Events at Sandton Convention Centre, Johannesburg — Schedule &amp; Tickets | The Gruvs" />
   <meta name="twitter:description" content="View upcoming events, concerts, and parties at Sandton Convention Centre in Johannesburg. Dates, directions and how to RSVP on The Gruvs." />
-  <meta name="twitter:image" content="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" />
+  <meta name="twitter:image" content="https://thegruvs.com/og-default.jpg" />
 
   <!-- Styles -->
   <style>
@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -249,7 +302,7 @@
     "addressLocality": "Johannesburg",
     "addressCountry": "ZA"
   },
-  "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80",
+  "image": "https://thegruvs.com/og-default.jpg",
   "url": "https://thegruvs.com/venues/sandton-convention-centre"
 }
 </script>
@@ -274,6 +327,16 @@
       "position": 2,
       "item": {
         "@type": "Event",
+        "name": "Sandton VC Dealmakers & Scaleup Gala",
+        "startDate": "2026-12-08T17:30:00+02:00",
+        "url": "https://thegruvs.com/events/sandton-vc-dealmakers-and-scaleup-gala-sandton-convention-centre-84f318c5-078f-4aa3-81c4-9fc88cae0d20"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "Event",
         "name": "Women in African Tech & Leadership Breakfast",
         "startDate": "2026-12-17T08:00:00+02:00",
         "url": "https://thegruvs.com/events/women-in-african-tech-and-leadership-breakfast-sandton-convention-0fd1beed-8f56-4d8a-b773-a8b8942f2cb0"
@@ -281,7 +344,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 3,
+      "position": 4,
       "item": {
         "@type": "Event",
         "name": "Southern Africa 2027 Economic & Tech Outlook",
@@ -291,7 +354,17 @@
     },
     {
       "@type": "ListItem",
-      "position": 4,
+      "position": 5,
+      "item": {
+        "@type": "Event",
+        "name": "Gauteng PropTech & Smart Buildings Forum",
+        "startDate": "2027-01-18T09:00:00+02:00",
+        "url": "https://thegruvs.com/events/gauteng-proptech-and-smart-buildings-forum-sandton-convention-centre-0eae571e-6b86-4f42-a608-7fb682267cd7"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
       "item": {
         "@type": "Event",
         "name": "eCommerce Africa Logistics & Payments Forum",
@@ -301,7 +374,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 5,
+      "position": 7,
       "item": {
         "@type": "Event",
         "name": "Cybersecurity & Cloud Resilience Congress",
@@ -311,7 +384,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 6,
+      "position": 8,
       "item": {
         "@type": "Event",
         "name": "African Mining & Energy Leaders Executive Indaba",
@@ -321,7 +394,17 @@
     },
     {
       "@type": "ListItem",
-      "position": 7,
+      "position": 9,
+      "item": {
+        "@type": "Event",
+        "name": "Africa Venture Capital & Private Equity Summit 2027",
+        "startDate": "2027-02-03T08:30:00+02:00",
+        "url": "https://thegruvs.com/events/africa-venture-capital-and-private-equity-summit-2027-sandton-ab5a2e98-0224-4527-8c15-fe90ea0f93ba"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 10,
       "item": {
         "@type": "Event",
         "name": "FinTech Africa Payments & Cross-Border Remittances",
@@ -331,7 +414,27 @@
     },
     {
       "@type": "ListItem",
-      "position": 8,
+      "position": 11,
+      "item": {
+        "@type": "Event",
+        "name": "Meetings Africa",
+        "startDate": "2027-02-21T20:30:00+02:00",
+        "url": "https://thegruvs.com/events/meetings-africa-sandton-convention-centre-johannesburg-e827d995-d8a7-490b-b56c-498957454f80"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 12,
+      "item": {
+        "@type": "Event",
+        "name": "South African Angel Syndicate Demo Day Finale",
+        "startDate": "2027-02-27T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/south-african-angel-syndicate-demo-day-finale-sandton-convention-5b94e6ad-99da-4f56-b2d7-4b6f27ff5c31"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 13,
       "item": {
         "@type": "Event",
         "name": "Africa FinTech & Digital Banking Summit 2027",
@@ -341,7 +444,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 9,
+      "position": 14,
       "item": {
         "@type": "Event",
         "name": "Africa Retail & Supply Chain Expo",
@@ -351,7 +454,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 10,
+      "position": 15,
       "item": {
         "@type": "Event",
         "name": "Clean Energy & Green Hydrogen Southern Africa",
@@ -361,7 +464,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 11,
+      "position": 16,
       "item": {
         "@type": "Event",
         "name": "South African Property Buyers & Investment Expo",
@@ -371,7 +474,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 12,
+      "position": 17,
       "item": {
         "@type": "Event",
         "name": "Franchising & Business Expansion Expo 2027",
@@ -381,7 +484,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 13,
+      "position": 18,
       "item": {
         "@type": "Event",
         "name": "African Enterprise Technology & Cloud Summit 2027",
@@ -391,7 +494,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 14,
+      "position": 19,
       "item": {
         "@type": "Event",
         "name": "Southern Africa Industrial Robotics & Automation Expo",
@@ -401,7 +504,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 15,
+      "position": 20,
       "item": {
         "@type": "Event",
         "name": "Women in Science, Engineering & Mining Forum",
@@ -444,11 +547,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events at Sandton Convention Centre, Johannesburg — Schedule & Tickets | The Gruvs",
+  "description": "View upcoming events, concerts, and parties at Sandton Convention Centre in Johannesburg. Dates, directions and how to RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/venues/sandton-convention-centre",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -488,11 +638,11 @@
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
-      <h2 style="font-size:20px; font-weight:800; margin-bottom:20px;">Upcoming Dates (15)</h2>
+      <h2 style="font-size:20px; font-weight:800; margin-bottom:20px;">Upcoming Dates (20)</h2>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Year-End Business &amp; Tech Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d" data-title="southern africa year-end business &amp; tech gala" data-venue="sandton convention centre" data-city="johannesburg" data-date="2026-12-02">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Southern Africa Year-End Business &amp; Tech Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 02 Dec 2026 · 18:30</div>
         <h3 class="event-title">Southern Africa Year-End Business &amp; Tech Gala</h3>
@@ -504,8 +654,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/women-in-african-tech-and-leadership-breakfast-sandton-convention-0fd1beed-8f56-4d8a-b773-a8b8942f2cb0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in African Tech &amp; Leadership Breakfast" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sandton-vc-dealmakers-and-scaleup-gala-sandton-convention-centre-84f318c5-078f-4aa3-81c4-9fc88cae0d20" data-title="sandton vc dealmakers &amp; scaleup gala" data-venue="sandton convention centre" data-city="johannesburg" data-date="2026-12-08">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Sandton VC Dealmakers &amp; Scaleup Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 08 Dec 2026 · 17:30</div>
+        <h3 class="event-title">Sandton VC Dealmakers &amp; Scaleup Gala</h3>
+        <p class="event-venue">Sandton Convention Centre · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/women-in-african-tech-and-leadership-breakfast-sandton-convention-0fd1beed-8f56-4d8a-b773-a8b8942f2cb0" data-title="women in african tech &amp; leadership breakfast" data-venue="sandton convention centre" data-city="johannesburg" data-date="2026-12-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Women in African Tech &amp; Leadership Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 17 Dec 2026 · 08:00</div>
         <h3 class="event-title">Women in African Tech &amp; Leadership Breakfast</h3>
@@ -517,8 +680,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-2027-economic-and-tech-outlook-sandton-convention-29ed7d13-df76-4985-80b9-2ac44cdb9fa9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa 2027 Economic &amp; Tech Outlook" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-2027-economic-and-tech-outlook-sandton-convention-29ed7d13-df76-4985-80b9-2ac44cdb9fa9" data-title="southern africa 2027 economic &amp; tech outlook" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-12">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Southern Africa 2027 Economic &amp; Tech Outlook" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 12 Jan 2027 · 08:30</div>
         <h3 class="event-title">Southern Africa 2027 Economic &amp; Tech Outlook</h3>
@@ -530,8 +693,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ecommerce-africa-logistics-and-payments-forum-sandton-convention-f52a871a-00df-47b6-8304-e46fea869106">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="eCommerce Africa Logistics &amp; Payments Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gauteng-proptech-and-smart-buildings-forum-sandton-convention-centre-0eae571e-6b86-4f42-a608-7fb682267cd7" data-title="gauteng proptech &amp; smart buildings forum" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Gauteng PropTech &amp; Smart Buildings Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 18 Jan 2027 · 09:00</div>
+        <h3 class="event-title">Gauteng PropTech &amp; Smart Buildings Forum</h3>
+        <p class="event-venue">Sandton Convention Centre · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/ecommerce-africa-logistics-and-payments-forum-sandton-convention-f52a871a-00df-47b6-8304-e46fea869106" data-title="ecommerce africa logistics &amp; payments forum" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-21">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="eCommerce Africa Logistics &amp; Payments Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 21 Jan 2027 · 09:30</div>
         <h3 class="event-title">eCommerce Africa Logistics &amp; Payments Forum</h3>
@@ -543,8 +719,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cybersecurity-and-cloud-resilience-congress-sandton-convention-centre-62955c68-4f53-4c96-a806-f609e77bcda8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cybersecurity &amp; Cloud Resilience Congress" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cybersecurity-and-cloud-resilience-congress-sandton-convention-centre-62955c68-4f53-4c96-a806-f609e77bcda8" data-title="cybersecurity &amp; cloud resilience congress" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Cybersecurity &amp; Cloud Resilience Congress" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 29 Jan 2027 · 09:00</div>
         <h3 class="event-title">Cybersecurity &amp; Cloud Resilience Congress</h3>
@@ -556,8 +732,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/african-mining-and-energy-leaders-executive-indaba-sandton-convention-f78d39f5-814a-451c-96fa-e82874325417">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Mining &amp; Energy Leaders Executive Indaba" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/african-mining-and-energy-leaders-executive-indaba-sandton-convention-f78d39f5-814a-451c-96fa-e82874325417" data-title="african mining &amp; energy leaders executive indaba" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-02-02">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="African Mining &amp; Energy Leaders Executive Indaba" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 02 Feb 2027 · 08:30</div>
         <h3 class="event-title">African Mining &amp; Energy Leaders Executive Indaba</h3>
@@ -569,8 +745,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa Payments &amp; Cross-Border Remittances" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-venture-capital-and-private-equity-summit-2027-sandton-ab5a2e98-0224-4527-8c15-fe90ea0f93ba" data-title="africa venture capital &amp; private equity summit 2027" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-02-03">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa Venture Capital &amp; Private Equity Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 03 Feb 2027 · 08:30</div>
+        <h3 class="event-title">Africa Venture Capital &amp; Private Equity Summit 2027</h3>
+        <p class="event-venue">Sandton Convention Centre · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9" data-title="fintech africa payments &amp; cross-border remittances" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-02-16">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="FinTech Africa Payments &amp; Cross-Border Remittances" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 16 Feb 2027 · 09:00</div>
         <h3 class="event-title">FinTech Africa Payments &amp; Cross-Border Remittances</h3>
@@ -582,8 +771,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-fintech-and-digital-banking-summit-2027-sandton-convention-c73ab3bf-f758-441f-b144-3ba4f2caf492">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa FinTech &amp; Digital Banking Summit 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/meetings-africa-sandton-convention-centre-johannesburg-e827d995-d8a7-490b-b56c-498957454f80" data-title="meetings africa" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-02-21">
+      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/db8fbec0-d2f4-11f1-8288-c1a43ad99f69-rimg-w720-h801-dc587898-gmir.jpg?v=1793208452" alt="Meetings Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 21 Feb 2027 · 20:30</div>
+        <h3 class="event-title">Meetings Africa</h3>
+        <p class="event-venue">Sandton Convention Centre · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/south-african-angel-syndicate-demo-day-finale-sandton-convention-5b94e6ad-99da-4f56-b2d7-4b6f27ff5c31" data-title="south african angel syndicate demo day finale" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-02-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="South African Angel Syndicate Demo Day Finale" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 27 Feb 2027 · 14:00</div>
+        <h3 class="event-title">South African Angel Syndicate Demo Day Finale</h3>
+        <p class="event-venue">Sandton Convention Centre · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/africa-fintech-and-digital-banking-summit-2027-sandton-convention-c73ab3bf-f758-441f-b144-3ba4f2caf492" data-title="africa fintech &amp; digital banking summit 2027" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-03-03">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa FinTech &amp; Digital Banking Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 03 Mar 2027 · 08:30</div>
         <h3 class="event-title">Africa FinTech &amp; Digital Banking Summit 2027</h3>
@@ -595,8 +810,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-retail-and-supply-chain-expo-sandton-convention-centre-64454b1d-5a0c-436d-8670-73415a7f8ddd">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Retail &amp; Supply Chain Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-retail-and-supply-chain-expo-sandton-convention-centre-64454b1d-5a0c-436d-8670-73415a7f8ddd" data-title="africa retail &amp; supply chain expo" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-03-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa Retail &amp; Supply Chain Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 18 Mar 2027 · 09:00</div>
         <h3 class="event-title">Africa Retail &amp; Supply Chain Expo</h3>
@@ -608,8 +823,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/clean-energy-and-green-hydrogen-southern-africa-sandton-convention-014c8514-cb47-40f5-813b-7396c999ef4c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Clean Energy &amp; Green Hydrogen Southern Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/clean-energy-and-green-hydrogen-southern-africa-sandton-convention-014c8514-cb47-40f5-813b-7396c999ef4c" data-title="clean energy &amp; green hydrogen southern africa" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-03-30">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Clean Energy &amp; Green Hydrogen Southern Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 30 Mar 2027 · 08:30</div>
         <h3 class="event-title">Clean Energy &amp; Green Hydrogen Southern Africa</h3>
@@ -621,8 +836,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/south-african-property-buyers-and-investment-expo-sandton-convention-0ad51aee-fa46-4ebd-83b0-0697e2df5861">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="South African Property Buyers &amp; Investment Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/south-african-property-buyers-and-investment-expo-sandton-convention-0ad51aee-fa46-4ebd-83b0-0697e2df5861" data-title="south african property buyers &amp; investment expo" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-04-06">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="South African Property Buyers &amp; Investment Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 06 Apr 2027 · 09:00</div>
         <h3 class="event-title">South African Property Buyers &amp; Investment Expo</h3>
@@ -634,8 +849,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/franchising-and-business-expansion-expo-2027-sandton-convention-8ad0a63b-aac0-445a-963f-227adf03273f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Franchising &amp; Business Expansion Expo 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/franchising-and-business-expansion-expo-2027-sandton-convention-8ad0a63b-aac0-445a-963f-227adf03273f" data-title="franchising &amp; business expansion expo 2027" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-04-28">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Franchising &amp; Business Expansion Expo 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 28 Apr 2027 · 09:00</div>
         <h3 class="event-title">Franchising &amp; Business Expansion Expo 2027</h3>
@@ -647,8 +862,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/african-enterprise-technology-and-cloud-summit-2027-sandton-f34e93c0-7c8c-4b0d-9eee-b7c079d74859">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Enterprise Technology &amp; Cloud Summit 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/african-enterprise-technology-and-cloud-summit-2027-sandton-f34e93c0-7c8c-4b0d-9eee-b7c079d74859" data-title="african enterprise technology &amp; cloud summit 2027" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-05-04">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="African Enterprise Technology &amp; Cloud Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 04 May 2027 · 08:30</div>
         <h3 class="event-title">African Enterprise Technology &amp; Cloud Summit 2027</h3>
@@ -660,8 +875,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-industrial-robotics-and-automation-expo-sandton-517095e5-0404-43a2-be95-3459c91453b7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Industrial Robotics &amp; Automation Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-industrial-robotics-and-automation-expo-sandton-517095e5-0404-43a2-be95-3459c91453b7" data-title="southern africa industrial robotics &amp; automation expo" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-05-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Southern Africa Industrial Robotics &amp; Automation Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 13 May 2027 · 09:00</div>
         <h3 class="event-title">Southern Africa Industrial Robotics &amp; Automation Expo</h3>
@@ -673,8 +888,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/women-in-science-engineering-and-mining-forum-sandton-convention-8f7fb86c-db5c-4233-bc10-e82036cb80c0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in Science, Engineering &amp; Mining Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/women-in-science-engineering-and-mining-forum-sandton-convention-8f7fb86c-db5c-4233-bc10-e82036cb80c0" data-title="women in science, engineering &amp; mining forum" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-05-26">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Women in Science, Engineering &amp; Mining Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 26 May 2027 · 08:30</div>
         <h3 class="event-title">Women in Science, Engineering &amp; Mining Forum</h3>

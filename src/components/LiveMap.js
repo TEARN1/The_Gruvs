@@ -12,6 +12,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Platform, StyleSheet } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
+import { LiveRain3DOverlay } from './LiveRain3DOverlay';
 import {
   emptyFC, eventsToGeoJSON, zonesToGeoJSON, zonesToMarkersGeoJSON, reportsToGeoJSON,
   pointsToGeoJSON, staysToGeoJSON, poisToGeoJSON, crewToGeoJSON,
@@ -88,6 +89,11 @@ function loadMapLibre() {
 // OpenFreeMap dark — keyless & free, and it matches the app's dark UI so the
 // neon pins, heat and closures pop instead of washing out on a light ground.
 // Same host as before, so the existing CSP (tiles.openfreemap.org) covers it.
+// Our own text layers must name a font the tile server actually serves.
+// Left unset, MapLibre falls back to "Open Sans Regular, Arial Unicode MS
+// Regular", which OpenFreeMap 404s, so every label/count we draw vanished.
+const MAP_TEXT_FONT = ['Noto Sans Bold'];
+
 const MAP_STYLES = {
   dark:  'https://tiles.openfreemap.org/styles/dark',
   light: 'https://tiles.openfreemap.org/styles/bright',
@@ -271,7 +277,7 @@ export function LiveMap({
         id: 'zone-markers-text', type: 'symbol', source: 'zone-markers',
         layout: {
           'text-field': ['get', 'label'],
-          'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
+          'text-font': MAP_TEXT_FONT,
           'text-size': 10,
           'text-offset': [0, 0.6],
           'text-anchor': 'top'
@@ -289,7 +295,7 @@ export function LiveMap({
       map.addLayer({
         id: 'pois-icon', type: 'symbol', source: 'pois',
         layout: {
-          'text-field': ['get', 'icon'],
+          'text-font': MAP_TEXT_FONT, 'text-field': ['get', 'icon'],
           'text-size': 14,
           'text-allow-overlap': true,
         },
@@ -332,7 +338,7 @@ export function LiveMap({
       map.addLayer({
         id: 'ev-cluster-count', type: 'symbol', source: 'eventsC', filter: ['has', 'point_count'],
         layout: { visibility: heatRef.current ? 'none' : 'visible',
-          'text-field': ['get', 'point_count_abbreviated'], 'text-size': 13, 'text-allow-overlap': true },
+          'text-font': MAP_TEXT_FONT, 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 13, 'text-allow-overlap': true },
         paint: { 'text-color': '#0d1112' },
       });
       // Individual venue — soft glow, then the "hot right now" ring on busy ones,
@@ -480,7 +486,7 @@ export function LiveMap({
       map.addLayer({
         id: 'crew-count', type: 'symbol', source: 'crew',
         layout: { visibility: crewRef.current ? 'visible' : 'none',
-          'text-field': ['to-string', ['get', 'count']], 'text-size': 11, 'text-allow-overlap': true },
+          'text-font': MAP_TEXT_FONT, 'text-field': ['to-string', ['get', 'count']], 'text-size': 11, 'text-allow-overlap': true },
         paint: { 'text-color': '#fff' },
       });
 
@@ -503,7 +509,7 @@ export function LiveMap({
         id: 'nearby-text', type: 'symbol', source: 'nearby',
         layout: {
           visibility: nearbyRef.current ? 'visible' : 'none',
-          'text-field': ['get', 'username'],
+          'text-font': MAP_TEXT_FONT, 'text-field': ['get', 'username'],
           'text-size': 10,
           'text-offset': [0, 1.2],
           'text-anchor': 'top',
@@ -570,7 +576,7 @@ export function LiveMap({
       map.addLayer({
         id: 'stays-icon', type: 'symbol', source: 'stays',
         layout: { visibility: staysRef.current ? 'visible' : 'none',
-          'text-field': 'H', 'text-size': 11, 'text-allow-overlap': true },
+          'text-font': MAP_TEXT_FONT, 'text-field': 'H', 'text-size': 11, 'text-allow-overlap': true },
       });
 
       map.addSource('ripple', { type: 'geojson', data: emptyFC() });
@@ -794,8 +800,22 @@ export function LiveMap({
       const url = `https://tilecache.rainviewer.com/v2/radar/${ts}/256/{z}/{x}/{y}/2/1_1.png`;
 
       if (m.getSource('weather-radar')) m.removeSource('weather-radar');
-      m.addSource('weather-radar', { type: 'raster', tiles: [url], tileSize: 256 });
-      m.addLayer({ id: 'weather-radar', type: 'raster', source: 'weather-radar', paint: { 'raster-opacity': 0.6 } }, 'ev-glow');
+      m.addSource('weather-radar', {
+        type: 'raster',
+        tiles: [url],
+        tileSize: 256,
+        maxzoom: 6,
+        attribution: 'RainViewer',
+      });
+      m.addLayer({
+        id: 'weather-radar',
+        type: 'raster',
+        source: 'weather-radar',
+        paint: {
+          'raster-opacity': 0.55,
+          'raster-fade-duration': 300,
+        }
+      }, 'ev-glow');
     } catch { /* weather failed — silent */ }
   }
 
@@ -826,10 +846,15 @@ export function LiveMap({
   // Rendered while the engine is still in flight too, so the container exists
   // the moment it arrives — and it is the same dark ground the map paints over,
   // so there is no flash between the two.
-  return React.createElement('div', {
-    ref: containerRef,
-    style: { position: 'absolute', inset: 0, width: '100%', height: '100%', background: '#0d1112' },
-  });
+  return (
+    <View style={[{ position: 'absolute', inset: 0, width: '100%', height: '100%' }, style]}>
+      {React.createElement('div', {
+        ref: containerRef,
+        style: { position: 'absolute', inset: 0, width: '100%', height: '100%', background: '#0d1112' },
+      })}
+      {showWeather && <LiveRain3DOverlay />}
+    </View>
+  );
 }
 
 const cs = StyleSheet.create({

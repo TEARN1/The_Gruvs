@@ -115,7 +115,7 @@ const ChipRow = ({ label, options, selected, onSelect, renderLabel, primary, mut
         return (
           <TouchableOpacity
             key={key}
-            onPress={() => onSelect(isActive ? null : key)}
+            onPress={() => onSelect?.(isActive ? null : key)}
             style={[
               s.chip,
               {

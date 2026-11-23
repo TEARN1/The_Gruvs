@@ -28,7 +28,9 @@ export const hasPosterOrImage = (event) => {
   if (!event || typeof event !== 'object') return false;
   if (typeof event.cover_url === 'string' && event.cover_url.trim().length > 5) return true;
   if (typeof event.cover_image === 'string' && event.cover_image.trim().length > 5) return true;
+  if (typeof event.image_url === 'string' && event.image_url.trim().length > 5) return true;
   if (typeof event.poster_url === 'string' && event.poster_url.trim().length > 5) return true;
+  if (typeof event.image === 'string' && event.image.trim().length > 5) return true;
   if (Array.isArray(event.media_urls) && event.media_urls.length > 0) {
     const u = event.media_urls[0];
     if (typeof u === 'string' && u.trim().length > 5) return true;
@@ -750,7 +752,9 @@ export const FeedManager = {
     // (flaky onEndReached), don't hit the network: PostgREST answers an offset
     // past the last row with 416 Range Not Satisfiable, which spammed an error
     // on every load. There is nothing after page 0 here, so return empty.
-    if (singlePage && page > 0) return [];
+    // Same shape as every other page result: callers destructure { events },
+    // and a bare [] made that undefined ("Failed to load gruvs" on scroll).
+    if (singlePage && page > 0) return { events: [], total: 0, page, hasMore: false };
 
     // ── Tier helpers ──────────────────────────────────────────────────────────
     const buildBaseQuery = (select, opts = {}) => {
@@ -761,6 +765,8 @@ export const FeedManager = {
         .is('deleted_at', null)
         // null-safe: a row with status IS NULL must still show (NULL <> 'cancelled' is NULL in SQL)
         .or('status.is.null,status.neq.cancelled')
+        // Strict poster requirement: only query events that have their own poster / flyer
+        .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
         .range(page * pageSize, (page + 1) * pageSize - 1);
       if (category !== 'all') {
         const subCats = CAT_KEY_TO_SUBCATS[category];
@@ -946,7 +952,9 @@ export const FeedManager = {
         throw new Error('cache miss');
       },
       // ── Last resort: nothing loaded and nothing cached → an empty feed ────
-      async () => ({ events: [], total: 0, page, hasMore: false }),
+      // `failed` marks this as "couldn't load", not "there are no events", so the
+      // screen keeps what it already shows instead of "Nothing Upcoming Yet".
+      async () => ({ events: [], total: 0, page, hasMore: false, failed: true }),
       `FeedManager.fetchPage:${mode}`
     );
   },
@@ -977,6 +985,7 @@ export const FeedManager = {
         const { data, error } = await supabase.from('events')
           .select('*, profiles!author_id(id, username, avatar_url, is_verified, vibe_score)')
           .gte('event_date', today).is('deleted_at', null).neq('status', 'cancelled')
+          .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
         const best = pick(normalizeEvents(data));
@@ -986,8 +995,9 @@ export const FeedManager = {
       // Tier 2: no profile join — lighter
       async () => {
         const { data, error } = await supabase.from('events')
-          .select('id, title, description, media, vibe_count, going, event_date, event_time, venue_name, category, author_id, created_at, is_featured')
+          .select('id, title, description, media, cover_url, cover_image, image_url, vibe_count, going, event_date, event_time, venue_name, category, author_id, created_at, is_featured')
           .gte('event_date', today).is('deleted_at', null).neq('status', 'cancelled')
+          .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
         return pick(normalizeEvents(data));
@@ -1057,9 +1067,10 @@ export const FeedManager = {
         // Tier 2: ilike-only on events, no user search
         async () => {
           const { data, error } = await supabase.from('events')
-            .select('id, title, media, vibe_count, event_date, venue_name, category')
+            .select('id, title, media, cover_url, cover_image, image_url, vibe_count, event_date, venue_name, category')
             .or(`title.ilike.%${s}%,venue_name.ilike.%${s}%`)
             .is('deleted_at', null).neq('status', 'cancelled')
+            .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
             .order('vibe_count', { ascending: false }).limit(15);
           if (error) throw error;
           return { events: normalizeEvents(data || []), users: [] };
@@ -1194,6 +1205,7 @@ export const TrendingManager = {
           image: e.media?.[0]?.url || null,
           rsvp_count: e.going || 0,
           vibe_count: e.vibe_count || 0,
+          category: e.category || null,
           heat: Math.round(ScoreEngine.heatScore(e)),
           rank: i + 1,
         }));
@@ -1270,6 +1282,7 @@ export const TrendingManager = {
           .select('*, profiles!author_id(username, avatar_url)')
           .gte('event_date', today).lte('event_date', tomorrow)
           .is('deleted_at', null).neq('status', 'cancelled')
+          .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
         const events = rank(normalizeEvents(data));
@@ -1279,9 +1292,10 @@ export const TrendingManager = {
       // Tier 2: no profile join
       async () => {
         const { data, error } = await supabase.from('events')
-          .select('id, title, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at')
+          .select('id, title, media, cover_url, cover_image, image_url, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at')
           .gte('event_date', today).lte('event_date', tomorrow)
           .is('deleted_at', null).neq('status', 'cancelled')
+          .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
           .order('vibe_count', { ascending: false }).limit(20);
         if (error) throw error;
         return rank(normalizeEvents(data));
@@ -1307,16 +1321,17 @@ export const TrendingManager = {
       const weekEnd = endOfWeek.toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
-        .select('id, title, media, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at, profiles:author_id(username, avatar_url)')
+        .select('id, title, media, cover_url, cover_image, image_url, poster_mode, vibe_count, going, event_date, event_time, venue_name, category, created_at, profiles:author_id(username, avatar_url)')
         .gte('event_date', today)
         .lte('event_date', weekEnd)
         .is('deleted_at', null)
         .neq('status', 'cancelled')
+        .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
         .order('vibe_count', { ascending: false })
         .limit(20);
       // B-sweep 3: the week rail shows what's HOT this week, not most-liked —
       // rank the fetched pool by the canonical heat before caching.
-      const result = (data || []).slice().sort((a, b) => canonicalHeatScore(b) - canonicalHeatScore(a));
+      const result = normalizeEvents(data || []).slice().sort((a, b) => canonicalHeatScore(b) - canonicalHeatScore(a));
       cache.set(cacheKey, result, 300000); // 5-min TTL
       return result;
     } catch { return []; }
@@ -2416,11 +2431,12 @@ export const CalendarManager = {
     try {
       const { data } = await supabase
         .from('events')
-        .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media, price')
+        .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media, cover_url, cover_image, image_url, price')
         .gte('event_date', from)
         .lte('event_date', to)
         .is('deleted_at', null)
         .neq('status', 'cancelled')
+        .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
         .order('event_date', { ascending: true })
         .limit(60);
       const result = normalizeEvents(data || []);
@@ -2437,10 +2453,11 @@ export const CalendarManager = {
       const today = new Date().toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
-        .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media, price')
+        .select('id, title, event_date, event_time, category, category_color, venue_name, going, vibe_count, media, cover_url, cover_image, image_url, price')
         .gte('event_date', today)
         .is('deleted_at', null)
         .neq('status', 'cancelled')
+        .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
         .order('event_date', { ascending: true })
         .limit(limit);
       const result = normalizeEvents(data || []);
@@ -4308,25 +4325,19 @@ export const TicketManager = {
     const token = String(tokenStr || '').trim();
     if (!token) return { valid: false, reason: 'empty', ticket: null };
 
-    // Atomic claim: only an unused ticket transitions to used.
-    let q = supabase
-      .from('ticket_tokens')
-      .update({ used_at: new Date().toISOString() })
-      .eq('token', token)
-      .is('used_at', null);
-    if (eventId) q = q.eq('event_id', eventId);
-    const { data, error } = await q.select('*, profiles:user_id(username, avatar_url), events(title)');
+    // Server-side, host-only, atomic claim (validate_ticket RPC). Tickets are
+    // read-only to clients: the old direct UPDATE ran under the HOST's session,
+    // and RLS (owner-only) blocked it, so a host could never check a guest in.
+    const { data, error } = await supabase.rpc('validate_ticket', {
+      p_token: token,
+      p_event: eventId || null,
+    });
     if (error) { logError('Ticket.validate', error); return { valid: false, reason: 'error', ticket: null }; }
-
-    if (data && data.length) return { valid: true, reason: 'ok', ticket: data[0] };
-
-    // Nothing flipped — say WHY: already used, wrong event, or never existed.
-    const { data: existing } = await supabase
-      .from('ticket_tokens')
-      .select('used_at, event_id')
-      .eq('token', token)
-      .maybeSingle();
-    return ticketOutcome(existing, eventId);
+    const reason = data?.reason || 'error';
+    const ticket = data?.ticket
+      ? { ...data.ticket, profiles: { username: data.ticket.username } }
+      : null;
+    return { valid: !!data?.valid, reason, ticket };
   },
 };
 

@@ -72,7 +72,7 @@ const MemberRow = React.memo(({ item, onRevoke, primary, textColor, muted, surfa
       </View>
       <TouchableOpacity
         style={[rm.revokeBtn, { borderColor: '#ef444440' }]}
-        onPress={() => onRevoke(item)}
+        onPress={() => onRevoke?.(item)}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Feather name="x" size={14} color="#ef4444" />
@@ -84,7 +84,7 @@ const MemberRow = React.memo(({ item, onRevoke, primary, textColor, muted, surfa
 const AttendeeRow = React.memo(({ item, onGrant, primary, textColor, muted, surface }) => (
   <TouchableOpacity
     style={[rm.attendeeRow, { backgroundColor: surface, borderColor: `${primary}15` }]}
-    onPress={() => onGrant(item)}
+    onPress={() => onGrant?.(item)}
     activeOpacity={0.8}
   >
     <View style={[rm.avatar, { backgroundColor: `${primary}20` }]}>

@@ -462,7 +462,7 @@ export async function resilientWrite(primaryWrite, fallbackWrite, localQueue, la
  * @param {any}            emptyResult   — mother fallback value (e.g. [])
  */
 export async function resilientRead(fetchFull, fetchSimple, fromCache, emptyResult = [], label = 'read') {
-  return resilient(
+  const value = await resilient(
     [fetchFull, fetchSimple, fromCache],
     {
       attemptsPerTier: 3,
@@ -481,4 +481,13 @@ export async function resilientRead(fetchFull, fetchSimple, fromCache, emptyResu
       overallDeadlineMs: READ_DEADLINE_MS,
     }
   );
+  // The circuit-open and deadline paths return fallbackValue directly, without
+  // running onExhausted — and for a function emptyResult that was null. On slow
+  // mobile data FeedManager.fetchPage resolved null and The Drop threw
+  // "Cannot read property 'events' of null". Never hand a reader null when it
+  // gave us a last-resort answer.
+  if (value == null && typeof emptyResult === 'function') {
+    try { return await emptyResult(); } catch { return null; }
+  }
+  return value;
 }

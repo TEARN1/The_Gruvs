@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -270,6 +323,66 @@
       "position": 2,
       "item": {
         "@type": "Event",
+        "name": "Bosvark Lucky Draw",
+        "startDate": "2026-12-04T21:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Goggabos daycare and after care Standerton",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events2/banners/806fd451e673e01df7138ac3345616467077171f6a240d9b8e28c1396fbbeef5-rimg-w1200-h1200-dcf8f8f8-gmir?v=1792822153",
+        "url": "https://thegruvs.com/events/bosvark-lucky-draw-goggabos-daycare-and-after-care-standerton-midrand-6a76f28f-6b77-4fd5-a0a7-bee22c25b341"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "Event",
+        "name": "Waterfall City Founders & Venture Networking Breakfast",
+        "startDate": "2026-12-11T08:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Waterfall City Park Event Pavilion",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/waterfall-city-founders-and-venture-networking-breakfast-waterfall-8fde1dac-d0db-4b99-8b34-d228acd79073"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@type": "Event",
+        "name": "Agri-Tech & Rural Enterprise Showcase",
+        "startDate": "2026-12-12T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Riversands I-Hub",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/agri-tech-and-rural-enterprise-showcase-riversands-i-hub-midrand-11b6bc53-3509-4a58-9dad-094ba2e7ee75"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "item": {
+        "@type": "Event",
         "name": "Midrand SME Cloud & Digital Mastery Workshop",
         "startDate": "2026-12-14T09:30:00+02:00",
         "location": {
@@ -281,13 +394,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b"
       }
     },
     {
       "@type": "ListItem",
-      "position": 3,
+      "position": 6,
+      "item": {
+        "@type": "Event",
+        "name": "Midrand Manufacturing & Hardware Incubator Day",
+        "startDate": "2026-12-19T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Gallagher Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/midrand-manufacturing-and-hardware-incubator-day-gallagher-convention-5feba739-0785-4602-bf86-c4d9c1474deb"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
       "item": {
         "@type": "Event",
         "name": "Christmas Day Family Garden Feast",
@@ -301,13 +434,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/christmas-day-family-garden-feast-waterfall-city-park-midrand-bbae7b21-26d6-4af3-8f31-2b1136be8dc4"
       }
     },
     {
       "@type": "ListItem",
-      "position": 4,
+      "position": 8,
+      "item": {
+        "@type": "Event",
+        "name": "Lindiwe Kunene",
+        "startDate": "2027-01-01T02:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Kaalfontein, Midrand",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events2/banners/a1e0929e42306a8601ff2271208c54ba6658a739b3ed33b2f82ad116d3704c91-rimg-w1086-h1448-dcf8f8e8-gmir?v=1792822157",
+        "url": "https://thegruvs.com/events/lindiwe-kunene-kaalfontein-midrand-midrand-3f91d273-5c77-4af2-991e-ec9275db6148"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 9,
       "item": {
         "@type": "Event",
         "name": "AI & Enterprise Automation Summit 2027",
@@ -321,13 +474,53 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/ai-and-enterprise-automation-summit-2027-gallagher-convention-centre-608387bc-f93b-431e-8cd6-2e183d8320b8"
       }
     },
     {
       "@type": "ListItem",
-      "position": 5,
+      "position": 10,
+      "item": {
+        "@type": "Event",
+        "name": "Factor B & Lostly presents Lost Minds South Africa",
+        "startDate": "2027-01-23T19:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Soundroom",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events2/banners/2271cfa68f2d5467cd7cd070f822e4e254dab8a3553e1459f3035c450bf26b31-rimg-w1200-h628-dc081828-gmir?v=1792822145",
+        "url": "https://thegruvs.com/events/factor-b-and-lostly-presents-lost-minds-south-africa-the-soundroom-cc482e77-d200-49d8-85f1-adae140dc702"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 11,
+      "item": {
+        "@type": "Event",
+        "name": "Midrand Logistics & Trucking Business Workshop",
+        "startDate": "2027-01-23T09:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Riversands I-Hub",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/midrand-logistics-and-trucking-business-workshop-riversands-i-hub-b19b7649-4c64-4744-a825-cc8a0ac2145a"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 12,
       "item": {
         "@type": "Event",
         "name": "Waterfall City Beats & Bites Carnival",
@@ -341,13 +534,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/waterfall-city-beats-and-bites-carnival-waterfall-city-park-midrand-b9b4806c-e29f-43ca-bda4-87f132ccbdc1"
       }
     },
     {
       "@type": "ListItem",
-      "position": 6,
+      "position": 13,
+      "item": {
+        "@type": "Event",
+        "name": "Waterfall City CleanTech & ESG Venture Forum",
+        "startDate": "2027-01-29T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Waterfall City Park Event Pavilion",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/waterfall-city-cleantech-and-esg-venture-forum-waterfall-city-park-c2d63480-253b-4b55-a3b0-7f16060f3e0c"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 14,
       "item": {
         "@type": "Event",
         "name": "Kyalami Trackside Summer Music Fest",
@@ -361,13 +574,53 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/kyalami-trackside-summer-music-fest-kyalami-grand-prix-circuit-midrand-3d1c1825-de26-478d-8b3a-a027c222adb7"
       }
     },
     {
       "@type": "ListItem",
-      "position": 7,
+      "position": 15,
+      "item": {
+        "@type": "Event",
+        "name": "Midrand Food Truck & Mobile Catering Incubator",
+        "startDate": "2027-01-30T11:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Gallagher Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/midrand-food-truck-and-mobile-catering-incubator-gallagher-convention-9ef10545-3042-4877-b96a-fd789d228d3d"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 16,
+      "item": {
+        "@type": "Event",
+        "name": "who will win the league",
+        "startDate": "2027-02-01T02:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Halfway Gardens Ext 3, Midrand",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events10/banners/c071089c5012b067b8ac9a507a7ad28e6694efd0b613017eef6405db8b0f150b-rimg-w959-h1198-dc080808-gmir?v=1792822151",
+        "url": "https://thegruvs.com/events/who-will-win-the-league-halfway-gardens-ext-3-midrand-midrand-849743d7-89bd-42d7-9fda-eacf0327d59e"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 17,
       "item": {
         "@type": "Event",
         "name": "SME Funding & Growth Capital Expo 2027",
@@ -381,13 +634,73 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/sme-funding-and-growth-capital-expo-2027-gallagher-convention-centre-ea3aaea9-30e4-4abc-aba2-e4f7bc10de32"
       }
     },
     {
       "@type": "ListItem",
-      "position": 8,
+      "position": 18,
+      "item": {
+        "@type": "Event",
+        "name": "Midrand Industrial Robotics & Automation Showcase",
+        "startDate": "2027-02-12T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Gallagher Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/midrand-industrial-robotics-and-automation-showcase-gallagher-dbecf3eb-dcc0-402e-a41b-24d78e5820dc"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 19,
+      "item": {
+        "@type": "Event",
+        "name": "Kyalami Clean Mobility & EV Fleet Summit",
+        "startDate": "2027-02-15T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Kyalami Grand Prix Circuit Conference Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/kyalami-clean-mobility-and-ev-fleet-summit-kyalami-grand-prix-circuit-f7da67af-af2f-4ed5-a316-ddbc918dd79f"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 20,
+      "item": {
+        "@type": "Event",
+        "name": "Cross-Border African Trade & AfCFTA Masterclass",
+        "startDate": "2027-02-18T09:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Riversands I-Hub",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/cross-border-african-trade-and-afcfta-masterclass-riversands-i-hub-334562e4-f240-4fb7-b073-8edce1bfbbdf"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 21,
       "item": {
         "@type": "Event",
         "name": "Kyalami Night Track Festival & Drifting",
@@ -401,13 +714,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/kyalami-night-track-festival-and-drifting-kyalami-grand-prix-circuit-b275f41b-f2f7-4a70-a4e5-d30f84607d39"
       }
     },
     {
       "@type": "ListItem",
-      "position": 9,
+      "position": 22,
       "item": {
         "@type": "Event",
         "name": "Autumn Beats Outdoor Festival",
@@ -421,13 +734,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/autumn-beats-outdoor-festival-waterfall-city-park-midrand-5c1dda7a-491a-44a7-8e9d-e4dbe20ab2b4"
       }
     },
     {
       "@type": "ListItem",
-      "position": 10,
+      "position": 23,
       "item": {
         "@type": "Event",
         "name": "Gauteng Infrastructure & Municipal Bond Summit",
@@ -441,13 +754,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/gauteng-infrastructure-and-municipal-bond-summit-gallagher-convention-d02188b0-4c10-4dcd-9df5-375945a2fa03"
       }
     },
     {
       "@type": "ListItem",
-      "position": 11,
+      "position": 24,
       "item": {
         "@type": "Event",
         "name": "Kyalami Autumn Supercar Parade & Track Fest",
@@ -461,13 +774,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/kyalami-autumn-supercar-parade-and-track-fest-kyalami-grand-prix-fb05ffcb-1f78-4f78-8dd7-cb3666e9542f"
       }
     },
     {
       "@type": "ListItem",
-      "position": 12,
+      "position": 25,
       "item": {
         "@type": "Event",
         "name": "SME Cybersecurity & Data Compliance Workshop",
@@ -481,13 +794,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/sme-cybersecurity-and-data-compliance-workshop-gallagher-convention-cf335bc8-fe73-4669-8f9e-1eb58a6bb7dc"
       }
     },
     {
       "@type": "ListItem",
-      "position": 13,
+      "position": 26,
       "item": {
         "@type": "Event",
         "name": "Kyalami Autumn Track Days & DJ Festival",
@@ -501,13 +814,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/kyalami-autumn-track-days-and-dj-festival-kyalami-grand-prix-circuit-0991ff45-5164-43f7-b48a-7f3f09f52a4f"
       }
     },
     {
       "@type": "ListItem",
-      "position": 14,
+      "position": 27,
       "item": {
         "@type": "Event",
         "name": "Waterfall City Street Food & Craft Gin Fest",
@@ -521,13 +834,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/waterfall-city-street-food-and-craft-gin-fest-waterfall-city-park-1ab62b64-56f3-4f2c-b9dd-036f5dcea1c8"
       }
     },
     {
       "@type": "ListItem",
-      "position": 15,
+      "position": 28,
       "item": {
         "@type": "Event",
         "name": "SME Accounting, Cash Flow & Payroll Masterclass",
@@ -541,13 +854,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/sme-accounting-cash-flow-and-payroll-masterclass-gallagher-convention-2ae9dc58-d24e-407f-8228-435481a5e454"
       }
     },
     {
       "@type": "ListItem",
-      "position": 16,
+      "position": 29,
       "item": {
         "@type": "Event",
         "name": "Kyalami Winter Endurance Fest",
@@ -561,7 +874,7 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec"
       }
     }
@@ -624,11 +937,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events in Midrand (2026) — The Gruvs",
+  "description": "Discover upcoming events, nightlife, and festivals in Midrand. Dates, venues and directions on The Gruvs.",
+  "url": "https://thegruvs.com/events/midrand",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -652,6 +1012,17 @@
       <h1 class="hero-title">Events in <span class="brand-accent">Midrand</span></h1>
       <p class="hero-lead">Altitude Beach pool parties, Waterfall City markets, and luxury lifestyle events in Midrand. Browse what's listed, with dates, venues and directions.</p>
 
+      <div class="explore-chips">
+        <a class="explore-chip" href="https://thegruvs.com/events/midrand/this-weekend">This Weekend</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/midrand/free">Free Events</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/midrand/december-2026">Dec 2026</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/midrand/january-2027">Jan 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/midrand/february-2027">Feb 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/midrand/march-2027">Mar 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/midrand/april-2027">Apr 2027</a>
+        <a class="explore-chip" href="https://thegruvs.com/events/midrand/may-2027">May 2027</a>
+      </div>
+
       <div class="resident-banner">
         <div class="resident-banner-text">
           <h3>Need Accommodation in Midrand?</h3>
@@ -660,10 +1031,43 @@
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
+      
+    <div class="hub-filter-bar" style="margin: 20px 0 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <input type="text" id="hub-search" aria-label="Filter events" placeholder="Filter by artist, title, venue or city..." oninput="filterHub(this.value)" style="flex: 1; min-width: 220px; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 11px 16px; color: #fff; font-size: 14px; outline: none;" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="filterType('all', this)" class="filter-pill active">All (29)</button>
+        <button type="button" onclick="filterType('free', this)" class="filter-pill">Free Entry</button>
+        <button type="button" onclick="filterType('paid', this)" class="filter-pill">Paid Tickets</button>
+      </div>
+    </div>
+    <script>
+      function filterHub(q) {
+        var query = (q || '').toLowerCase().trim();
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var t = card.getAttribute('data-title') || '';
+          var v = card.getAttribute('data-venue') || '';
+          var c = card.getAttribute('data-city') || '';
+          var match = !query || t.indexOf(query) !== -1 || v.indexOf(query) !== -1 || c.indexOf(query) !== -1;
+          card.style.display = match ? 'flex' : 'none';
+        });
+      }
+      function filterType(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.event-card').forEach(function(card) {
+          var p = (card.querySelector('.event-price') && card.querySelector('.event-price').textContent || '').toLowerCase();
+          if (type === 'all') card.style.display = 'flex';
+          else if (type === 'free') card.style.display = p.indexOf('free') !== -1 ? 'flex' : 'none';
+          else card.style.display = p.indexOf('free') === -1 ? 'flex' : 'none';
+        });
+      }
+    </script>
+  
+
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891">
-      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703" alt="TinMan Joburg #5" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891" data-title="tinman joburg #5" data-venue="prime view adventure and leisure" data-city="midrand" data-date="2026-11-29">
+      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703" alt="TinMan Joburg #5" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 29 Nov 2026 · 06:30</div>
         <h3 class="event-title">TinMan Joburg #5</h3>
@@ -675,8 +1079,47 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Midrand SME Cloud &amp; Digital Mastery Workshop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/bosvark-lucky-draw-goggabos-daycare-and-after-care-standerton-midrand-6a76f28f-6b77-4fd5-a0a7-bee22c25b341" data-title="bosvark lucky draw" data-venue="goggabos daycare and after care standerton" data-city="midrand" data-date="2026-12-04">
+      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/806fd451e673e01df7138ac3345616467077171f6a240d9b8e28c1396fbbeef5-rimg-w1200-h1200-dcf8f8f8-gmir?v=1792822153" alt="Bosvark Lucky Draw" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 04 Dec 2026 · 21:00</div>
+        <h3 class="event-title">Bosvark Lucky Draw</h3>
+        <p class="event-venue">Goggabos daycare and after care Standerton · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-founders-and-venture-networking-breakfast-waterfall-8fde1dac-d0db-4b99-8b34-d228acd79073" data-title="waterfall city founders &amp; venture networking breakfast" data-venue="waterfall city park event pavilion" data-city="midrand" data-date="2026-12-11">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Waterfall City Founders &amp; Venture Networking Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 11 Dec 2026 · 08:30</div>
+        <h3 class="event-title">Waterfall City Founders &amp; Venture Networking Breakfast</h3>
+        <p class="event-venue">Waterfall City Park Event Pavilion · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/agri-tech-and-rural-enterprise-showcase-riversands-i-hub-midrand-11b6bc53-3509-4a58-9dad-094ba2e7ee75" data-title="agri-tech &amp; rural enterprise showcase" data-venue="riversands i-hub" data-city="midrand" data-date="2026-12-12">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Agri-Tech &amp; Rural Enterprise Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 12 Dec 2026 · 09:00</div>
+        <h3 class="event-title">Agri-Tech &amp; Rural Enterprise Showcase</h3>
+        <p class="event-venue">Riversands I-Hub · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b" data-title="midrand sme cloud &amp; digital mastery workshop" data-venue="gallagher convention centre" data-city="midrand" data-date="2026-12-14">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Midrand SME Cloud &amp; Digital Mastery Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 14 Dec 2026 · 09:30</div>
         <h3 class="event-title">Midrand SME Cloud &amp; Digital Mastery Workshop</h3>
@@ -688,8 +1131,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/christmas-day-family-garden-feast-waterfall-city-park-midrand-bbae7b21-26d6-4af3-8f31-2b1136be8dc4">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Day Family Garden Feast" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/midrand-manufacturing-and-hardware-incubator-day-gallagher-convention-5feba739-0785-4602-bf86-c4d9c1474deb" data-title="midrand manufacturing &amp; hardware incubator day" data-venue="gallagher convention centre" data-city="midrand" data-date="2026-12-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Midrand Manufacturing &amp; Hardware Incubator Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 19 Dec 2026 · 09:00</div>
+        <h3 class="event-title">Midrand Manufacturing &amp; Hardware Incubator Day</h3>
+        <p class="event-venue">Gallagher Convention Centre · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/christmas-day-family-garden-feast-waterfall-city-park-midrand-bbae7b21-26d6-4af3-8f31-2b1136be8dc4" data-title="christmas day family garden feast" data-venue="waterfall city park" data-city="midrand" data-date="2026-12-25">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Christmas Day Family Garden Feast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 25 Dec 2026 · 11:00</div>
         <h3 class="event-title">Christmas Day Family Garden Feast</h3>
@@ -701,8 +1157,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ai-and-enterprise-automation-summit-2027-gallagher-convention-centre-608387bc-f93b-431e-8cd6-2e183d8320b8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="AI &amp; Enterprise Automation Summit 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/lindiwe-kunene-kaalfontein-midrand-midrand-3f91d273-5c77-4af2-991e-ec9275db6148" data-title="lindiwe kunene" data-venue="kaalfontein, midrand" data-city="midrand" data-date="2027-01-01">
+      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/a1e0929e42306a8601ff2271208c54ba6658a739b3ed33b2f82ad116d3704c91-rimg-w1086-h1448-dcf8f8e8-gmir?v=1792822157" alt="Lindiwe Kunene" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 01 Jan 2027 · 02:00</div>
+        <h3 class="event-title">Lindiwe Kunene</h3>
+        <p class="event-venue">Kaalfontein, Midrand · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/ai-and-enterprise-automation-summit-2027-gallagher-convention-centre-608387bc-f93b-431e-8cd6-2e183d8320b8" data-title="ai &amp; enterprise automation summit 2027" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-01-14">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="AI &amp; Enterprise Automation Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 14 Jan 2027 · 09:00</div>
         <h3 class="event-title">AI &amp; Enterprise Automation Summit 2027</h3>
@@ -714,8 +1183,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-beats-and-bites-carnival-waterfall-city-park-midrand-b9b4806c-e29f-43ca-bda4-87f132ccbdc1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Waterfall City Beats &amp; Bites Carnival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/factor-b-and-lostly-presents-lost-minds-south-africa-the-soundroom-cc482e77-d200-49d8-85f1-adae140dc702" data-title="factor b &amp; lostly presents lost minds south africa" data-venue="the soundroom" data-city="midrand" data-date="2027-01-23">
+      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/2271cfa68f2d5467cd7cd070f822e4e254dab8a3553e1459f3035c450bf26b31-rimg-w1200-h628-dc081828-gmir?v=1792822145" alt="Factor B &amp; Lostly presents Lost Minds South Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 23 Jan 2027 · 19:00</div>
+        <h3 class="event-title">Factor B &amp; Lostly presents Lost Minds South Africa</h3>
+        <p class="event-venue">The Soundroom · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/midrand-logistics-and-trucking-business-workshop-riversands-i-hub-b19b7649-4c64-4744-a825-cc8a0ac2145a" data-title="midrand logistics &amp; trucking business workshop" data-venue="riversands i-hub" data-city="midrand" data-date="2027-01-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Midrand Logistics &amp; Trucking Business Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 23 Jan 2027 · 09:30</div>
+        <h3 class="event-title">Midrand Logistics &amp; Trucking Business Workshop</h3>
+        <p class="event-venue">Riversands I-Hub · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-beats-and-bites-carnival-waterfall-city-park-midrand-b9b4806c-e29f-43ca-bda4-87f132ccbdc1" data-title="waterfall city beats &amp; bites carnival" data-venue="waterfall city park" data-city="midrand" data-date="2027-01-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Waterfall City Beats &amp; Bites Carnival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 29 Jan 2027 · 12:00</div>
         <h3 class="event-title">Waterfall City Beats &amp; Bites Carnival</h3>
@@ -727,8 +1222,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-trackside-summer-music-fest-kyalami-grand-prix-circuit-midrand-3d1c1825-de26-478d-8b3a-a027c222adb7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Trackside Summer Music Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-cleantech-and-esg-venture-forum-waterfall-city-park-c2d63480-253b-4b55-a3b0-7f16060f3e0c" data-title="waterfall city cleantech &amp; esg venture forum" data-venue="waterfall city park event pavilion" data-city="midrand" data-date="2027-01-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Waterfall City CleanTech &amp; ESG Venture Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 29 Jan 2027 · 09:00</div>
+        <h3 class="event-title">Waterfall City CleanTech &amp; ESG Venture Forum</h3>
+        <p class="event-venue">Waterfall City Park Event Pavilion · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-trackside-summer-music-fest-kyalami-grand-prix-circuit-midrand-3d1c1825-de26-478d-8b3a-a027c222adb7" data-title="kyalami trackside summer music fest" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-01-30">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Trackside Summer Music Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 30 Jan 2027 · 14:00</div>
         <h3 class="event-title">Kyalami Trackside Summer Music Fest</h3>
@@ -740,8 +1248,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-funding-and-growth-capital-expo-2027-gallagher-convention-centre-ea3aaea9-30e4-4abc-aba2-e4f7bc10de32">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Funding &amp; Growth Capital Expo 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/midrand-food-truck-and-mobile-catering-incubator-gallagher-convention-9ef10545-3042-4877-b96a-fd789d228d3d" data-title="midrand food truck &amp; mobile catering incubator" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-01-30">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Midrand Food Truck &amp; Mobile Catering Incubator" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 30 Jan 2027 · 11:00</div>
+        <h3 class="event-title">Midrand Food Truck &amp; Mobile Catering Incubator</h3>
+        <p class="event-venue">Gallagher Convention Centre · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/who-will-win-the-league-halfway-gardens-ext-3-midrand-midrand-849743d7-89bd-42d7-9fda-eacf0327d59e" data-title="who will win the league" data-venue="halfway gardens ext 3, midrand" data-city="midrand" data-date="2027-02-01">
+      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/c071089c5012b067b8ac9a507a7ad28e6694efd0b613017eef6405db8b0f150b-rimg-w959-h1198-dc080808-gmir?v=1792822151" alt="who will win the league" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 01 Feb 2027 · 02:00</div>
+        <h3 class="event-title">who will win the league</h3>
+        <p class="event-venue">Halfway Gardens Ext 3, Midrand · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sme-funding-and-growth-capital-expo-2027-gallagher-convention-centre-ea3aaea9-30e4-4abc-aba2-e4f7bc10de32" data-title="sme funding &amp; growth capital expo 2027" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-02-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SME Funding &amp; Growth Capital Expo 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 09 Feb 2027 · 09:00</div>
         <h3 class="event-title">SME Funding &amp; Growth Capital Expo 2027</h3>
@@ -753,8 +1287,47 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-night-track-festival-and-drifting-kyalami-grand-prix-circuit-b275f41b-f2f7-4a70-a4e5-d30f84607d39">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Night Track Festival &amp; Drifting" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/midrand-industrial-robotics-and-automation-showcase-gallagher-dbecf3eb-dcc0-402e-a41b-24d78e5820dc" data-title="midrand industrial robotics &amp; automation showcase" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-02-12">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Midrand Industrial Robotics &amp; Automation Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 12 Feb 2027 · 09:00</div>
+        <h3 class="event-title">Midrand Industrial Robotics &amp; Automation Showcase</h3>
+        <p class="event-venue">Gallagher Convention Centre · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-clean-mobility-and-ev-fleet-summit-kyalami-grand-prix-circuit-f7da67af-af2f-4ed5-a316-ddbc918dd79f" data-title="kyalami clean mobility &amp; ev fleet summit" data-venue="kyalami grand prix circuit conference centre" data-city="midrand" data-date="2027-02-15">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Clean Mobility &amp; EV Fleet Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 15 Feb 2027 · 09:00</div>
+        <h3 class="event-title">Kyalami Clean Mobility &amp; EV Fleet Summit</h3>
+        <p class="event-venue">Kyalami Grand Prix Circuit Conference Centre · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/cross-border-african-trade-and-afcfta-masterclass-riversands-i-hub-334562e4-f240-4fb7-b073-8edce1bfbbdf" data-title="cross-border african trade &amp; afcfta masterclass" data-venue="riversands i-hub" data-city="midrand" data-date="2027-02-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Cross-Border African Trade &amp; AfCFTA Masterclass" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 18 Feb 2027 · 09:30</div>
+        <h3 class="event-title">Cross-Border African Trade &amp; AfCFTA Masterclass</h3>
+        <p class="event-venue">Riversands I-Hub · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-night-track-festival-and-drifting-kyalami-grand-prix-circuit-b275f41b-f2f7-4a70-a4e5-d30f84607d39" data-title="kyalami night track festival &amp; drifting" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-02-20">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Night Track Festival &amp; Drifting" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 20 Feb 2027 · 16:00</div>
         <h3 class="event-title">Kyalami Night Track Festival &amp; Drifting</h3>
@@ -766,8 +1339,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/autumn-beats-outdoor-festival-waterfall-city-park-midrand-5c1dda7a-491a-44a7-8e9d-e4dbe20ab2b4">
-      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Autumn Beats Outdoor Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/autumn-beats-outdoor-festival-waterfall-city-park-midrand-5c1dda7a-491a-44a7-8e9d-e4dbe20ab2b4" data-title="autumn beats outdoor festival" data-venue="waterfall city park" data-city="midrand" data-date="2027-03-05">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Autumn Beats Outdoor Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 05 Mar 2027 · 13:00</div>
         <h3 class="event-title">Autumn Beats Outdoor Festival</h3>
@@ -779,8 +1352,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gauteng-infrastructure-and-municipal-bond-summit-gallagher-convention-d02188b0-4c10-4dcd-9df5-375945a2fa03">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gauteng Infrastructure &amp; Municipal Bond Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gauteng-infrastructure-and-municipal-bond-summit-gallagher-convention-d02188b0-4c10-4dcd-9df5-375945a2fa03" data-title="gauteng infrastructure &amp; municipal bond summit" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-03-11">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Gauteng Infrastructure &amp; Municipal Bond Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 11 Mar 2027 · 09:00</div>
         <h3 class="event-title">Gauteng Infrastructure &amp; Municipal Bond Summit</h3>
@@ -792,8 +1365,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-autumn-supercar-parade-and-track-fest-kyalami-grand-prix-fb05ffcb-1f78-4f78-8dd7-cb3666e9542f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Autumn Supercar Parade &amp; Track Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-autumn-supercar-parade-and-track-fest-kyalami-grand-prix-fb05ffcb-1f78-4f78-8dd7-cb3666e9542f" data-title="kyalami autumn supercar parade &amp; track fest" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-03-20">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Autumn Supercar Parade &amp; Track Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 20 Mar 2027 · 12:00</div>
         <h3 class="event-title">Kyalami Autumn Supercar Parade &amp; Track Fest</h3>
@@ -805,8 +1378,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-cybersecurity-and-data-compliance-workshop-gallagher-convention-cf335bc8-fe73-4669-8f9e-1eb58a6bb7dc">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Cybersecurity &amp; Data Compliance Workshop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-cybersecurity-and-data-compliance-workshop-gallagher-convention-cf335bc8-fe73-4669-8f9e-1eb58a6bb7dc" data-title="sme cybersecurity &amp; data compliance workshop" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-04-15">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SME Cybersecurity &amp; Data Compliance Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 15 Apr 2027 · 09:30</div>
         <h3 class="event-title">SME Cybersecurity &amp; Data Compliance Workshop</h3>
@@ -818,8 +1391,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-autumn-track-days-and-dj-festival-kyalami-grand-prix-circuit-0991ff45-5164-43f7-b48a-7f3f09f52a4f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Autumn Track Days &amp; DJ Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-autumn-track-days-and-dj-festival-kyalami-grand-prix-circuit-0991ff45-5164-43f7-b48a-7f3f09f52a4f" data-title="kyalami autumn track days &amp; dj festival" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-04-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Autumn Track Days &amp; DJ Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 17 Apr 2027 · 12:00</div>
         <h3 class="event-title">Kyalami Autumn Track Days &amp; DJ Festival</h3>
@@ -831,8 +1404,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-street-food-and-craft-gin-fest-waterfall-city-park-1ab62b64-56f3-4f2c-b9dd-036f5dcea1c8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Waterfall City Street Food &amp; Craft Gin Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-street-food-and-craft-gin-fest-waterfall-city-park-1ab62b64-56f3-4f2c-b9dd-036f5dcea1c8" data-title="waterfall city street food &amp; craft gin fest" data-venue="waterfall city park" data-city="midrand" data-date="2027-04-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Waterfall City Street Food &amp; Craft Gin Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 17 Apr 2027 · 11:00</div>
         <h3 class="event-title">Waterfall City Street Food &amp; Craft Gin Fest</h3>
@@ -844,8 +1417,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-accounting-cash-flow-and-payroll-masterclass-gallagher-convention-2ae9dc58-d24e-407f-8228-435481a5e454">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Accounting, Cash Flow &amp; Payroll Masterclass" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-accounting-cash-flow-and-payroll-masterclass-gallagher-convention-2ae9dc58-d24e-407f-8228-435481a5e454" data-title="sme accounting, cash flow &amp; payroll masterclass" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-05-11">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SME Accounting, Cash Flow &amp; Payroll Masterclass" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 11 May 2027 · 09:00</div>
         <h3 class="event-title">SME Accounting, Cash Flow &amp; Payroll Masterclass</h3>
@@ -857,8 +1430,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Winter Endurance Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec" data-title="kyalami winter endurance fest" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-05-21">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Winter Endurance Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 21 May 2027 · 12:00</div>
         <h3 class="event-title">Kyalami Winter Endurance Fest</h3>
@@ -870,6 +1443,11 @@
       </div>
     </a>
   
+      </div>
+
+      <div class="hub-guide-box">
+        <h2>Insider Guide to Midrand Events & Nightlife</h2>
+        <p>Strategically positioned between Johannesburg and Pretoria, Midrand hosts Altitude Beach pool festivals, Kyalami Grand Prix Circuit motorsport spectacles, Waterfall City markets, and major expos at Gallagher Convention Centre.</p>
       </div>
     
   </div>

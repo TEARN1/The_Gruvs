@@ -107,7 +107,7 @@ const PollCard = memo(({ poll, userId, canManage, primary, textColor, muted, sur
           </Text>
         )}
         {canManage && onClose && (
-          <TouchableOpacity onPress={() => onClose(poll.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+          <TouchableOpacity onPress={() => onClose?.(poll.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
             <Feather name="trash-2" size={14} color="#ef4444" />
           </TouchableOpacity>
         )}

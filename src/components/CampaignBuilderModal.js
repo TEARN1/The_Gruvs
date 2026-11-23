@@ -129,14 +129,14 @@ const TagsInput = ({ tags = [], onChange, placeholder, primary, textColor, muted
   const [input, setInput] = useState('');
   const addTag = () => {
     const trimmed = input.trim();
-    if (trimmed && !tags.includes(trimmed)) onChange([...tags, trimmed]);
+    if (trimmed && !tags.includes(trimmed)) onChange?.([...tags, trimmed]);
     setInput('');
   };
   return (
     <View style={{ marginBottom: 16 }}>
       <View style={cms.tagsRow}>
         {tags.map(t => (
-          <TouchableOpacity key={t} onPress={() => onChange(tags.filter(x => x !== t))} style={[cms.tag, { backgroundColor: `${primary}20`, borderColor: `${primary}40` }]}>
+          <TouchableOpacity key={t} onPress={() => onChange?.(tags.filter(x => x !== t))} style={[cms.tag, { backgroundColor: `${primary}20`, borderColor: `${primary}40` }]}>
             <Text style={[cms.tagText, { color: primary }]}>{t}</Text>
             <Feather name="x" size={10} color={primary} />
           </TouchableOpacity>

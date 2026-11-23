@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -290,6 +343,26 @@
       "position": 3,
       "item": {
         "@type": "Event",
+        "name": "Christmas on an Ultra Luxury Train",
+        "startDate": "2026-12-23T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Rovos Rail",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/christmas-on-an-ultra-luxury-train-rovos-rail-pretoria-628f4b39-73bb-4138-8b95-26e71da6a097"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@type": "Event",
         "name": "Max's Lifestyle Festive Sunday Shisanyama",
         "startDate": "2026-12-27T13:00:00+02:00",
         "location": {
@@ -301,13 +374,73 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/max-s-lifestyle-festive-sunday-shisanyama-max-s-lifestyle-village-a3e13494-d497-4003-9803-807d296fb691"
       }
     },
     {
       "@type": "ListItem",
-      "position": 4,
+      "position": 5,
+      "item": {
+        "@type": "Event",
+        "name": "Start preparing for what God is sending to you",
+        "startDate": "2027-01-01T02:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Kempton Park, Johannesburg, South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events3/banners/eb1365d70492a068562f3ad6ecddd8f6bf4d385a6120a60d49fc471bbe16ad09-rimg-w1032-h1368-dc080808-gmir?v=1793975604",
+        "url": "https://thegruvs.com/events/start-preparing-for-what-god-is-sending-to-you-kempton-park-fac04565-8114-4504-94c0-687c5701f822"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "item": {
+        "@type": "Event",
+        "name": "Lindiwe Kunene",
+        "startDate": "2027-01-01T02:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Kaalfontein, Midrand",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events2/banners/a1e0929e42306a8601ff2271208c54ba6658a739b3ed33b2f82ad116d3704c91-rimg-w1086-h1448-dcf8f8e8-gmir?v=1792822157",
+        "url": "https://thegruvs.com/events/lindiwe-kunene-kaalfontein-midrand-midrand-3f91d273-5c77-4af2-991e-ec9275db6148"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "item": {
+        "@type": "Event",
+        "name": "happy happy new year",
+        "startDate": "2027-01-01T02:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Highveld Ext 13, Centurion",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events10/banners/7e7056f978bdbb70d78414165419b26355a2af4932bda6541e0a638574430cce-rimg-w1080-h1488-dcc8d8f8-gmir?v=1792801810",
+        "url": "https://thegruvs.com/events/happy-happy-new-year-highveld-ext-13-centurion-centurion-b3706065-4e83-4be8-9f5b-a55c5722d907"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
       "item": {
         "@type": "Event",
         "name": "Max's Lifestyle Sunday Soul Experience",
@@ -321,13 +454,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/max-s-lifestyle-sunday-soul-experience-max-s-lifestyle-village-durban-3f456466-3c78-437e-a3e9-521560d151bc"
       }
     },
     {
       "@type": "ListItem",
-      "position": 5,
+      "position": 9,
       "item": {
         "@type": "Event",
         "name": "Max's Lifestyle Sunday Vibe Session",
@@ -341,13 +474,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/max-s-lifestyle-sunday-vibe-session-max-s-lifestyle-village-durban-0b05d1fe-47fe-4fee-ab76-24e359e35075"
       }
     },
     {
       "@type": "ListItem",
-      "position": 6,
+      "position": 10,
       "item": {
         "@type": "Event",
         "name": "Max's Lifestyle Autumn Shisanyama Sunday",
@@ -361,13 +494,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/max-s-lifestyle-autumn-shisanyama-sunday-max-s-lifestyle-village-7d3baeb9-68cc-4f1d-890c-f69077f7e50a"
       }
     },
     {
       "@type": "ListItem",
-      "position": 7,
+      "position": 11,
       "item": {
         "@type": "Event",
         "name": "Max's Lifestyle Freedom Celebration Shisanyama",
@@ -381,13 +514,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/max-s-lifestyle-freedom-celebration-shisanyama-max-s-lifestyle-cbd3935c-cc05-4fc0-9850-44b0de947078"
       }
     },
     {
       "@type": "ListItem",
-      "position": 8,
+      "position": 12,
       "item": {
         "@type": "Event",
         "name": "Max's Lifestyle Sunday Soul & Shisanyama",
@@ -401,7 +534,7 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/max-s-lifestyle-sunday-soul-and-shisanyama-max-s-lifestyle-village-8f30cc8d-d7b4-4569-94cd-79321fcfaea2"
       }
     }
@@ -464,11 +597,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Lifestyle & Culture Events & Parties in South Africa (2026) — The Gruvs",
+  "description": "Experience the top Lifestyle & Culture events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/events/lifestyle",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -494,8 +674,8 @@
 
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee">
-      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/3711961c9db20223afe846b6884b652aa1a803af3720cc6b270be1ba7bd44f4c-rimg-w1200-h1698-dce8e8e8-gmir?v=1788283398" alt="Bearfest SA 2026" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/bearfest-sa-2026-die-windpomp-male-resort-pretoria-d23accfd-4d96-4dee-91a0-597b0db0a7ee" data-title="bearfest sa 2026" data-venue="die windpomp male resort" data-city="pretoria" data-date="2026-12-04">
+      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/3711961c9db20223afe846b6884b652aa1a803af3720cc6b270be1ba7bd44f4c-rimg-w1200-h1698-dce8e8e8-gmir?v=1788283398" alt="Bearfest SA 2026" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 04 Dec 2026 · 14:00</div>
         <h3 class="event-title">Bearfest SA 2026</h3>
@@ -507,8 +687,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb">
-      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/6a701facb33f52d20b32f8a7b8d8c87ae2d684b0a7590ba7a4b8710b5ed6f4f8-rimg-w1200-h600-dcf8f8f8-gmir?v=1787823323" alt="Pretoria's Vintage &amp; Christmas Gift Market" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-s-vintage-and-christmas-gift-market-irene-village-mall-8e9673ab-314d-4403-9076-e1490bd1d8cb" data-title="pretoria's vintage &amp; christmas gift market" data-venue="irene village mall" data-city="centurion" data-date="2026-12-05">
+      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/6a701facb33f52d20b32f8a7b8d8c87ae2d684b0a7590ba7a4b8710b5ed6f4f8-rimg-w1200-h600-dcf8f8f8-gmir?v=1787823323" alt="Pretoria's Vintage &amp; Christmas Gift Market" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 05 Dec 2026 · 09:00</div>
         <h3 class="event-title">Pretoria's Vintage &amp; Christmas Gift Market</h3>
@@ -520,8 +700,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-festive-sunday-shisanyama-max-s-lifestyle-village-a3e13494-d497-4003-9803-807d296fb691">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Festive Sunday Shisanyama" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/christmas-on-an-ultra-luxury-train-rovos-rail-pretoria-628f4b39-73bb-4138-8b95-26e71da6a097" data-title="christmas on an ultra luxury train" data-venue="rovos rail" data-city="pretoria" data-date="2026-12-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Christmas on an Ultra Luxury Train" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 23 Dec 2026 · 10:00</div>
+        <h3 class="event-title">Christmas on an Ultra Luxury Train</h3>
+        <p class="event-venue">Rovos Rail · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-festive-sunday-shisanyama-max-s-lifestyle-village-a3e13494-d497-4003-9803-807d296fb691" data-title="max's lifestyle festive sunday shisanyama" data-venue="max's lifestyle village" data-city="durban" data-date="2026-12-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Max's Lifestyle Festive Sunday Shisanyama" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 27 Dec 2026 · 13:00</div>
         <h3 class="event-title">Max's Lifestyle Festive Sunday Shisanyama</h3>
@@ -533,8 +726,47 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-sunday-soul-experience-max-s-lifestyle-village-durban-3f456466-3c78-437e-a3e9-521560d151bc">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Sunday Soul Experience" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/start-preparing-for-what-god-is-sending-to-you-kempton-park-fac04565-8114-4504-94c0-687c5701f822" data-title="start preparing for what god is sending to you" data-venue="kempton park, johannesburg, south africa" data-city="johannesburg" data-date="2027-01-01">
+      <img class="event-img" src="https://cdn-az.allevents.in/events3/banners/eb1365d70492a068562f3ad6ecddd8f6bf4d385a6120a60d49fc471bbe16ad09-rimg-w1032-h1368-dc080808-gmir?v=1793975604" alt="Start preparing for what God is sending to you" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 01 Jan 2027 · 02:00</div>
+        <h3 class="event-title">Start preparing for what God is sending to you</h3>
+        <p class="event-venue">Kempton Park, Johannesburg, South Africa · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/lindiwe-kunene-kaalfontein-midrand-midrand-3f91d273-5c77-4af2-991e-ec9275db6148" data-title="lindiwe kunene" data-venue="kaalfontein, midrand" data-city="midrand" data-date="2027-01-01">
+      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/a1e0929e42306a8601ff2271208c54ba6658a739b3ed33b2f82ad116d3704c91-rimg-w1086-h1448-dcf8f8e8-gmir?v=1792822157" alt="Lindiwe Kunene" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 01 Jan 2027 · 02:00</div>
+        <h3 class="event-title">Lindiwe Kunene</h3>
+        <p class="event-venue">Kaalfontein, Midrand · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/happy-happy-new-year-highveld-ext-13-centurion-centurion-b3706065-4e83-4be8-9f5b-a55c5722d907" data-title="happy happy new year" data-venue="highveld ext 13, centurion" data-city="centurion" data-date="2027-01-01">
+      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/7e7056f978bdbb70d78414165419b26355a2af4932bda6541e0a638574430cce-rimg-w1080-h1488-dcc8d8f8-gmir?v=1792801810" alt="happy happy new year" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 01 Jan 2027 · 02:00</div>
+        <h3 class="event-title">happy happy new year</h3>
+        <p class="event-venue">Highveld Ext 13, Centurion · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-sunday-soul-experience-max-s-lifestyle-village-durban-3f456466-3c78-437e-a3e9-521560d151bc" data-title="max's lifestyle sunday soul experience" data-venue="max's lifestyle village" data-city="durban" data-date="2027-01-31">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Max's Lifestyle Sunday Soul Experience" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 31 Jan 2027 · 12:00</div>
         <h3 class="event-title">Max's Lifestyle Sunday Soul Experience</h3>
@@ -546,8 +778,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-sunday-vibe-session-max-s-lifestyle-village-durban-0b05d1fe-47fe-4fee-ab76-24e359e35075">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Sunday Vibe Session" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-sunday-vibe-session-max-s-lifestyle-village-durban-0b05d1fe-47fe-4fee-ab76-24e359e35075" data-title="max's lifestyle sunday vibe session" data-venue="max's lifestyle village" data-city="durban" data-date="2027-02-28">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Max's Lifestyle Sunday Vibe Session" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 28 Feb 2027 · 12:00</div>
         <h3 class="event-title">Max's Lifestyle Sunday Vibe Session</h3>
@@ -559,8 +791,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-autumn-shisanyama-sunday-max-s-lifestyle-village-7d3baeb9-68cc-4f1d-890c-f69077f7e50a">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Autumn Shisanyama Sunday" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-autumn-shisanyama-sunday-max-s-lifestyle-village-7d3baeb9-68cc-4f1d-890c-f69077f7e50a" data-title="max's lifestyle autumn shisanyama sunday" data-venue="max's lifestyle village" data-city="durban" data-date="2027-03-28">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Max's Lifestyle Autumn Shisanyama Sunday" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 28 Mar 2027 · 12:00</div>
         <h3 class="event-title">Max's Lifestyle Autumn Shisanyama Sunday</h3>
@@ -572,8 +804,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-freedom-celebration-shisanyama-max-s-lifestyle-cbd3935c-cc05-4fc0-9850-44b0de947078">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Freedom Celebration Shisanyama" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-freedom-celebration-shisanyama-max-s-lifestyle-cbd3935c-cc05-4fc0-9850-44b0de947078" data-title="max's lifestyle freedom celebration shisanyama" data-venue="max's lifestyle village" data-city="durban" data-date="2027-04-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Max's Lifestyle Freedom Celebration Shisanyama" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 27 Apr 2027 · 12:00</div>
         <h3 class="event-title">Max's Lifestyle Freedom Celebration Shisanyama</h3>
@@ -585,8 +817,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-sunday-soul-and-shisanyama-max-s-lifestyle-village-8f30cc8d-d7b4-4569-94cd-79321fcfaea2">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Sunday Soul &amp; Shisanyama" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-sunday-soul-and-shisanyama-max-s-lifestyle-village-8f30cc8d-d7b4-4569-94cd-79321fcfaea2" data-title="max's lifestyle sunday soul &amp; shisanyama" data-venue="max's lifestyle village" data-city="durban" data-date="2027-05-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Max's Lifestyle Sunday Soul &amp; Shisanyama" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 23 May 2027 · 12:00</div>
         <h3 class="event-title">Max's Lifestyle Sunday Soul &amp; Shisanyama</h3>

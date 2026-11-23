@@ -204,7 +204,7 @@ const MapGrid = ({ events, userCoords, primaryColor, onSelectEvent, isRoute = fa
             <View style={grid.calloutActions}>
               <TouchableOpacity
                 style={[grid.calloutBtn, { backgroundColor: selected.category_color || primaryColor, width: '100%' }]}
-                onPress={() => onSelectEvent(selected)}
+                onPress={() => onSelectEvent?.(selected)}
               >
                 <Text style={grid.calloutBtnText}>View Details</Text>
               </TouchableOpacity>

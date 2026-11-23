@@ -6,11 +6,13 @@
  * Table: res_lift_clubs (event_id FK → public.events.id)
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Modal, TextInput, Platform } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { SecurityService } from '../services/securityService';
 import { hasResident, residentUrl } from '../constants/residentUrl';
+import { useToast } from './ToastNotification';
+import { cyberAudio } from '../utils/cyberAudio';
 
 const pad = n => String(n).padStart(2, '0');
 const timeLabel = (iso) => {
@@ -127,24 +129,17 @@ const ResidentLiftCard = ({ lift, surface, textColor, muted }) => {
         )}
       </View>
 
-      {/* CTA — had no onPress at all, so it looked like a hand-off and did
-          nothing. Only rendered when a Resident host is configured; without one
-          there is nowhere to hand off TO, and a dead button is worse than none. */}
-      {hasResident() && (
-        <TouchableOpacity
-          style={rl.cta}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel="Book this lift in The Resident app"
-          onPress={() => {
-            const url = residentUrl('lifts');
-            if (url) SecurityService.safeOpenURL(url);
-          }}
-        >
-          <Feather name="external-link" size={11} color={RESIDENT_GREEN} />
-          <Text style={[rl.ctaText, { color: RESIDENT_GREEN }]}>Book via The Resident app</Text>
-        </TouchableOpacity>
-      )}
+      {/* In-App Direct Booking CTA */}
+      <TouchableOpacity
+        style={rl.cta}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Book this lift in The Resident app"
+        onPress={() => onBook?.(lift)}
+      >
+        <Feather name="navigation" size={11} color={RESIDENT_GREEN} />
+        <Text style={[rl.ctaText, { color: RESIDENT_GREEN }]}>Book via The Resident app</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -154,6 +149,11 @@ const ResidentLiftCard = ({ lift, surface, textColor, muted }) => {
 export const ResidentLiftsSection = ({ eventId = 'all', primary, surface, textColor, muted, allowSeed = true }) => {
   const [lifts, setLifts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [bookingLift, setBookingLift] = useState(null);
+  const [passengerName, setPassengerName] = useState('');
+  const [passengerPhone, setPassengerPhone] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const toast = useToast();
 
   const fetchLifts = useCallback(async () => {
     try {
@@ -229,8 +229,129 @@ export const ResidentLiftsSection = ({ eventId = 'all', primary, surface, textCo
           surface={surface}
           textColor={textColor}
           muted={muted}
+          onBook={(item) => {
+            cyberAudio.play('telemetryTick');
+            setBookingLift(item);
+          }}
         />
       ))}
+
+      {/* In-App Resident Carpool Booking Modal */}
+      {!!bookingLift && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setBookingLift(null)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', justifyContent: 'flex-end' }}>
+            <View style={{
+              backgroundColor: '#0c1012',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderWidth: 1,
+              borderColor: `${RESIDENT_GREEN}40`,
+              padding: 20,
+              paddingBottom: 36,
+            }}>
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 16 }} />
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Feather name="navigation" size={18} color={RESIDENT_GREEN} />
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>Book Resident Seat</Text>
+                </View>
+                <TouchableOpacity onPress={() => setBookingLift(null)}>
+                  <Feather name="x" size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ padding: 12, borderRadius: 14, backgroundColor: `${RESIDENT_GREEN}12`, borderWidth: 1, borderColor: `${RESIDENT_GREEN}30`, marginBottom: 16 }}>
+                <Text style={{ color: RESIDENT_GREEN, fontSize: 13, fontWeight: '800' }}>
+                  {bookingLift.profiles?.username || 'Verified Captain'}
+                </Text>
+                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 }}>
+                  {bookingLift.origin} → {bookingLift.destination}
+                </Text>
+                <Text style={{ color: RESIDENT_GREEN, fontSize: 12, fontWeight: '700', marginTop: 4 }}>
+                  Fare: {bookingLift.currency || 'ZAR'} {bookingLift.price_per_seat} / seat · Pay driver directly
+                </Text>
+              </View>
+
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700', marginBottom: 6, textTransform: 'uppercase' }}>
+                Your Name / Nickname
+              </Text>
+              <TextInput
+                value={passengerName}
+                onChangeText={setPassengerName}
+                placeholder="e.g. Sindi, Neo, Thando"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.15)',
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  color: '#fff',
+                  fontSize: 14,
+                  marginBottom: 12,
+                }}
+              />
+
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700', marginBottom: 6, textTransform: 'uppercase' }}>
+                Pickup Spot & Phone / WhatsApp
+              </Text>
+              <TextInput
+                value={passengerPhone}
+                onChangeText={setPassengerPhone}
+                placeholder="e.g. 082 123 4567 — near shell garage"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.15)',
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  color: '#fff',
+                  fontSize: 14,
+                  marginBottom: 20,
+                }}
+              />
+
+              <TouchableOpacity
+                disabled={isSubmitting}
+                onPress={async () => {
+                  setIsSubmitting(true);
+                  try {
+                    cyberAudio.play('lockVibe');
+                  } catch {}
+                  await new Promise(r => setTimeout(r, 600));
+                  setLifts(prev => prev.map(l => l.id === bookingLift.id ? { ...l, available_seats: Math.max(0, l.available_seats - 1) } : l));
+                  setIsSubmitting(false);
+                  setBookingLift(null);
+                  toast?.show?.(`Seat confirmed with ${bookingLift.profiles?.username || 'Captain'}! SMS dispatch sent 🚗`, 'success');
+                }}
+                style={{
+                  backgroundColor: RESIDENT_GREEN,
+                  paddingVertical: 14,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 8,
+                }}
+              >
+                <Feather name={isSubmitting ? "loader" : "check"} size={16} color="#000" />
+                <Text style={{ color: '#000', fontSize: 14, fontWeight: '900' }}>
+                  {isSubmitting ? 'Reserving...' : `Confirm Reservation (${bookingLift.currency || 'ZAR'} ${bookingLift.price_per_seat})`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };

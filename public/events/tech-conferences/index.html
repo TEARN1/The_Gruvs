@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -250,6 +303,66 @@
       "position": 1,
       "item": {
         "@type": "Event",
+        "name": "DreyInk Golf Day",
+        "startDate": "2026-12-01T02:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Salisbury Claims Ext 1, Johannesburg",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events9/banners/b939bdcd640a428e510bff5297891e02dcd6b339c525f7415e3c83cd0e98f40f-rimg-w1053-h1493-dcf8f8f8-gmir?v=1794193271",
+        "url": "https://thegruvs.com/events/dreyink-golf-day-salisbury-claims-ext-1-johannesburg-johannesburg-33959e03-fb48-4ba9-a7c3-768ae76c1166"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "Event",
+        "name": "Translating science into solutions for social justice, 2 December 2026",
+        "startDate": "2026-12-02T18:20:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "CSIR International Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events1/banners/8c7096002451addc01d753225885910f64fdfb386381d449f14d357c86dabf2a-rimg-w590-h312-dcf8f8f8-gmir?v=1794498167",
+        "url": "https://thegruvs.com/events/translating-science-into-solutions-for-social-justice-2-december-2026-2898e46a-fd68-44c6-9017-04135c7df14f"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "Event",
+        "name": "Mzansi Seed Stage Pitch Battle 2026",
+        "startDate": "2026-12-02T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "22 On Sloane Startup Campus",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/mzansi-seed-stage-pitch-battle-2026-22-on-sloane-startup-campus-9ad84126-d398-4216-b2b8-1bc0e7865572"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@type": "Event",
         "name": "Southern Africa Year-End Business & Tech Gala",
         "startDate": "2026-12-02T18:30:00+02:00",
         "location": {
@@ -261,13 +374,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d"
       }
     },
     {
       "@type": "ListItem",
-      "position": 2,
+      "position": 5,
+      "item": {
+        "@type": "Event",
+        "name": "Sandton Angel Investors & Founders Breakfast",
+        "startDate": "2026-12-03T08:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Workshop17 Sandton",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sandton-angel-investors-and-founders-breakfast-workshop17-sandton-c569bb66-3337-47db-a63b-e22bc165a8c8"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
       "item": {
         "@type": "Event",
         "name": "Township Economy & Retail Entrepreneurship Expo",
@@ -281,13 +414,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1"
       }
     },
     {
       "@type": "ListItem",
-      "position": 3,
+      "position": 7,
       "item": {
         "@type": "Event",
         "name": "Shimmy Sunset White & Gold Rave",
@@ -301,13 +434,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369"
       }
     },
     {
       "@type": "ListItem",
-      "position": 4,
+      "position": 8,
+      "item": {
+        "@type": "Event",
+        "name": "Township Tech & SME Innovation Summit",
+        "startDate": "2026-12-05T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Soweto Theatre Business & Cultural Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Soweto",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/township-tech-and-sme-innovation-summit-soweto-theatre-business-and-6a02563d-cf9a-4495-8566-85da39bb0b24"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 9,
       "item": {
         "@type": "Event",
         "name": "Western Cape Tech & Venture Showcase",
@@ -321,13 +474,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c"
       }
     },
     {
       "@type": "ListItem",
-      "position": 5,
+      "position": 10,
+      "item": {
+        "@type": "Event",
+        "name": "Waterfall City Founders & Venture Networking Breakfast",
+        "startDate": "2026-12-11T08:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Waterfall City Park Event Pavilion",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/waterfall-city-founders-and-venture-networking-breakfast-waterfall-8fde1dac-d0db-4b99-8b34-d228acd79073"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 11,
       "item": {
         "@type": "Event",
         "name": "Durban All-White Beach Extravaganza",
@@ -341,13 +514,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/durban-all-white-beach-extravaganza-moses-mabhida-stadium-peoples-249e43a1-b95e-4316-ab80-1fe997288cb9"
       }
     },
     {
       "@type": "ListItem",
-      "position": 6,
+      "position": 12,
+      "item": {
+        "@type": "Event",
+        "name": "Agri-Tech & Rural Enterprise Showcase",
+        "startDate": "2026-12-12T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Riversands I-Hub",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/agri-tech-and-rural-enterprise-showcase-riversands-i-hub-midrand-11b6bc53-3509-4a58-9dad-094ba2e7ee75"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 13,
       "item": {
         "@type": "Event",
         "name": "SunBet Arena Afro-Tech Symphony",
@@ -361,13 +554,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624"
       }
     },
     {
       "@type": "ListItem",
-      "position": 7,
+      "position": 14,
       "item": {
         "@type": "Event",
         "name": "Midrand SME Cloud & Digital Mastery Workshop",
@@ -381,13 +574,53 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b"
       }
     },
     {
       "@type": "ListItem",
-      "position": 8,
+      "position": 15,
+      "item": {
+        "@type": "Event",
+        "name": "CSIR DeepTech & Biotech Commercialization Summit",
+        "startDate": "2026-12-14T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "CSIR International Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/csir-deeptech-and-biotech-commercialization-summit-csir-international-c29d0de3-9b90-4ed9-ab44-98df006d18e4"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 16,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria GovTech & Public Procurement Masterclass",
+        "startDate": "2026-12-15T09:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Capital Menlyn Maine",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/pretoria-govtech-and-public-procurement-masterclass-the-capital-1c2456ab-6735-4e84-b23f-aeeddd0066b6"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 17,
       "item": {
         "@type": "Event",
         "name": "Women in African Tech & Leadership Breakfast",
@@ -401,13 +634,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/women-in-african-tech-and-leadership-breakfast-sandton-convention-0fd1beed-8f56-4d8a-b773-a8b8942f2cb0"
       }
     },
     {
       "@type": "ListItem",
-      "position": 9,
+      "position": 18,
+      "item": {
+        "@type": "Event",
+        "name": "Constitution Hill Civic Tech & Social Impact Pitch",
+        "startDate": "2026-12-17T11:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Constitution Hill Human Rights Precinct",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/constitution-hill-civic-tech-and-social-impact-pitch-constitution-67796836-cb52-477e-81ef-410b5f952ed0"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 19,
       "item": {
         "@type": "Event",
         "name": "Cabo Beach Sunset Electronic Odyssey",
@@ -421,13 +674,53 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/cabo-beach-sunset-electronic-odyssey-cabo-beach-club-cape-town-ff3c3e23-08b5-44d4-9ac8-f6f8a13cd06e"
       }
     },
     {
       "@type": "ListItem",
-      "position": 10,
+      "position": 20,
+      "item": {
+        "@type": "Event",
+        "name": "Johannesburg FinTech Founders Roundtable",
+        "startDate": "2026-12-18T14:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Marc Sandton",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/johannesburg-fintech-founders-roundtable-the-marc-sandton-johannesburg-b687fd16-2e0f-43cc-9e80-5d84d9db8ee6"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 21,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria Innovation Hub Smart City Pitch Battle",
+        "startDate": "2026-12-21T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Innovation Hub Pretoria",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/pretoria-innovation-hub-smart-city-pitch-battle-the-innovation-hub-f76e0962-53fe-4994-bb53-79f30095ddb6"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 22,
       "item": {
         "@type": "Event",
         "name": "FinTech Africa 2027 Strategy & Regulatory Briefing",
@@ -441,13 +734,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/fintech-africa-2027-strategy-and-regulatory-briefing-the-marc-sandton-f464a0df-acce-4b5c-b4cc-1d4760c9b83c"
       }
     },
     {
       "@type": "ListItem",
-      "position": 11,
+      "position": 23,
+      "item": {
+        "@type": "Event",
+        "name": "Johannesburg Tech Trend & Founder Forecast 2027",
+        "startDate": "2027-01-11T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Workshop17 Sandton",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/johannesburg-tech-trend-and-founder-forecast-2027-workshop17-sandton-39e1e550-81f2-4f40-91f3-f23bcfc4a0fc"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 24,
       "item": {
         "@type": "Event",
         "name": "Southern Africa 2027 Economic & Tech Outlook",
@@ -461,13 +774,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/southern-africa-2027-economic-and-tech-outlook-sandton-convention-29ed7d13-df76-4985-80b9-2ac44cdb9fa9"
       }
     },
     {
       "@type": "ListItem",
-      "position": 12,
+      "position": 25,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria MedTech & Clinical Devices Pitch Night",
+        "startDate": "2027-01-13T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "CSIR International Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/pretoria-medtech-and-clinical-devices-pitch-night-csir-international-123552d9-0614-49d9-ad60-3d55896e94f2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 26,
       "item": {
         "@type": "Event",
         "name": "AI & Enterprise Automation Summit 2027",
@@ -481,13 +814,53 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/ai-and-enterprise-automation-summit-2027-gallagher-convention-centre-608387bc-f93b-431e-8cd6-2e183d8320b8"
       }
     },
     {
       "@type": "ListItem",
-      "position": 13,
+      "position": 27,
+      "item": {
+        "@type": "Event",
+        "name": "B2B Sales Mastery for Tech Founders",
+        "startDate": "2027-01-14T13:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Tshimologong Digital Innovation Precinct",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/b2b-sales-mastery-for-tech-founders-tshimologong-digital-innovation-ac8e195b-4539-4a76-9955-044f87a8c7ae"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 28,
+      "item": {
+        "@type": "Event",
+        "name": "Soweto Youth Business Incubator Open Day",
+        "startDate": "2027-01-16T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Soweto Theatre Business & Cultural Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Soweto",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/soweto-youth-business-incubator-open-day-soweto-theatre-business-and-3ef17535-3b64-462d-bde5-6172ad45b423"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 29,
       "item": {
         "@type": "Event",
         "name": "Parkhurst Summer Sunset Social",
@@ -501,13 +874,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/parkhurst-summer-sunset-social-the-station-parkhurst-johannesburg-b58ac605-17f8-435c-86b7-3eb847f7e570"
       }
     },
     {
       "@type": "ListItem",
-      "position": 14,
+      "position": 30,
       "item": {
         "@type": "Event",
         "name": "Silicon Cape Startup Kickoff & Angel Day",
@@ -521,13 +894,113 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/silicon-cape-startup-kickoff-and-angel-day-cape-town-international-7c2e110d-2696-4713-9afc-b2e9f8b02f38"
       }
     },
     {
       "@type": "ListItem",
-      "position": 15,
+      "position": 31,
+      "item": {
+        "@type": "Event",
+        "name": "Gauteng PropTech & Smart Buildings Forum",
+        "startDate": "2027-01-18T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Sandton Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/gauteng-proptech-and-smart-buildings-forum-sandton-convention-centre-0eae571e-6b86-4f42-a608-7fb682267cd7"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 32,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria AI & Automation for Small Businesses",
+        "startDate": "2027-01-19T14:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SunBet Arena at Time Square",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/pretoria-ai-and-automation-for-small-businesses-sunbet-arena-at-time-82815af5-a17a-4fde-90de-ba62faf72edd"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 33,
+      "item": {
+        "@type": "Event",
+        "name": "Venture Capital Associate & Analyst Mixer",
+        "startDate": "2027-01-20T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Marc Sandton",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/venture-capital-associate-and-analyst-mixer-the-marc-sandton-3880ca38-e6e5-4a76-91aa-0972e231d715"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 34,
+      "item": {
+        "@type": "Event",
+        "name": "Johannesburg FinTech Hackathon & Pitch Challenge",
+        "startDate": "2027-01-22T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Tshimologong Digital Innovation Precinct",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/johannesburg-fintech-hackathon-and-pitch-challenge-tshimologong-cf50b47c-2724-4873-8553-a7072f18d99f"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 35,
+      "item": {
+        "@type": "Event",
+        "name": "Women in STEM & Engineering Enterprise Pitch",
+        "startDate": "2027-01-25T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Innovation Hub Pretoria",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/women-in-stem-and-engineering-enterprise-pitch-the-innovation-hub-7ad55358-d059-4fc8-9839-2aae4be69c3f"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 36,
       "item": {
         "@type": "Event",
         "name": "Venture Capital Africa Investor Breakfast",
@@ -541,13 +1014,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/venture-capital-africa-investor-breakfast-the-marc-sandton-6787796f-8642-4a94-887c-ac89d6963ce7"
       }
     },
     {
       "@type": "ListItem",
-      "position": 16,
+      "position": 37,
+      "item": {
+        "@type": "Event",
+        "name": "Centurion SaaS & Cloud Founders Roundtable",
+        "startDate": "2027-01-27T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Centurion Lake Business Hub",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/centurion-saas-and-cloud-founders-roundtable-centurion-lake-business-d75e3b66-3b8c-4957-b279-8dfe5ff7d815"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 38,
       "item": {
         "@type": "Event",
         "name": "Healthcare Innovation & MedTech Expo",
@@ -561,13 +1054,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/healthcare-innovation-and-medtech-expo-cape-town-international-83ce472d-8bb9-416b-aab3-de376d7077d7"
       }
     },
     {
       "@type": "ListItem",
-      "position": 17,
+      "position": 39,
       "item": {
         "@type": "Event",
         "name": "Cybersecurity & Cloud Resilience Congress",
@@ -581,13 +1074,73 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/cybersecurity-and-cloud-resilience-congress-sandton-convention-centre-62955c68-4f53-4c96-a806-f609e77bcda8"
       }
     },
     {
       "@type": "ListItem",
-      "position": 18,
+      "position": 40,
+      "item": {
+        "@type": "Event",
+        "name": "Waterfall City CleanTech & ESG Venture Forum",
+        "startDate": "2027-01-29T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Waterfall City Park Event Pavilion",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/waterfall-city-cleantech-and-esg-venture-forum-waterfall-city-park-c2d63480-253b-4b55-a3b0-7f16060f3e0c"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 41,
+      "item": {
+        "@type": "Event",
+        "name": "Gauteng Angel Investor Pitch Dinner",
+        "startDate": "2027-01-30T19:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Radisson Blu Gautrain Hotel Sandton",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/gauteng-angel-investor-pitch-dinner-radisson-blu-gautrain-hotel-76fbca66-ef61-4221-bd69-a9eea20b0239"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 42,
+      "item": {
+        "@type": "Event",
+        "name": "Africa Venture Capital & Private Equity Summit 2027",
+        "startDate": "2027-02-03T08:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Sandton Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/africa-venture-capital-and-private-equity-summit-2027-sandton-ab5a2e98-0224-4527-8c15-fe90ea0f93ba"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 43,
       "item": {
         "@type": "Event",
         "name": "African Venture Capital & Private Equity Summit",
@@ -601,13 +1154,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/african-venture-capital-and-private-equity-summit-cape-town-d97ef501-2628-4954-bfac-b97d28dbc2c3"
       }
     },
     {
       "@type": "ListItem",
-      "position": 19,
+      "position": 44,
+      "item": {
+        "@type": "Event",
+        "name": "Township E-Commerce & Delivery Hub Launch",
+        "startDate": "2027-02-05T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Soweto Theatre Business & Cultural Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Soweto",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/township-e-commerce-and-delivery-hub-launch-soweto-theatre-business-48b92c66-ac7e-49b6-9e33-8b37fb9a4a4d"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 45,
       "item": {
         "@type": "Event",
         "name": "Cabo Beach Club Sunset Afro-Tech",
@@ -621,13 +1194,113 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/cabo-beach-club-sunset-afro-tech-cabo-beach-club-cape-town-7ea4c6c8-3754-492d-b606-a1e1d6b7c993"
       }
     },
     {
       "@type": "ListItem",
-      "position": 20,
+      "position": 46,
+      "item": {
+        "@type": "Event",
+        "name": "AI Product Founders & LLM Builders Workshop",
+        "startDate": "2027-02-06T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Tshimologong Digital Innovation Precinct",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/ai-product-founders-and-llm-builders-workshop-tshimologong-digital-9cef81a6-bf83-468e-a634-6d4ea6f89ea4"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 47,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria Agri-FinTech & Crop Financing Forum",
+        "startDate": "2027-02-08T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "CSIR International Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/pretoria-agri-fintech-and-crop-financing-forum-csir-international-13dd7193-d605-450d-bf70-5257d4506e01"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 48,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria CyberSecurity & Defence Tech Pitch",
+        "startDate": "2027-02-09T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SunBet Arena at Time Square",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/pretoria-cybersecurity-and-defence-tech-pitch-sunbet-arena-at-time-5c68eac4-be4e-444d-b1f7-5c66fb380b14"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 49,
+      "item": {
+        "@type": "Event",
+        "name": "Fourways Experiential Retail & Entertainment Tech Incubator",
+        "startDate": "2027-02-10T09:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Pivot Montecasino",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/fourways-experiential-retail-and-entertainment-tech-incubator-the-9d363747-a9ad-4b92-942c-e213014478a3"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 50,
+      "item": {
+        "@type": "Event",
+        "name": "Midrand Industrial Robotics & Automation Showcase",
+        "startDate": "2027-02-12T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Gallagher Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/midrand-industrial-robotics-and-automation-showcase-gallagher-dbecf3eb-dcc0-402e-a41b-24d78e5820dc"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 51,
       "item": {
         "@type": "Event",
         "name": "FinTech Africa Payments & Cross-Border Remittances",
@@ -641,13 +1314,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9"
       }
     },
     {
       "@type": "ListItem",
-      "position": 21,
+      "position": 52,
+      "item": {
+        "@type": "Event",
+        "name": "Braamfontein EdTech & Future of Work Showcase",
+        "startDate": "2027-02-17T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Tshimologong Digital Innovation Precinct",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/braamfontein-edtech-and-future-of-work-showcase-tshimologong-digital-9f9ed848-b514-4d99-9ddd-0331dcd82f7d"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 53,
       "item": {
         "@type": "Event",
         "name": "Durban Port Supply Chain & Maritime Tech Forum",
@@ -661,13 +1354,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/durban-port-supply-chain-and-maritime-tech-forum-durban-icc-durban-a5ca2a52-f8ce-47d9-abc8-0d2fc5059ce0"
       }
     },
     {
       "@type": "ListItem",
-      "position": 22,
+      "position": 54,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria Biotech & Pharmaceutical Spin-Out Pitch",
+        "startDate": "2027-02-19T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Capital Menlyn Maine",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/pretoria-biotech-and-pharmaceutical-spin-out-pitch-the-capital-menlyn-232606df-042f-4fe1-a7c9-be23670c42ec"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 55,
       "item": {
         "@type": "Event",
         "name": "Southern Africa Agri-Tech & Food Security Expo",
@@ -681,13 +1394,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/southern-africa-agri-tech-and-food-security-expo-spier-wine-farm-e1bed58f-2f7f-47da-aa2f-c2f122bcb40d"
       }
     },
     {
       "@type": "ListItem",
-      "position": 23,
+      "position": 56,
       "item": {
         "@type": "Event",
         "name": "Digital Marketing & Social Commerce Conclave 2027",
@@ -701,13 +1414,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/digital-marketing-and-social-commerce-conclave-2027-the-zone-rosebank-2bb395ac-130f-4299-a5db-0aad4c492971"
       }
     },
     {
       "@type": "ListItem",
-      "position": 24,
+      "position": 57,
       "item": {
         "@type": "Event",
         "name": "Africa FinTech & Digital Banking Summit 2027",
@@ -721,13 +1434,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/africa-fintech-and-digital-banking-summit-2027-sandton-convention-c73ab3bf-f758-441f-b144-3ba4f2caf492"
       }
     },
     {
       "@type": "ListItem",
-      "position": 25,
+      "position": 58,
       "item": {
         "@type": "Event",
         "name": "SunBet Arena Afro-Tech Masters",
@@ -741,13 +1454,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/sunbet-arena-afro-tech-masters-sunbet-arena-at-time-square-pretoria-c252678f-148c-4ad6-88a9-a52f74c4cc35"
       }
     },
     {
       "@type": "ListItem",
-      "position": 26,
+      "position": 59,
       "item": {
         "@type": "Event",
         "name": "AI in Healthcare & Life Sciences Congress",
@@ -761,13 +1474,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/ai-in-healthcare-and-life-sciences-congress-cape-town-international-30a0bcb3-6b5b-4b54-8a9a-99a2bdb6aa01"
       }
     },
     {
       "@type": "ListItem",
-      "position": 27,
+      "position": 60,
       "item": {
         "@type": "Event",
         "name": "Shimmy Electronic Horizon Festival",
@@ -781,13 +1494,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/shimmy-electronic-horizon-festival-shimmy-beach-club-cape-town-8edbe348-8350-45b4-80f5-36200fc2cb08"
       }
     },
     {
       "@type": "ListItem",
-      "position": 28,
+      "position": 61,
       "item": {
         "@type": "Event",
         "name": "Silicon Cape Investor Demo Day 2027",
@@ -801,13 +1514,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/silicon-cape-investor-demo-day-2027-cape-town-international-3f3952b6-50a3-4de1-986c-0e390f1957dc"
       }
     },
     {
       "@type": "ListItem",
-      "position": 29,
+      "position": 62,
       "item": {
         "@type": "Event",
         "name": "Pretoria Cyber Defense & Government Tech Forum",
@@ -821,13 +1534,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/pretoria-cyber-defense-and-government-tech-forum-menlyn-maine-central-51597024-638c-4e7e-97eb-eab79e6bfd7e"
       }
     },
     {
       "@type": "ListItem",
-      "position": 30,
+      "position": 63,
       "item": {
         "@type": "Event",
         "name": "Africa Sustainability, ESG & Carbon Markets Forum",
@@ -841,13 +1554,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/africa-sustainability-esg-and-carbon-markets-forum-the-marc-sandton-9b88bc5f-6ee1-4a39-9f8f-042521e5fa4e"
       }
     },
     {
       "@type": "ListItem",
-      "position": 31,
+      "position": 64,
       "item": {
         "@type": "Event",
         "name": "SME Cybersecurity & Data Compliance Workshop",
@@ -861,13 +1574,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/sme-cybersecurity-and-data-compliance-workshop-gallagher-convention-cf335bc8-fe73-4669-8f9e-1eb58a6bb7dc"
       }
     },
     {
       "@type": "ListItem",
-      "position": 32,
+      "position": 65,
       "item": {
         "@type": "Event",
         "name": "Africa Venture Capital LP-GP Symposium 2027",
@@ -881,13 +1594,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/africa-venture-capital-lp-gp-symposium-2027-cape-town-international-235aaeb4-4219-4137-8318-ac40ab26d55e"
       }
     },
     {
       "@type": "ListItem",
-      "position": 33,
+      "position": 66,
       "item": {
         "@type": "Event",
         "name": "Durban Port Logistics & Rail Freight Conclave",
@@ -901,13 +1614,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/durban-port-logistics-and-rail-freight-conclave-durban-icc-durban-4bad0dfb-95ab-44d0-8c43-c6b968d7f9d1"
       }
     },
     {
       "@type": "ListItem",
-      "position": 34,
+      "position": 67,
       "item": {
         "@type": "Event",
         "name": "Pretoria GovTech & Smart Public Services Summit",
@@ -921,13 +1634,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad"
       }
     },
     {
       "@type": "ListItem",
-      "position": 35,
+      "position": 68,
       "item": {
         "@type": "Event",
         "name": "Digital Health & HealthTech Southern Africa",
@@ -941,13 +1654,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/digital-health-and-healthtech-southern-africa-the-marc-sandton-b5fe8265-b091-47d8-a149-b5a997e10898"
       }
     },
     {
       "@type": "ListItem",
-      "position": 36,
+      "position": 69,
       "item": {
         "@type": "Event",
         "name": "Southern Africa Media, Advertising & AdTech Summit",
@@ -961,13 +1674,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/southern-africa-media-advertising-and-adtech-summit-the-zone-rosebank-a03f51ab-60ff-48a1-8e24-f9b2836d0c93"
       }
     },
     {
       "@type": "ListItem",
-      "position": 37,
+      "position": 70,
       "item": {
         "@type": "Event",
         "name": "African Enterprise Technology & Cloud Summit 2027",
@@ -981,13 +1694,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/african-enterprise-technology-and-cloud-summit-2027-sandton-f34e93c0-7c8c-4b0d-9eee-b7c079d74859"
       }
     },
     {
       "@type": "ListItem",
-      "position": 38,
+      "position": 71,
       "item": {
         "@type": "Event",
         "name": "SunBet Arena Winter Awakening Rave",
@@ -1001,13 +1714,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9"
       }
     },
     {
       "@type": "ListItem",
-      "position": 39,
+      "position": 72,
       "item": {
         "@type": "Event",
         "name": "SME Accounting, Cash Flow & Payroll Masterclass",
@@ -1021,13 +1734,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/sme-accounting-cash-flow-and-payroll-masterclass-gallagher-convention-2ae9dc58-d24e-407f-8228-435481a5e454"
       }
     },
     {
       "@type": "ListItem",
-      "position": 40,
+      "position": 73,
       "item": {
         "@type": "Event",
         "name": "Southern Africa Industrial Robotics & Automation Expo",
@@ -1041,13 +1754,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/southern-africa-industrial-robotics-and-automation-expo-sandton-517095e5-0404-43a2-be95-3459c91453b7"
       }
     },
     {
       "@type": "ListItem",
-      "position": 41,
+      "position": 74,
       "item": {
         "@type": "Event",
         "name": "Silicon Cape FinTech & WealthTech Showcase",
@@ -1061,13 +1774,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1"
       }
     },
     {
       "@type": "ListItem",
-      "position": 42,
+      "position": 75,
       "item": {
         "@type": "Event",
         "name": "Digital Trust, AI Ethics & POPIA Governance Conclave",
@@ -1081,7 +1794,7 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/digital-trust-ai-ethics-and-popia-governance-conclave-the-marc-9c9615fc-9189-4426-91f9-5b0026f4687b"
       }
     }
@@ -1144,11 +1857,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Tech, AI & Cloud Summits Events & Parties in South Africa (2026) — The Gruvs",
+  "description": "Experience the top Tech, AI & Cloud Summits events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/events/tech-conferences",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -1174,8 +1934,47 @@
 
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Year-End Business &amp; Tech Gala" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/dreyink-golf-day-salisbury-claims-ext-1-johannesburg-johannesburg-33959e03-fb48-4ba9-a7c3-768ae76c1166" data-title="dreyink golf day" data-venue="salisbury claims ext 1, johannesburg" data-city="johannesburg" data-date="2026-12-01">
+      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/b939bdcd640a428e510bff5297891e02dcd6b339c525f7415e3c83cd0e98f40f-rimg-w1053-h1493-dcf8f8f8-gmir?v=1794193271" alt="DreyInk Golf Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 01 Dec 2026 · 02:00</div>
+        <h3 class="event-title">DreyInk Golf Day</h3>
+        <p class="event-venue">Salisbury Claims Ext 1, Johannesburg · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/translating-science-into-solutions-for-social-justice-2-december-2026-2898e46a-fd68-44c6-9017-04135c7df14f" data-title="translating science into solutions for social justice, 2 december 2026" data-venue="csir international convention centre" data-city="pretoria" data-date="2026-12-02">
+      <img class="event-img" src="https://cdn-az.allevents.in/events1/banners/8c7096002451addc01d753225885910f64fdfb386381d449f14d357c86dabf2a-rimg-w590-h312-dcf8f8f8-gmir?v=1794498167" alt="Translating science into solutions for social justice, 2 December 2026" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 02 Dec 2026 · 18:20</div>
+        <h3 class="event-title">Translating science into solutions for social justice, 2 December 2026</h3>
+        <p class="event-venue">CSIR International Convention Centre · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/mzansi-seed-stage-pitch-battle-2026-22-on-sloane-startup-campus-9ad84126-d398-4216-b2b8-1bc0e7865572" data-title="mzansi seed stage pitch battle 2026" data-venue="22 on sloane startup campus" data-city="johannesburg" data-date="2026-12-02">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Mzansi Seed Stage Pitch Battle 2026" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 02 Dec 2026 · 09:00</div>
+        <h3 class="event-title">Mzansi Seed Stage Pitch Battle 2026</h3>
+        <p class="event-venue">22 On Sloane Startup Campus · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-year-end-business-and-tech-gala-sandton-convention-554b49d0-1655-448c-939f-6a7f3b94015d" data-title="southern africa year-end business &amp; tech gala" data-venue="sandton convention centre" data-city="johannesburg" data-date="2026-12-02">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Southern Africa Year-End Business &amp; Tech Gala" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 02 Dec 2026 · 18:30</div>
         <h3 class="event-title">Southern Africa Year-End Business &amp; Tech Gala</h3>
@@ -1187,8 +1986,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Township Economy &amp; Retail Entrepreneurship Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sandton-angel-investors-and-founders-breakfast-workshop17-sandton-c569bb66-3337-47db-a63b-e22bc165a8c8" data-title="sandton angel investors &amp; founders breakfast" data-venue="workshop17 sandton" data-city="johannesburg" data-date="2026-12-03">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Sandton Angel Investors &amp; Founders Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 03 Dec 2026 · 08:30</div>
+        <h3 class="event-title">Sandton Angel Investors &amp; Founders Breakfast</h3>
+        <p class="event-venue">Workshop17 Sandton · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/township-economy-and-retail-entrepreneurship-expo-zone-6-venue-soweto-724795c6-798c-4fcf-b3b6-40669938cca1" data-title="township economy &amp; retail entrepreneurship expo" data-venue="zone 6 venue" data-city="soweto" data-date="2026-12-03">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Township Economy &amp; Retail Entrepreneurship Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 03 Dec 2026 · 09:00</div>
         <h3 class="event-title">Township Economy &amp; Retail Entrepreneurship Expo</h3>
@@ -1200,8 +2012,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Sunset White &amp; Gold Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/shimmy-sunset-white-and-gold-rave-shimmy-beach-club-cape-town-1a740dc4-0c40-4c99-97fd-d2a94d6c0369" data-title="shimmy sunset white &amp; gold rave" data-venue="shimmy beach club" data-city="cape town" data-date="2026-12-05">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Shimmy Sunset White &amp; Gold Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 05 Dec 2026 · 15:00</div>
         <h3 class="event-title">Shimmy Sunset White &amp; Gold Rave</h3>
@@ -1213,8 +2025,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Tech &amp; Venture Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/township-tech-and-sme-innovation-summit-soweto-theatre-business-and-6a02563d-cf9a-4495-8566-85da39bb0b24" data-title="township tech &amp; sme innovation summit" data-venue="soweto theatre business &amp; cultural centre" data-city="soweto" data-date="2026-12-05">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Township Tech &amp; SME Innovation Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 05 Dec 2026 · 10:00</div>
+        <h3 class="event-title">Township Tech &amp; SME Innovation Summit</h3>
+        <p class="event-venue">Soweto Theatre Business &amp; Cultural Centre · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/western-cape-tech-and-venture-showcase-cape-town-international-276eb735-a9b7-46a9-a4e8-f4657b5d953c" data-title="western cape tech &amp; venture showcase" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2026-12-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Western Cape Tech &amp; Venture Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 09 Dec 2026 · 10:00</div>
         <h3 class="event-title">Western Cape Tech &amp; Venture Showcase</h3>
@@ -1226,8 +2051,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-all-white-beach-extravaganza-moses-mabhida-stadium-peoples-249e43a1-b95e-4316-ab80-1fe997288cb9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban All-White Beach Extravaganza" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-founders-and-venture-networking-breakfast-waterfall-8fde1dac-d0db-4b99-8b34-d228acd79073" data-title="waterfall city founders &amp; venture networking breakfast" data-venue="waterfall city park event pavilion" data-city="midrand" data-date="2026-12-11">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Waterfall City Founders &amp; Venture Networking Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 11 Dec 2026 · 08:30</div>
+        <h3 class="event-title">Waterfall City Founders &amp; Venture Networking Breakfast</h3>
+        <p class="event-venue">Waterfall City Park Event Pavilion · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/durban-all-white-beach-extravaganza-moses-mabhida-stadium-peoples-249e43a1-b95e-4316-ab80-1fe997288cb9" data-title="durban all-white beach extravaganza" data-venue="moses mabhida stadium peoples park" data-city="durban" data-date="2026-12-12">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Durban All-White Beach Extravaganza" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 14:00</div>
         <h3 class="event-title">Durban All-White Beach Extravaganza</h3>
@@ -1239,8 +2077,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Symphony" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/agri-tech-and-rural-enterprise-showcase-riversands-i-hub-midrand-11b6bc53-3509-4a58-9dad-094ba2e7ee75" data-title="agri-tech &amp; rural enterprise showcase" data-venue="riversands i-hub" data-city="midrand" data-date="2026-12-12">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Agri-Tech &amp; Rural Enterprise Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 12 Dec 2026 · 09:00</div>
+        <h3 class="event-title">Agri-Tech &amp; Rural Enterprise Showcase</h3>
+        <p class="event-venue">Riversands I-Hub · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624" data-title="sunbet arena afro-tech symphony" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2026-12-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SunBet Arena Afro-Tech Symphony" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 19:00</div>
         <h3 class="event-title">SunBet Arena Afro-Tech Symphony</h3>
@@ -1252,8 +2103,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Midrand SME Cloud &amp; Digital Mastery Workshop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/midrand-sme-cloud-and-digital-mastery-workshop-gallagher-convention-d780f03a-4b84-4c3d-abe8-544ef284a84b" data-title="midrand sme cloud &amp; digital mastery workshop" data-venue="gallagher convention centre" data-city="midrand" data-date="2026-12-14">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Midrand SME Cloud &amp; Digital Mastery Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 14 Dec 2026 · 09:30</div>
         <h3 class="event-title">Midrand SME Cloud &amp; Digital Mastery Workshop</h3>
@@ -1265,8 +2116,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/women-in-african-tech-and-leadership-breakfast-sandton-convention-0fd1beed-8f56-4d8a-b773-a8b8942f2cb0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Women in African Tech &amp; Leadership Breakfast" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/csir-deeptech-and-biotech-commercialization-summit-csir-international-c29d0de3-9b90-4ed9-ab44-98df006d18e4" data-title="csir deeptech &amp; biotech commercialization summit" data-venue="csir international convention centre" data-city="pretoria" data-date="2026-12-14">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="CSIR DeepTech &amp; Biotech Commercialization Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 14 Dec 2026 · 09:00</div>
+        <h3 class="event-title">CSIR DeepTech &amp; Biotech Commercialization Summit</h3>
+        <p class="event-venue">CSIR International Convention Centre · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-public-procurement-masterclass-the-capital-1c2456ab-6735-4e84-b23f-aeeddd0066b6" data-title="pretoria govtech &amp; public procurement masterclass" data-venue="the capital menlyn maine" data-city="pretoria" data-date="2026-12-15">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria GovTech &amp; Public Procurement Masterclass" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 15 Dec 2026 · 09:30</div>
+        <h3 class="event-title">Pretoria GovTech &amp; Public Procurement Masterclass</h3>
+        <p class="event-venue">The Capital Menlyn Maine · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/women-in-african-tech-and-leadership-breakfast-sandton-convention-0fd1beed-8f56-4d8a-b773-a8b8942f2cb0" data-title="women in african tech &amp; leadership breakfast" data-venue="sandton convention centre" data-city="johannesburg" data-date="2026-12-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Women in African Tech &amp; Leadership Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 17 Dec 2026 · 08:00</div>
         <h3 class="event-title">Women in African Tech &amp; Leadership Breakfast</h3>
@@ -1278,8 +2155,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-sunset-electronic-odyssey-cabo-beach-club-cape-town-ff3c3e23-08b5-44d4-9ac8-f6f8a13cd06e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Sunset Electronic Odyssey" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/constitution-hill-civic-tech-and-social-impact-pitch-constitution-67796836-cb52-477e-81ef-410b5f952ed0" data-title="constitution hill civic tech &amp; social impact pitch" data-venue="constitution hill human rights precinct" data-city="johannesburg" data-date="2026-12-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Constitution Hill Civic Tech &amp; Social Impact Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 17 Dec 2026 · 11:00</div>
+        <h3 class="event-title">Constitution Hill Civic Tech &amp; Social Impact Pitch</h3>
+        <p class="event-venue">Constitution Hill Human Rights Precinct · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-sunset-electronic-odyssey-cabo-beach-club-cape-town-ff3c3e23-08b5-44d4-9ac8-f6f8a13cd06e" data-title="cabo beach sunset electronic odyssey" data-venue="cabo beach club" data-city="cape town" data-date="2026-12-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Cabo Beach Sunset Electronic Odyssey" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 18 Dec 2026 · 16:00</div>
         <h3 class="event-title">Cabo Beach Sunset Electronic Odyssey</h3>
@@ -1291,8 +2181,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-2027-strategy-and-regulatory-briefing-the-marc-sandton-f464a0df-acce-4b5c-b4cc-1d4760c9b83c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa 2027 Strategy &amp; Regulatory Briefing" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/johannesburg-fintech-founders-roundtable-the-marc-sandton-johannesburg-b687fd16-2e0f-43cc-9e80-5d84d9db8ee6" data-title="johannesburg fintech founders roundtable" data-venue="the marc sandton" data-city="johannesburg" data-date="2026-12-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Johannesburg FinTech Founders Roundtable" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 18 Dec 2026 · 14:00</div>
+        <h3 class="event-title">Johannesburg FinTech Founders Roundtable</h3>
+        <p class="event-venue">The Marc Sandton · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-innovation-hub-smart-city-pitch-battle-the-innovation-hub-f76e0962-53fe-4994-bb53-79f30095ddb6" data-title="pretoria innovation hub smart city pitch battle" data-venue="the innovation hub pretoria" data-city="pretoria" data-date="2026-12-21">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria Innovation Hub Smart City Pitch Battle" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 21 Dec 2026 · 10:00</div>
+        <h3 class="event-title">Pretoria Innovation Hub Smart City Pitch Battle</h3>
+        <p class="event-venue">The Innovation Hub Pretoria · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-2027-strategy-and-regulatory-briefing-the-marc-sandton-f464a0df-acce-4b5c-b4cc-1d4760c9b83c" data-title="fintech africa 2027 strategy &amp; regulatory briefing" data-venue="the marc sandton" data-city="johannesburg" data-date="2026-12-22">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="FinTech Africa 2027 Strategy &amp; Regulatory Briefing" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 22 Dec 2026 · 14:00</div>
         <h3 class="event-title">FinTech Africa 2027 Strategy &amp; Regulatory Briefing</h3>
@@ -1304,8 +2220,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-2027-economic-and-tech-outlook-sandton-convention-29ed7d13-df76-4985-80b9-2ac44cdb9fa9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa 2027 Economic &amp; Tech Outlook" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/johannesburg-tech-trend-and-founder-forecast-2027-workshop17-sandton-39e1e550-81f2-4f40-91f3-f23bcfc4a0fc" data-title="johannesburg tech trend &amp; founder forecast 2027" data-venue="workshop17 sandton" data-city="johannesburg" data-date="2027-01-11">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Johannesburg Tech Trend &amp; Founder Forecast 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 11 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Johannesburg Tech Trend &amp; Founder Forecast 2027</h3>
+        <p class="event-venue">Workshop17 Sandton · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-2027-economic-and-tech-outlook-sandton-convention-29ed7d13-df76-4985-80b9-2ac44cdb9fa9" data-title="southern africa 2027 economic &amp; tech outlook" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-12">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Southern Africa 2027 Economic &amp; Tech Outlook" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 12 Jan 2027 · 08:30</div>
         <h3 class="event-title">Southern Africa 2027 Economic &amp; Tech Outlook</h3>
@@ -1317,8 +2246,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ai-and-enterprise-automation-summit-2027-gallagher-convention-centre-608387bc-f93b-431e-8cd6-2e183d8320b8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="AI &amp; Enterprise Automation Summit 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-medtech-and-clinical-devices-pitch-night-csir-international-123552d9-0614-49d9-ad60-3d55896e94f2" data-title="pretoria medtech &amp; clinical devices pitch night" data-venue="csir international convention centre" data-city="pretoria" data-date="2027-01-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria MedTech &amp; Clinical Devices Pitch Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 13 Jan 2027 · 17:30</div>
+        <h3 class="event-title">Pretoria MedTech &amp; Clinical Devices Pitch Night</h3>
+        <p class="event-venue">CSIR International Convention Centre · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/ai-and-enterprise-automation-summit-2027-gallagher-convention-centre-608387bc-f93b-431e-8cd6-2e183d8320b8" data-title="ai &amp; enterprise automation summit 2027" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-01-14">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="AI &amp; Enterprise Automation Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 14 Jan 2027 · 09:00</div>
         <h3 class="event-title">AI &amp; Enterprise Automation Summit 2027</h3>
@@ -1330,8 +2272,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/parkhurst-summer-sunset-social-the-station-parkhurst-johannesburg-b58ac605-17f8-435c-86b7-3eb847f7e570">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Parkhurst Summer Sunset Social" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/b2b-sales-mastery-for-tech-founders-tshimologong-digital-innovation-ac8e195b-4539-4a76-9955-044f87a8c7ae" data-title="b2b sales mastery for tech founders" data-venue="tshimologong digital innovation precinct" data-city="johannesburg" data-date="2027-01-14">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="B2B Sales Mastery for Tech Founders" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 14 Jan 2027 · 13:00</div>
+        <h3 class="event-title">B2B Sales Mastery for Tech Founders</h3>
+        <p class="event-venue">Tshimologong Digital Innovation Precinct · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/soweto-youth-business-incubator-open-day-soweto-theatre-business-and-3ef17535-3b64-462d-bde5-6172ad45b423" data-title="soweto youth business incubator open day" data-venue="soweto theatre business &amp; cultural centre" data-city="soweto" data-date="2027-01-16">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Soweto Youth Business Incubator Open Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 16 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Soweto Youth Business Incubator Open Day</h3>
+        <p class="event-venue">Soweto Theatre Business &amp; Cultural Centre · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/parkhurst-summer-sunset-social-the-station-parkhurst-johannesburg-b58ac605-17f8-435c-86b7-3eb847f7e570" data-title="parkhurst summer sunset social" data-venue="the station parkhurst" data-city="johannesburg" data-date="2027-01-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Parkhurst Summer Sunset Social" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 17 Jan 2027 · 15:00</div>
         <h3 class="event-title">Parkhurst Summer Sunset Social</h3>
@@ -1343,8 +2311,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-startup-kickoff-and-angel-day-cape-town-international-7c2e110d-2696-4713-9afc-b2e9f8b02f38">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Startup Kickoff &amp; Angel Day" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-startup-kickoff-and-angel-day-cape-town-international-7c2e110d-2696-4713-9afc-b2e9f8b02f38" data-title="silicon cape startup kickoff &amp; angel day" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-01-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Silicon Cape Startup Kickoff &amp; Angel Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 18 Jan 2027 · 10:00</div>
         <h3 class="event-title">Silicon Cape Startup Kickoff &amp; Angel Day</h3>
@@ -1356,8 +2324,73 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/venture-capital-africa-investor-breakfast-the-marc-sandton-6787796f-8642-4a94-887c-ac89d6963ce7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Venture Capital Africa Investor Breakfast" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gauteng-proptech-and-smart-buildings-forum-sandton-convention-centre-0eae571e-6b86-4f42-a608-7fb682267cd7" data-title="gauteng proptech &amp; smart buildings forum" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Gauteng PropTech &amp; Smart Buildings Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 18 Jan 2027 · 09:00</div>
+        <h3 class="event-title">Gauteng PropTech &amp; Smart Buildings Forum</h3>
+        <p class="event-venue">Sandton Convention Centre · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-ai-and-automation-for-small-businesses-sunbet-arena-at-time-82815af5-a17a-4fde-90de-ba62faf72edd" data-title="pretoria ai &amp; automation for small businesses" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-01-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria AI &amp; Automation for Small Businesses" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 19 Jan 2027 · 14:00</div>
+        <h3 class="event-title">Pretoria AI &amp; Automation for Small Businesses</h3>
+        <p class="event-venue">SunBet Arena at Time Square · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/venture-capital-associate-and-analyst-mixer-the-marc-sandton-3880ca38-e6e5-4a76-91aa-0972e231d715" data-title="venture capital associate &amp; analyst mixer" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-01-20">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Venture Capital Associate &amp; Analyst Mixer" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 20 Jan 2027 · 18:00</div>
+        <h3 class="event-title">Venture Capital Associate &amp; Analyst Mixer</h3>
+        <p class="event-venue">The Marc Sandton · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/johannesburg-fintech-hackathon-and-pitch-challenge-tshimologong-cf50b47c-2724-4873-8553-a7072f18d99f" data-title="johannesburg fintech hackathon &amp; pitch challenge" data-venue="tshimologong digital innovation precinct" data-city="johannesburg" data-date="2027-01-22">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Johannesburg FinTech Hackathon &amp; Pitch Challenge" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 22 Jan 2027 · 09:00</div>
+        <h3 class="event-title">Johannesburg FinTech Hackathon &amp; Pitch Challenge</h3>
+        <p class="event-venue">Tshimologong Digital Innovation Precinct · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/women-in-stem-and-engineering-enterprise-pitch-the-innovation-hub-7ad55358-d059-4fc8-9839-2aae4be69c3f" data-title="women in stem &amp; engineering enterprise pitch" data-venue="the innovation hub pretoria" data-city="pretoria" data-date="2027-01-25">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Women in STEM &amp; Engineering Enterprise Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 25 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Women in STEM &amp; Engineering Enterprise Pitch</h3>
+        <p class="event-venue">The Innovation Hub Pretoria · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/venture-capital-africa-investor-breakfast-the-marc-sandton-6787796f-8642-4a94-887c-ac89d6963ce7" data-title="venture capital africa investor breakfast" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-01-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Venture Capital Africa Investor Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 27 Jan 2027 · 08:00</div>
         <h3 class="event-title">Venture Capital Africa Investor Breakfast</h3>
@@ -1369,8 +2402,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/healthcare-innovation-and-medtech-expo-cape-town-international-83ce472d-8bb9-416b-aab3-de376d7077d7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Healthcare Innovation &amp; MedTech Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/centurion-saas-and-cloud-founders-roundtable-centurion-lake-business-d75e3b66-3b8c-4957-b279-8dfe5ff7d815" data-title="centurion saas &amp; cloud founders roundtable" data-venue="centurion lake business hub" data-city="pretoria" data-date="2027-01-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Centurion SaaS &amp; Cloud Founders Roundtable" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 27 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Centurion SaaS &amp; Cloud Founders Roundtable</h3>
+        <p class="event-venue">Centurion Lake Business Hub · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/healthcare-innovation-and-medtech-expo-cape-town-international-83ce472d-8bb9-416b-aab3-de376d7077d7" data-title="healthcare innovation &amp; medtech expo" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-01-28">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Healthcare Innovation &amp; MedTech Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 28 Jan 2027 · 09:00</div>
         <h3 class="event-title">Healthcare Innovation &amp; MedTech Expo</h3>
@@ -1382,8 +2428,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cybersecurity-and-cloud-resilience-congress-sandton-convention-centre-62955c68-4f53-4c96-a806-f609e77bcda8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cybersecurity &amp; Cloud Resilience Congress" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cybersecurity-and-cloud-resilience-congress-sandton-convention-centre-62955c68-4f53-4c96-a806-f609e77bcda8" data-title="cybersecurity &amp; cloud resilience congress" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Cybersecurity &amp; Cloud Resilience Congress" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 29 Jan 2027 · 09:00</div>
         <h3 class="event-title">Cybersecurity &amp; Cloud Resilience Congress</h3>
@@ -1395,8 +2441,47 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/african-venture-capital-and-private-equity-summit-cape-town-d97ef501-2628-4954-bfac-b97d28dbc2c3">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Venture Capital &amp; Private Equity Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-cleantech-and-esg-venture-forum-waterfall-city-park-c2d63480-253b-4b55-a3b0-7f16060f3e0c" data-title="waterfall city cleantech &amp; esg venture forum" data-venue="waterfall city park event pavilion" data-city="midrand" data-date="2027-01-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Waterfall City CleanTech &amp; ESG Venture Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 29 Jan 2027 · 09:00</div>
+        <h3 class="event-title">Waterfall City CleanTech &amp; ESG Venture Forum</h3>
+        <p class="event-venue">Waterfall City Park Event Pavilion · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/gauteng-angel-investor-pitch-dinner-radisson-blu-gautrain-hotel-76fbca66-ef61-4221-bd69-a9eea20b0239" data-title="gauteng angel investor pitch dinner" data-venue="radisson blu gautrain hotel sandton" data-city="johannesburg" data-date="2027-01-30">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Gauteng Angel Investor Pitch Dinner" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 30 Jan 2027 · 19:00</div>
+        <h3 class="event-title">Gauteng Angel Investor Pitch Dinner</h3>
+        <p class="event-venue">Radisson Blu Gautrain Hotel Sandton · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/africa-venture-capital-and-private-equity-summit-2027-sandton-ab5a2e98-0224-4527-8c15-fe90ea0f93ba" data-title="africa venture capital &amp; private equity summit 2027" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-02-03">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa Venture Capital &amp; Private Equity Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 03 Feb 2027 · 08:30</div>
+        <h3 class="event-title">Africa Venture Capital &amp; Private Equity Summit 2027</h3>
+        <p class="event-venue">Sandton Convention Centre · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/african-venture-capital-and-private-equity-summit-cape-town-d97ef501-2628-4954-bfac-b97d28dbc2c3" data-title="african venture capital &amp; private equity summit" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-02-04">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="African Venture Capital &amp; Private Equity Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 04 Feb 2027 · 09:00</div>
         <h3 class="event-title">African Venture Capital &amp; Private Equity Summit</h3>
@@ -1408,8 +2493,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-afro-tech-cabo-beach-club-cape-town-7ea4c6c8-3754-492d-b606-a1e1d6b7c993">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Cabo Beach Club Sunset Afro-Tech" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/township-e-commerce-and-delivery-hub-launch-soweto-theatre-business-48b92c66-ac7e-49b6-9e33-8b37fb9a4a4d" data-title="township e-commerce &amp; delivery hub launch" data-venue="soweto theatre business &amp; cultural centre" data-city="soweto" data-date="2027-02-05">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Township E-Commerce &amp; Delivery Hub Launch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 05 Feb 2027 · 10:00</div>
+        <h3 class="event-title">Township E-Commerce &amp; Delivery Hub Launch</h3>
+        <p class="event-venue">Soweto Theatre Business &amp; Cultural Centre · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/cabo-beach-club-sunset-afro-tech-cabo-beach-club-cape-town-7ea4c6c8-3754-492d-b606-a1e1d6b7c993" data-title="cabo beach club sunset afro-tech" data-venue="cabo beach club" data-city="cape town" data-date="2027-02-06">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Cabo Beach Club Sunset Afro-Tech" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Feb 2027 · 15:00</div>
         <h3 class="event-title">Cabo Beach Club Sunset Afro-Tech</h3>
@@ -1421,8 +2519,73 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa Payments &amp; Cross-Border Remittances" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ai-product-founders-and-llm-builders-workshop-tshimologong-digital-9cef81a6-bf83-468e-a634-6d4ea6f89ea4" data-title="ai product founders &amp; llm builders workshop" data-venue="tshimologong digital innovation precinct" data-city="johannesburg" data-date="2027-02-06">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="AI Product Founders &amp; LLM Builders Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 06 Feb 2027 · 10:00</div>
+        <h3 class="event-title">AI Product Founders &amp; LLM Builders Workshop</h3>
+        <p class="event-venue">Tshimologong Digital Innovation Precinct · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-agri-fintech-and-crop-financing-forum-csir-international-13dd7193-d605-450d-bf70-5257d4506e01" data-title="pretoria agri-fintech &amp; crop financing forum" data-venue="csir international convention centre" data-city="pretoria" data-date="2027-02-08">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria Agri-FinTech &amp; Crop Financing Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 08 Feb 2027 · 09:00</div>
+        <h3 class="event-title">Pretoria Agri-FinTech &amp; Crop Financing Forum</h3>
+        <p class="event-venue">CSIR International Convention Centre · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-cybersecurity-and-defence-tech-pitch-sunbet-arena-at-time-5c68eac4-be4e-444d-b1f7-5c66fb380b14" data-title="pretoria cybersecurity &amp; defence tech pitch" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-02-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria CyberSecurity &amp; Defence Tech Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 09 Feb 2027 · 10:00</div>
+        <h3 class="event-title">Pretoria CyberSecurity &amp; Defence Tech Pitch</h3>
+        <p class="event-venue">SunBet Arena at Time Square · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/fourways-experiential-retail-and-entertainment-tech-incubator-the-9d363747-a9ad-4b92-942c-e213014478a3" data-title="fourways experiential retail &amp; entertainment tech incubator" data-venue="the pivot montecasino" data-city="johannesburg" data-date="2027-02-10">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Fourways Experiential Retail &amp; Entertainment Tech Incubator" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 10 Feb 2027 · 09:30</div>
+        <h3 class="event-title">Fourways Experiential Retail &amp; Entertainment Tech Incubator</h3>
+        <p class="event-venue">The Pivot Montecasino · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/midrand-industrial-robotics-and-automation-showcase-gallagher-dbecf3eb-dcc0-402e-a41b-24d78e5820dc" data-title="midrand industrial robotics &amp; automation showcase" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-02-12">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Midrand Industrial Robotics &amp; Automation Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 12 Feb 2027 · 09:00</div>
+        <h3 class="event-title">Midrand Industrial Robotics &amp; Automation Showcase</h3>
+        <p class="event-venue">Gallagher Convention Centre · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9" data-title="fintech africa payments &amp; cross-border remittances" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-02-16">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="FinTech Africa Payments &amp; Cross-Border Remittances" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 16 Feb 2027 · 09:00</div>
         <h3 class="event-title">FinTech Africa Payments &amp; Cross-Border Remittances</h3>
@@ -1434,8 +2597,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-port-supply-chain-and-maritime-tech-forum-durban-icc-durban-a5ca2a52-f8ce-47d9-abc8-0d2fc5059ce0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Supply Chain &amp; Maritime Tech Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/braamfontein-edtech-and-future-of-work-showcase-tshimologong-digital-9f9ed848-b514-4d99-9ddd-0331dcd82f7d" data-title="braamfontein edtech &amp; future of work showcase" data-venue="tshimologong digital innovation precinct" data-city="johannesburg" data-date="2027-02-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Braamfontein EdTech &amp; Future of Work Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 17 Feb 2027 · 10:00</div>
+        <h3 class="event-title">Braamfontein EdTech &amp; Future of Work Showcase</h3>
+        <p class="event-venue">Tshimologong Digital Innovation Precinct · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/durban-port-supply-chain-and-maritime-tech-forum-durban-icc-durban-a5ca2a52-f8ce-47d9-abc8-0d2fc5059ce0" data-title="durban port supply chain &amp; maritime tech forum" data-venue="durban icc" data-city="durban" data-date="2027-02-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Durban Port Supply Chain &amp; Maritime Tech Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 18 Feb 2027 · 08:30</div>
         <h3 class="event-title">Durban Port Supply Chain &amp; Maritime Tech Forum</h3>
@@ -1447,8 +2623,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-agri-tech-and-food-security-expo-spier-wine-farm-e1bed58f-2f7f-47da-aa2f-c2f122bcb40d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Agri-Tech &amp; Food Security Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-biotech-and-pharmaceutical-spin-out-pitch-the-capital-menlyn-232606df-042f-4fe1-a7c9-be23670c42ec" data-title="pretoria biotech &amp; pharmaceutical spin-out pitch" data-venue="the capital menlyn maine" data-city="pretoria" data-date="2027-02-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria Biotech &amp; Pharmaceutical Spin-Out Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 19 Feb 2027 · 10:00</div>
+        <h3 class="event-title">Pretoria Biotech &amp; Pharmaceutical Spin-Out Pitch</h3>
+        <p class="event-venue">The Capital Menlyn Maine · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-agri-tech-and-food-security-expo-spier-wine-farm-e1bed58f-2f7f-47da-aa2f-c2f122bcb40d" data-title="southern africa agri-tech &amp; food security expo" data-venue="spier wine farm" data-city="stellenbosch" data-date="2027-02-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Southern Africa Agri-Tech &amp; Food Security Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 23 Feb 2027 · 09:00</div>
         <h3 class="event-title">Southern Africa Agri-Tech &amp; Food Security Expo</h3>
@@ -1460,8 +2649,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/digital-marketing-and-social-commerce-conclave-2027-the-zone-rosebank-2bb395ac-130f-4299-a5db-0aad4c492971">
-      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Digital Marketing &amp; Social Commerce Conclave 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/digital-marketing-and-social-commerce-conclave-2027-the-zone-rosebank-2bb395ac-130f-4299-a5db-0aad4c492971" data-title="digital marketing &amp; social commerce conclave 2027" data-venue="the zone @ rosebank" data-city="johannesburg" data-date="2027-02-26">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Digital Marketing &amp; Social Commerce Conclave 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 26 Feb 2027 · 09:30</div>
         <h3 class="event-title">Digital Marketing &amp; Social Commerce Conclave 2027</h3>
@@ -1473,8 +2662,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-fintech-and-digital-banking-summit-2027-sandton-convention-c73ab3bf-f758-441f-b144-3ba4f2caf492">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa FinTech &amp; Digital Banking Summit 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-fintech-and-digital-banking-summit-2027-sandton-convention-c73ab3bf-f758-441f-b144-3ba4f2caf492" data-title="africa fintech &amp; digital banking summit 2027" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-03-03">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa FinTech &amp; Digital Banking Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 03 Mar 2027 · 08:30</div>
         <h3 class="event-title">Africa FinTech &amp; Digital Banking Summit 2027</h3>
@@ -1486,8 +2675,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-masters-sunbet-arena-at-time-square-pretoria-c252678f-148c-4ad6-88a9-a52f74c4cc35">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Masters" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-masters-sunbet-arena-at-time-square-pretoria-c252678f-148c-4ad6-88a9-a52f74c4cc35" data-title="sunbet arena afro-tech masters" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-03-06">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SunBet Arena Afro-Tech Masters" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Mar 2027 · 18:00</div>
         <h3 class="event-title">SunBet Arena Afro-Tech Masters</h3>
@@ -1499,8 +2688,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ai-in-healthcare-and-life-sciences-congress-cape-town-international-30a0bcb3-6b5b-4b54-8a9a-99a2bdb6aa01">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="AI in Healthcare &amp; Life Sciences Congress" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/ai-in-healthcare-and-life-sciences-congress-cape-town-international-30a0bcb3-6b5b-4b54-8a9a-99a2bdb6aa01" data-title="ai in healthcare &amp; life sciences congress" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-03-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="AI in Healthcare &amp; Life Sciences Congress" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 09 Mar 2027 · 09:00</div>
         <h3 class="event-title">AI in Healthcare &amp; Life Sciences Congress</h3>
@@ -1512,8 +2701,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/shimmy-electronic-horizon-festival-shimmy-beach-club-cape-town-8edbe348-8350-45b4-80f5-36200fc2cb08">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Shimmy Electronic Horizon Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/shimmy-electronic-horizon-festival-shimmy-beach-club-cape-town-8edbe348-8350-45b4-80f5-36200fc2cb08" data-title="shimmy electronic horizon festival" data-venue="shimmy beach club" data-city="cape town" data-date="2027-03-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Shimmy Electronic Horizon Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 13 Mar 2027 · 14:00</div>
         <h3 class="event-title">Shimmy Electronic Horizon Festival</h3>
@@ -1525,8 +2714,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-investor-demo-day-2027-cape-town-international-3f3952b6-50a3-4de1-986c-0e390f1957dc">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape Investor Demo Day 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-investor-demo-day-2027-cape-town-international-3f3952b6-50a3-4de1-986c-0e390f1957dc" data-title="silicon cape investor demo day 2027" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-03-16">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Silicon Cape Investor Demo Day 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 16 Mar 2027 · 14:00</div>
         <h3 class="event-title">Silicon Cape Investor Demo Day 2027</h3>
@@ -1538,8 +2727,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-cyber-defense-and-government-tech-forum-menlyn-maine-central-51597024-638c-4e7e-97eb-eab79e6bfd7e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Cyber Defense &amp; Government Tech Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-cyber-defense-and-government-tech-forum-menlyn-maine-central-51597024-638c-4e7e-97eb-eab79e6bfd7e" data-title="pretoria cyber defense &amp; government tech forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-03-25">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria Cyber Defense &amp; Government Tech Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 25 Mar 2027 · 09:00</div>
         <h3 class="event-title">Pretoria Cyber Defense &amp; Government Tech Forum</h3>
@@ -1551,8 +2740,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-sustainability-esg-and-carbon-markets-forum-the-marc-sandton-9b88bc5f-6ee1-4a39-9f8f-042521e5fa4e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Sustainability, ESG &amp; Carbon Markets Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-sustainability-esg-and-carbon-markets-forum-the-marc-sandton-9b88bc5f-6ee1-4a39-9f8f-042521e5fa4e" data-title="africa sustainability, esg &amp; carbon markets forum" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-04-08">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa Sustainability, ESG &amp; Carbon Markets Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 08 Apr 2027 · 08:30</div>
         <h3 class="event-title">Africa Sustainability, ESG &amp; Carbon Markets Forum</h3>
@@ -1564,8 +2753,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-cybersecurity-and-data-compliance-workshop-gallagher-convention-cf335bc8-fe73-4669-8f9e-1eb58a6bb7dc">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Cybersecurity &amp; Data Compliance Workshop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-cybersecurity-and-data-compliance-workshop-gallagher-convention-cf335bc8-fe73-4669-8f9e-1eb58a6bb7dc" data-title="sme cybersecurity &amp; data compliance workshop" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-04-15">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SME Cybersecurity &amp; Data Compliance Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 15 Apr 2027 · 09:30</div>
         <h3 class="event-title">SME Cybersecurity &amp; Data Compliance Workshop</h3>
@@ -1577,8 +2766,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-venture-capital-lp-gp-symposium-2027-cape-town-international-235aaeb4-4219-4137-8318-ac40ab26d55e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Venture Capital LP-GP Symposium 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-venture-capital-lp-gp-symposium-2027-cape-town-international-235aaeb4-4219-4137-8318-ac40ab26d55e" data-title="africa venture capital lp-gp symposium 2027" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-04-20">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa Venture Capital LP-GP Symposium 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 20 Apr 2027 · 09:00</div>
         <h3 class="event-title">Africa Venture Capital LP-GP Symposium 2027</h3>
@@ -1590,8 +2779,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-port-logistics-and-rail-freight-conclave-durban-icc-durban-4bad0dfb-95ab-44d0-8c43-c6b968d7f9d1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Logistics &amp; Rail Freight Conclave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-port-logistics-and-rail-freight-conclave-durban-icc-durban-4bad0dfb-95ab-44d0-8c43-c6b968d7f9d1" data-title="durban port logistics &amp; rail freight conclave" data-venue="durban icc" data-city="durban" data-date="2027-04-21">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Durban Port Logistics &amp; Rail Freight Conclave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 21 Apr 2027 · 08:30</div>
         <h3 class="event-title">Durban Port Logistics &amp; Rail Freight Conclave</h3>
@@ -1603,8 +2792,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria GovTech &amp; Smart Public Services Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad" data-title="pretoria govtech &amp; smart public services summit" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-04-22">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria GovTech &amp; Smart Public Services Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 22 Apr 2027 · 09:00</div>
         <h3 class="event-title">Pretoria GovTech &amp; Smart Public Services Summit</h3>
@@ -1616,8 +2805,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/digital-health-and-healthtech-southern-africa-the-marc-sandton-b5fe8265-b091-47d8-a149-b5a997e10898">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Digital Health &amp; HealthTech Southern Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/digital-health-and-healthtech-southern-africa-the-marc-sandton-b5fe8265-b091-47d8-a149-b5a997e10898" data-title="digital health &amp; healthtech southern africa" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-04-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Digital Health &amp; HealthTech Southern Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 29 Apr 2027 · 09:00</div>
         <h3 class="event-title">Digital Health &amp; HealthTech Southern Africa</h3>
@@ -1629,8 +2818,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-media-advertising-and-adtech-summit-the-zone-rosebank-a03f51ab-60ff-48a1-8e24-f9b2836d0c93">
-      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Media, Advertising &amp; AdTech Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-media-advertising-and-adtech-summit-the-zone-rosebank-a03f51ab-60ff-48a1-8e24-f9b2836d0c93" data-title="southern africa media, advertising &amp; adtech summit" data-venue="the zone @ rosebank" data-city="johannesburg" data-date="2027-04-30">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Southern Africa Media, Advertising &amp; AdTech Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 30 Apr 2027 · 09:30</div>
         <h3 class="event-title">Southern Africa Media, Advertising &amp; AdTech Summit</h3>
@@ -1642,8 +2831,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/african-enterprise-technology-and-cloud-summit-2027-sandton-f34e93c0-7c8c-4b0d-9eee-b7c079d74859">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="African Enterprise Technology &amp; Cloud Summit 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/african-enterprise-technology-and-cloud-summit-2027-sandton-f34e93c0-7c8c-4b0d-9eee-b7c079d74859" data-title="african enterprise technology &amp; cloud summit 2027" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-05-04">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="African Enterprise Technology &amp; Cloud Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 04 May 2027 · 08:30</div>
         <h3 class="event-title">African Enterprise Technology &amp; Cloud Summit 2027</h3>
@@ -1655,8 +2844,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Winter Awakening Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9" data-title="sunbet arena winter awakening rave" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-05-08">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SunBet Arena Winter Awakening Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 08 May 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Winter Awakening Rave</h3>
@@ -1668,8 +2857,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-accounting-cash-flow-and-payroll-masterclass-gallagher-convention-2ae9dc58-d24e-407f-8228-435481a5e454">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Accounting, Cash Flow &amp; Payroll Masterclass" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-accounting-cash-flow-and-payroll-masterclass-gallagher-convention-2ae9dc58-d24e-407f-8228-435481a5e454" data-title="sme accounting, cash flow &amp; payroll masterclass" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-05-11">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SME Accounting, Cash Flow &amp; Payroll Masterclass" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 11 May 2027 · 09:00</div>
         <h3 class="event-title">SME Accounting, Cash Flow &amp; Payroll Masterclass</h3>
@@ -1681,8 +2870,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/southern-africa-industrial-robotics-and-automation-expo-sandton-517095e5-0404-43a2-be95-3459c91453b7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Southern Africa Industrial Robotics &amp; Automation Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/southern-africa-industrial-robotics-and-automation-expo-sandton-517095e5-0404-43a2-be95-3459c91453b7" data-title="southern africa industrial robotics &amp; automation expo" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-05-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Southern Africa Industrial Robotics &amp; Automation Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 13 May 2027 · 09:00</div>
         <h3 class="event-title">Southern Africa Industrial Robotics &amp; Automation Expo</h3>
@@ -1694,8 +2883,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Silicon Cape FinTech &amp; WealthTech Showcase" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/silicon-cape-fintech-and-wealthtech-showcase-cape-town-international-cd439f2b-5712-44f7-975c-5a1c6dff70f1" data-title="silicon cape fintech &amp; wealthtech showcase" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-05-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Silicon Cape FinTech &amp; WealthTech Showcase" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 18 May 2027 · 10:00</div>
         <h3 class="event-title">Silicon Cape FinTech &amp; WealthTech Showcase</h3>
@@ -1707,8 +2896,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/digital-trust-ai-ethics-and-popia-governance-conclave-the-marc-9c9615fc-9189-4426-91f9-5b0026f4687b">
-      <img class="event-img" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Digital Trust, AI Ethics &amp; POPIA Governance Conclave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/digital-trust-ai-ethics-and-popia-governance-conclave-the-marc-9c9615fc-9189-4426-91f9-5b0026f4687b" data-title="digital trust, ai ethics &amp; popia governance conclave" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-05-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Digital Trust, AI Ethics &amp; POPIA Governance Conclave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 27 May 2027 · 09:00</div>
         <h3 class="event-title">Digital Trust, AI Ethics &amp; POPIA Governance Conclave</h3>

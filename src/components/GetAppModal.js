@@ -108,7 +108,10 @@ export const GetAppModal = ({
 
   const handleOpenInBrowser = useCallback(() => {
     try {
-      if (typeof window !== 'undefined') {
+      // RN has a global window but no window.open/location — use Linking there.
+      if (Platform.OS !== 'web') {
+        Linking.openURL(APP_DOWNLOAD_CONFIG.siteUrl).catch(() => {});
+      } else if (typeof window !== 'undefined') {
         window.open(APP_DOWNLOAD_CONFIG.siteUrl, '_blank');
         window.location.href = APP_DOWNLOAD_CONFIG.siteUrl;
       }

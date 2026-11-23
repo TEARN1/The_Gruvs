@@ -20,6 +20,7 @@ export const SmartImage = ({
   fallbackIcon = 'image',
   fallbackColor = 'rgba(255,255,255,0.05)',
   contentFit,
+  priority = 'normal',
   onLoad,
   onError,
 }) => {
@@ -67,9 +68,14 @@ export const SmartImage = ({
       style={style}
       contentFit={contentFit || resizeMode}
       placeholder={placeholder}
-      // On web, avoid CSS transition flickering when styles or parent dimensions refresh
-      transition={Platform.OS === 'web' ? 0 : 150}
+      // Fade-in on iOS only. On web it flickered when styles refreshed. On
+      // Android the feed list detaches off-screen rows (removeClippedSubviews);
+      // a picture that arrived from cache while its row was detached never ran
+      // its fade and stayed invisible: a blank card on The Drop although the
+      // log showed it loaded.
+      transition={Platform.OS === 'ios' ? 150 : 0}
       cachePolicy="disk"
+      priority={priority}
       onLoad={onLoad}
       onError={(e) => { setErrored(true); onError?.(e); }}
       recyclingKey={cacheKey}

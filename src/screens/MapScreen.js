@@ -33,7 +33,7 @@ import { MapZones, ZONE_KINDS, ZONE_STATUS, parseZoneTags, calculateDetourNaviga
 import { supabase } from '../services/supabase';
 // Nearby vibers used DiscoveryManager without ever importing it — the FAB threw
 // a ReferenceError into a silent catch, so that layer has never once worked.
-import { DiscoveryManager } from '../services/dataFlow';
+import { DiscoveryManager, hasPosterOrImage } from '../services/dataFlow';
 import { useMapLayer } from '../hooks/useMapLayer';
 import { logError } from '../utils/logError';
 import { shouldRefetch, padBbox, bboxRadiusM, bboxCenter } from '../utils/mapViewport';
@@ -218,6 +218,10 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
   // On by default: the tilted neon city is the Vibe Map's signature look.
   const [show3D, setShow3D] = useState(true);
   const [showWeather, setShowWeather] = useState(false);
+  const [showSafetyCorridors, setShowSafetyCorridors] = useState(false);
+  const [showPowerBackup, setShowPowerBackup] = useState(false);
+  const [showDecibels, setShowDecibels] = useState(false);
+  const [showParking, setShowParking] = useState(false);
   const [searchQuery, setSearchBar] = useState('');
   const [searching, setSearchBusy] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -314,9 +318,10 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
       const today = new Date().toISOString().split('T')[0];
       let q = supabase
         .from('events')
-        .select('id, title, category, cover_url, venue_name, latitude, longitude, lat, lon, going, event_date')
+        .select('id, title, category, cover_url, cover_image, image_url, media, venue_name, latitude, longitude, lat, lon, going, event_date')
         .gte('event_date', today)
         .is('deleted_at', null)
+        .or('cover_url.not.is.null,image_url.not.is.null,cover_image.not.is.null')
         .limit(300);
       if (bbox) {
         // Filters the canonical lat/lon pair (what PostEventModal writes). The
@@ -325,7 +330,7 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
         q = q.gte('lat', bbox.south).lte('lat', bbox.north).gte('lon', bbox.west).lte('lon', bbox.east);
       }
       const { data } = await q;
-      const rows = (data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null);
+      const rows = (data || []).filter((e) => (e.lat ?? e.latitude) != null && (e.lon ?? e.longitude) != null && hasPosterOrImage(e));
 
       // Real "here now" = a live tally of verified Touch-Downs. Counting these
       // client-side means fetching every check-in row for every pin, which gets
@@ -1227,6 +1232,38 @@ export const MapScreen = ({ onAuthRequired, onNavigateToEvent }) => {
           onToggle3D={() => setShow3D((v) => !v)}
           showWeather={showWeather}
           onToggleWeather={() => setShowWeather((v) => !v)}
+          showSafetyCorridors={showSafetyCorridors}
+          onToggleSafetyCorridors={() => {
+            setShowSafetyCorridors((v) => {
+              const next = !v;
+              toast(next ? 'Night Safety Corridors activated 🛡️ (Safe lit street pathways enabled)' : 'Safety Corridors disabled', 'info');
+              return next;
+            });
+          }}
+          showPowerBackup={showPowerBackup}
+          onTogglePowerBackup={() => {
+            setShowPowerBackup((v) => {
+              const next = !v;
+              toast(next ? 'Power Shield active ⚡ (Highlighting generator & solar backup venues)' : 'Power Shield disabled', 'info');
+              return next;
+            });
+          }}
+          showDecibels={showDecibels}
+          onToggleDecibels={() => {
+            setShowDecibels((v) => {
+              const next = !v;
+              toast(next ? 'Acoustic & Decibel HUD active 🔊 (Showing chill vs high energy zones)' : 'Decibel HUD disabled', 'info');
+              return next;
+            });
+          }}
+          showParking={showParking}
+          onToggleParking={() => {
+            setShowParking((v) => {
+              const next = !v;
+              toast(next ? 'Secure Street Parking & Valet drop points visible 🅿️' : 'Parking overlay disabled', 'info');
+              return next;
+            });
+          }}
           caps={caps}
         />
 
@@ -1269,18 +1306,18 @@ const ReportDetail = ({ report, onClose, onVerify, primary, bg, textColor, muted
             </Text>
           </View>
         </View>
-        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity onPress={() => onClose?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Feather name="x" size={20} color={muted} />
         </TouchableOpacity>
       </View>
       {report.note ? <Text style={{ color: muted, fontSize: 13, lineHeight: 18 }}>{report.note}</Text> : null}
       <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>Is this still accurate?</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <TouchableOpacity onPress={() => onVerify('confirm')} style={[cs.verifyBtn, { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+        <TouchableOpacity onPress={() => onVerify?.('confirm')} style={[cs.verifyBtn, { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
           <Feather name="check" size={14} color="#10b981" />
           <Text style={{ color: '#10b981', fontWeight: '800', fontSize: 13 }}>Still true{report.confirm_count ? ` · ${report.confirm_count}` : ''}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onVerify('dispute')} style={[cs.verifyBtn, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }]}>
+        <TouchableOpacity onPress={() => onVerify?.('dispute')} style={[cs.verifyBtn, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }]}>
           <Feather name="x" size={14} color="#ef4444" />
           <Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 13 }}>Gone{report.dispute_count ? ` · ${report.dispute_count}` : ''}</Text>
         </TouchableOpacity>
@@ -1536,18 +1573,18 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
       {/* Truth Protocol */}
       <Text style={{ color: muted, fontSize: 11, marginTop: 4 }}>Is this still accurate?</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <TouchableOpacity onPress={() => onVerify('confirm')} style={[cs.verifyBtn, { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+        <TouchableOpacity onPress={() => onVerify?.('confirm')} style={[cs.verifyBtn, { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
           <Feather name="check" size={14} color="#10b981" />
           <Text style={{ color: '#10b981', fontWeight: '800', fontSize: 13 }}>Still closed</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onVerify('dispute')} style={[cs.verifyBtn, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }]}>
+        <TouchableOpacity onPress={() => onVerify?.('dispute')} style={[cs.verifyBtn, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }]}>
           <Feather name="rotate-ccw" size={14} color="#ef4444" />
           <Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 13 }}>Reopened</Text>
         </TouchableOpacity>
       </View>
 
       {zone.event_id ? (
-        <TouchableOpacity onPress={() => onOpenEvent(zone.event_id)} style={cs.eventLink}>
+        <TouchableOpacity onPress={() => onOpenEvent?.(zone.event_id)} style={cs.eventLink}>
           <Feather name="calendar" size={13} color={primary} />
           <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>See the event</Text>
         </TouchableOpacity>

@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -261,13 +314,173 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57"
       }
     },
     {
       "@type": "ListItem",
       "position": 2,
+      "item": {
+        "@type": "Event",
+        "name": "Women Founders & Executive Leadership Forum",
+        "startDate": "2026-12-09T09:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Greenhouse Oxford Parks",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/women-founders-and-executive-leadership-forum-the-greenhouse-oxford-950d2e70-cf47-4bcf-92cd-e49c1f1388f8"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria Innovation Hub Smart City Pitch Battle",
+        "startDate": "2026-12-21T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Innovation Hub Pretoria",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/pretoria-innovation-hub-smart-city-pitch-battle-the-innovation-hub-f76e0962-53fe-4994-bb53-79f30095ddb6"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@type": "Event",
+        "name": "Gauteng PropTech & Smart Buildings Forum",
+        "startDate": "2027-01-18T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Sandton Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/gauteng-proptech-and-smart-buildings-forum-sandton-convention-centre-0eae571e-6b86-4f42-a608-7fb682267cd7"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "item": {
+        "@type": "Event",
+        "name": "Johannesburg FinTech Hackathon & Pitch Challenge",
+        "startDate": "2027-01-22T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Tshimologong Digital Innovation Precinct",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/johannesburg-fintech-hackathon-and-pitch-challenge-tshimologong-cf50b47c-2724-4873-8553-a7072f18d99f"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "item": {
+        "@type": "Event",
+        "name": "Women in STEM & Engineering Enterprise Pitch",
+        "startDate": "2027-01-25T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Innovation Hub Pretoria",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/women-in-stem-and-engineering-enterprise-pitch-the-innovation-hub-7ad55358-d059-4fc8-9839-2aae4be69c3f"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "item": {
+        "@type": "Event",
+        "name": "Be Prosperous - Property Investment Seminar - Johannesburg (Full Day) - 30 January 2027",
+        "startDate": "2027-01-30T11:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Radisson Blu Hotel Sandton, Johannesburg (Rivonia Rd & Daisy St, Sandton, Johannesburg, South Africa)",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Sandton",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events5/banners/4e33b261504906c7836e1992b0937b16994a8393ca773f34392f00571ea549d4-rimg-w1200-h675-dcf8f8f8-gmir?v=1794480340",
+        "url": "https://thegruvs.com/events/be-prosperous-property-investment-seminar-johannesburg-full-day-30-33c546c7-740e-46f0-af1c-4ad65da848b8"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
+      "item": {
+        "@type": "Event",
+        "name": "AI Product Founders & LLM Builders Workshop",
+        "startDate": "2027-02-06T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Tshimologong Digital Innovation Precinct",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/ai-product-founders-and-llm-builders-workshop-tshimologong-digital-9cef81a6-bf83-468e-a634-6d4ea6f89ea4"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 9,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria CyberSecurity & Defence Tech Pitch",
+        "startDate": "2027-02-09T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SunBet Arena at Time Square",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/pretoria-cybersecurity-and-defence-tech-pitch-sunbet-arena-at-time-5c68eac4-be4e-444d-b1f7-5c66fb380b14"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 10,
       "item": {
         "@type": "Event",
         "name": "Commercial Property & Green Building Conference",
@@ -281,13 +494,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/commercial-property-and-green-building-conference-the-marc-sandton-304be1c7-fc23-4d53-b8aa-7fcebb984f56"
       }
     },
     {
       "@type": "ListItem",
-      "position": 3,
+      "position": 11,
       "item": {
         "@type": "Event",
         "name": "South African Property Buyers & Investment Expo",
@@ -301,13 +514,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/south-african-property-buyers-and-investment-expo-sandton-convention-0ad51aee-fa46-4ebd-83b0-0697e2df5861"
       }
     },
     {
       "@type": "ListItem",
-      "position": 4,
+      "position": 12,
       "item": {
         "@type": "Event",
         "name": "Commercial Real Estate Logistics & Warehousing Summit",
@@ -321,7 +534,7 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/commercial-real-estate-logistics-and-warehousing-summit-the-marc-40756299-78b6-48be-b5c3-3fdd4740c68e"
       }
     }
@@ -384,11 +597,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Commercial Property & Real Estate Events & Parties in South Africa (2026) — The Gruvs",
+  "description": "Experience the top Commercial Property & Real Estate events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/events/real-estate-property",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -414,8 +674,8 @@
 
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gauteng Commercial Real Estate &amp; Investment Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57" data-title="gauteng commercial real estate &amp; investment summit" data-venue="the marc sandton" data-city="johannesburg" data-date="2026-12-08">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Gauteng Commercial Real Estate &amp; Investment Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 08 Dec 2026 · 08:30</div>
         <h3 class="event-title">Gauteng Commercial Real Estate &amp; Investment Summit</h3>
@@ -427,8 +687,112 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/commercial-property-and-green-building-conference-the-marc-sandton-304be1c7-fc23-4d53-b8aa-7fcebb984f56">
-      <img class="event-img" src="https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Commercial Property &amp; Green Building Conference" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/women-founders-and-executive-leadership-forum-the-greenhouse-oxford-950d2e70-cf47-4bcf-92cd-e49c1f1388f8" data-title="women founders &amp; executive leadership forum" data-venue="the greenhouse oxford parks" data-city="johannesburg" data-date="2026-12-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Women Founders &amp; Executive Leadership Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 09 Dec 2026 · 09:30</div>
+        <h3 class="event-title">Women Founders &amp; Executive Leadership Forum</h3>
+        <p class="event-venue">The Greenhouse Oxford Parks · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-innovation-hub-smart-city-pitch-battle-the-innovation-hub-f76e0962-53fe-4994-bb53-79f30095ddb6" data-title="pretoria innovation hub smart city pitch battle" data-venue="the innovation hub pretoria" data-city="pretoria" data-date="2026-12-21">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria Innovation Hub Smart City Pitch Battle" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 21 Dec 2026 · 10:00</div>
+        <h3 class="event-title">Pretoria Innovation Hub Smart City Pitch Battle</h3>
+        <p class="event-venue">The Innovation Hub Pretoria · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/gauteng-proptech-and-smart-buildings-forum-sandton-convention-centre-0eae571e-6b86-4f42-a608-7fb682267cd7" data-title="gauteng proptech &amp; smart buildings forum" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Gauteng PropTech &amp; Smart Buildings Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 18 Jan 2027 · 09:00</div>
+        <h3 class="event-title">Gauteng PropTech &amp; Smart Buildings Forum</h3>
+        <p class="event-venue">Sandton Convention Centre · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/johannesburg-fintech-hackathon-and-pitch-challenge-tshimologong-cf50b47c-2724-4873-8553-a7072f18d99f" data-title="johannesburg fintech hackathon &amp; pitch challenge" data-venue="tshimologong digital innovation precinct" data-city="johannesburg" data-date="2027-01-22">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Johannesburg FinTech Hackathon &amp; Pitch Challenge" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 22 Jan 2027 · 09:00</div>
+        <h3 class="event-title">Johannesburg FinTech Hackathon &amp; Pitch Challenge</h3>
+        <p class="event-venue">Tshimologong Digital Innovation Precinct · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/women-in-stem-and-engineering-enterprise-pitch-the-innovation-hub-7ad55358-d059-4fc8-9839-2aae4be69c3f" data-title="women in stem &amp; engineering enterprise pitch" data-venue="the innovation hub pretoria" data-city="pretoria" data-date="2027-01-25">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Women in STEM &amp; Engineering Enterprise Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 25 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Women in STEM &amp; Engineering Enterprise Pitch</h3>
+        <p class="event-venue">The Innovation Hub Pretoria · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/be-prosperous-property-investment-seminar-johannesburg-full-day-30-33c546c7-740e-46f0-af1c-4ad65da848b8" data-title="be prosperous - property investment seminar - johannesburg (full day) - 30 january 2027" data-venue="radisson blu hotel sandton, johannesburg (rivonia rd &amp; daisy st, sandton, johannesburg, south africa)" data-city="sandton" data-date="2027-01-30">
+      <img class="event-img" src="https://cdn-az.allevents.in/events5/banners/4e33b261504906c7836e1992b0937b16994a8393ca773f34392f00571ea549d4-rimg-w1200-h675-dcf8f8f8-gmir?v=1794480340" alt="Be Prosperous - Property Investment Seminar - Johannesburg (Full Day) - 30 January 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 30 Jan 2027 · 11:00</div>
+        <h3 class="event-title">Be Prosperous - Property Investment Seminar - Johannesburg (Full Day) - 30 January 2027</h3>
+        <p class="event-venue">Radisson Blu Hotel Sandton, Johannesburg (Rivonia Rd &amp; Daisy St, Sandton, Johannesburg, South Africa) · Sandton</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/ai-product-founders-and-llm-builders-workshop-tshimologong-digital-9cef81a6-bf83-468e-a634-6d4ea6f89ea4" data-title="ai product founders &amp; llm builders workshop" data-venue="tshimologong digital innovation precinct" data-city="johannesburg" data-date="2027-02-06">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="AI Product Founders &amp; LLM Builders Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 06 Feb 2027 · 10:00</div>
+        <h3 class="event-title">AI Product Founders &amp; LLM Builders Workshop</h3>
+        <p class="event-venue">Tshimologong Digital Innovation Precinct · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-cybersecurity-and-defence-tech-pitch-sunbet-arena-at-time-5c68eac4-be4e-444d-b1f7-5c66fb380b14" data-title="pretoria cybersecurity &amp; defence tech pitch" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-02-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria CyberSecurity &amp; Defence Tech Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 09 Feb 2027 · 10:00</div>
+        <h3 class="event-title">Pretoria CyberSecurity &amp; Defence Tech Pitch</h3>
+        <p class="event-venue">SunBet Arena at Time Square · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/commercial-property-and-green-building-conference-the-marc-sandton-304be1c7-fc23-4d53-b8aa-7fcebb984f56" data-title="commercial property &amp; green building conference" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-02-11">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Commercial Property &amp; Green Building Conference" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 11 Feb 2027 · 09:00</div>
         <h3 class="event-title">Commercial Property &amp; Green Building Conference</h3>
@@ -440,8 +804,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/south-african-property-buyers-and-investment-expo-sandton-convention-0ad51aee-fa46-4ebd-83b0-0697e2df5861">
-      <img class="event-img" src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="South African Property Buyers &amp; Investment Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/south-african-property-buyers-and-investment-expo-sandton-convention-0ad51aee-fa46-4ebd-83b0-0697e2df5861" data-title="south african property buyers &amp; investment expo" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-04-06">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="South African Property Buyers &amp; Investment Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 06 Apr 2027 · 09:00</div>
         <h3 class="event-title">South African Property Buyers &amp; Investment Expo</h3>
@@ -453,8 +817,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/commercial-real-estate-logistics-and-warehousing-summit-the-marc-40756299-78b6-48be-b5c3-3fdd4740c68e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Commercial Real Estate Logistics &amp; Warehousing Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/commercial-real-estate-logistics-and-warehousing-summit-the-marc-40756299-78b6-48be-b5c3-3fdd4740c68e" data-title="commercial real estate logistics &amp; warehousing summit" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-05-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Commercial Real Estate Logistics &amp; Warehousing Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 19 May 2027 · 09:00</div>
         <h3 class="event-title">Commercial Real Estate Logistics &amp; Warehousing Summit</h3>

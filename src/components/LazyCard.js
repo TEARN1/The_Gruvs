@@ -31,7 +31,16 @@ export const LazyCard = ({ children, eager = false, estimatedHeight = 480 }) => 
     return () => io.disconnect();
   }, [shown]);
 
-  if (shown) return children;
+  if (shown) {
+    if (IS_WEB) {
+      return (
+        <View style={{ contentVisibility: 'auto', containIntrinsicSize: `0 ${estimatedHeight}px` }}>
+          {children}
+        </View>
+      );
+    }
+    return children;
+  }
   return <View ref={ref} style={{ height: estimatedHeight }} />;
 };
 

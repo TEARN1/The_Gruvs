@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -280,6 +333,16 @@
       "position": 4,
       "item": {
         "@type": "Event",
+        "name": "Green Energy & Solar Microgrid Entrepreneurs Forum",
+        "startDate": "2026-12-22T09:30:00+02:00",
+        "url": "https://thegruvs.com/events/green-energy-and-solar-microgrid-entrepreneurs-forum-sunbet-arena-at-ec6b331f-b550-4fe1-b623-eed80a5f0ea9"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "item": {
+        "@type": "Event",
         "name": "Pretoria House Music Odyssey",
         "startDate": "2027-01-16T18:00:00+02:00",
         "url": "https://thegruvs.com/events/pretoria-house-music-odyssey-sunbet-arena-at-time-square-pretoria-c0a28f81-85c9-403a-8175-22dc16169c96"
@@ -287,7 +350,27 @@
     },
     {
       "@type": "ListItem",
-      "position": 5,
+      "position": 6,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria AI & Automation for Small Businesses",
+        "startDate": "2027-01-19T14:00:00+02:00",
+        "url": "https://thegruvs.com/events/pretoria-ai-and-automation-for-small-businesses-sunbet-arena-at-time-82815af5-a17a-4fde-90de-ba62faf72edd"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "item": {
+        "@type": "Event",
+        "name": "Dave Koz with special guest Chris Walker live at SunBet Arena",
+        "startDate": "2027-01-24T19:00:00+02:00",
+        "url": "https://thegruvs.com/events/dave-koz-with-special-guest-chris-walker-live-at-sunbet-arena-sunbet-411e9c53-fb85-4884-9837-628171b468d6"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
       "item": {
         "@type": "Event",
         "name": "SunBet Arena Symphony of Amapiano",
@@ -297,7 +380,17 @@
     },
     {
       "@type": "ListItem",
-      "position": 6,
+      "position": 9,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria CyberSecurity & Defence Tech Pitch",
+        "startDate": "2027-02-09T10:00:00+02:00",
+        "url": "https://thegruvs.com/events/pretoria-cybersecurity-and-defence-tech-pitch-sunbet-arena-at-time-5c68eac4-be4e-444d-b1f7-5c66fb380b14"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 10,
       "item": {
         "@type": "Event",
         "name": "SunBet Arena Afro-Tech Masters",
@@ -307,7 +400,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 7,
+      "position": 11,
       "item": {
         "@type": "Event",
         "name": "SunBet Arena Afro-Soul & RnB Night",
@@ -317,7 +410,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 8,
+      "position": 12,
       "item": {
         "@type": "Event",
         "name": "SunBet Arena Winter Awakening Rave",
@@ -360,11 +453,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Concerts & Arena Shows in Pretoria — The Gruvs",
+  "description": "SunBet Arena mega-concerts, Time Square live shows, and orchestral spectacles in Pretoria.",
+  "url": "https://thegruvs.com/events/pretoria/concerts",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -388,8 +528,8 @@
       <p class="hero-lead">SunBet Arena mega-concerts, Time Square live shows, and orchestral spectacles in Pretoria.</p>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624">
-      <img class="event-img" src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Symphony" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-symphony-sunbet-arena-at-time-square-pretoria-32bb708f-525f-44fa-b4cf-40e998267624" data-title="sunbet arena afro-tech symphony" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2026-12-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SunBet Arena Afro-Tech Symphony" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 19:00</div>
         <h3 class="event-title">SunBet Arena Afro-Tech Symphony</h3>
@@ -401,8 +541,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png" alt="The Kehlani World Tour: South Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/the-kehlani-world-tour-south-africa-sunbet-arena-time-square-pretoria-5382354a-cf3c-45f5-9725-f0075b3ed9ee" data-title="the kehlani world tour: south africa" data-venue="sunbet arena time square" data-city="pretoria" data-date="2026-12-15">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/r/r/p/239179ad-de6a-4a48-b7c4-46ddef70c4b5.png" alt="The Kehlani World Tour: South Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 15 Dec 2026 · 20:00</div>
         <h3 class="event-title">The Kehlani World Tour: South Africa</h3>
@@ -414,8 +554,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f">
-      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694" alt="Brandy Live in South Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/brandy-live-in-south-africa-sunbet-arena-pretoria-0616cd7c-1b1c-4413-96a3-d4ec5b8dfb2f" data-title="brandy live in south africa" data-venue="sunbet arena" data-city="pretoria" data-date="2026-12-17">
+      <img class="event-img" src="https://cdn-az.allevents.in/events4/banners/e5738cb0-b340-11f1-b1cb-ef3b74059d7f-rimg-w1200-h675-dcf8f8f8-gmir.webp?v=1789722694" alt="Brandy Live in South Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 17 Dec 2026</div>
         <h3 class="event-title">Brandy Live in South Africa</h3>
@@ -427,8 +567,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-house-music-odyssey-sunbet-arena-at-time-square-pretoria-c0a28f81-85c9-403a-8175-22dc16169c96">
-      <img class="event-img" src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria House Music Odyssey" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/green-energy-and-solar-microgrid-entrepreneurs-forum-sunbet-arena-at-ec6b331f-b550-4fe1-b623-eed80a5f0ea9" data-title="green energy &amp; solar microgrid entrepreneurs forum" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2026-12-22">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Green Energy &amp; Solar Microgrid Entrepreneurs Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 22 Dec 2026 · 09:30</div>
+        <h3 class="event-title">Green Energy &amp; Solar Microgrid Entrepreneurs Forum</h3>
+        <p class="event-venue">SunBet Arena at Time Square · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-house-music-odyssey-sunbet-arena-at-time-square-pretoria-c0a28f81-85c9-403a-8175-22dc16169c96" data-title="pretoria house music odyssey" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-01-16">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria House Music Odyssey" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 16 Jan 2027 · 18:00</div>
         <h3 class="event-title">Pretoria House Music Odyssey</h3>
@@ -440,8 +593,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-symphony-of-amapiano-sunbet-arena-at-time-square-pretoria-b8ffcfd2-12b8-4a03-9269-5bbf6d5dd411">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Symphony of Amapiano" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-ai-and-automation-for-small-businesses-sunbet-arena-at-time-82815af5-a17a-4fde-90de-ba62faf72edd" data-title="pretoria ai &amp; automation for small businesses" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-01-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria AI &amp; Automation for Small Businesses" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 19 Jan 2027 · 14:00</div>
+        <h3 class="event-title">Pretoria AI &amp; Automation for Small Businesses</h3>
+        <p class="event-venue">SunBet Arena at Time Square · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/dave-koz-with-special-guest-chris-walker-live-at-sunbet-arena-sunbet-411e9c53-fb85-4884-9837-628171b468d6" data-title="dave koz with special guest chris walker live at sunbet arena" data-venue="sunbet time square" data-city="pretoria" data-date="2027-01-24">
+      <img class="event-img" src="https://cdn-az.allevents.in/events7/banners/50429318bbe77502924907497e7fda0bd5c19c3c21301accad550e3614d49663-rimg-w1200-h630-dc080808-gmir?v=1788931788" alt="Dave Koz with special guest Chris Walker live at SunBet Arena" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 24 Jan 2027 · 19:00</div>
+        <h3 class="event-title">Dave Koz with special guest Chris Walker live at SunBet Arena</h3>
+        <p class="event-venue">Sunbet Time Square · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-symphony-of-amapiano-sunbet-arena-at-time-square-pretoria-b8ffcfd2-12b8-4a03-9269-5bbf6d5dd411" data-title="sunbet arena symphony of amapiano" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-02-06">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SunBet Arena Symphony of Amapiano" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Feb 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Symphony of Amapiano</h3>
@@ -453,8 +632,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-masters-sunbet-arena-at-time-square-pretoria-c252678f-148c-4ad6-88a9-a52f74c4cc35">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Tech Masters" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-cybersecurity-and-defence-tech-pitch-sunbet-arena-at-time-5c68eac4-be4e-444d-b1f7-5c66fb380b14" data-title="pretoria cybersecurity &amp; defence tech pitch" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-02-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria CyberSecurity &amp; Defence Tech Pitch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 09 Feb 2027 · 10:00</div>
+        <h3 class="event-title">Pretoria CyberSecurity &amp; Defence Tech Pitch</h3>
+        <p class="event-venue">SunBet Arena at Time Square · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-tech-masters-sunbet-arena-at-time-square-pretoria-c252678f-148c-4ad6-88a9-a52f74c4cc35" data-title="sunbet arena afro-tech masters" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-03-06">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SunBet Arena Afro-Tech Masters" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 06 Mar 2027 · 18:00</div>
         <h3 class="event-title">SunBet Arena Afro-Tech Masters</h3>
@@ -466,8 +658,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-soul-and-rnb-night-sunbet-arena-at-time-square-f75b0ab1-3bd6-4db8-b2eb-172d7a0a8b25">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Afro-Soul &amp; RnB Night" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-afro-soul-and-rnb-night-sunbet-arena-at-time-square-f75b0ab1-3bd6-4db8-b2eb-172d7a0a8b25" data-title="sunbet arena afro-soul &amp; rnb night" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-04-16">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SunBet Arena Afro-Soul &amp; RnB Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 16 Apr 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Afro-Soul &amp; RnB Night</h3>
@@ -479,8 +671,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SunBet Arena Winter Awakening Rave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sunbet-arena-winter-awakening-rave-sunbet-arena-at-time-square-59a7c49a-39a7-414e-98d8-cf760e48c7b9" data-title="sunbet arena winter awakening rave" data-venue="sunbet arena at time square" data-city="pretoria" data-date="2027-05-08">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SunBet Arena Winter Awakening Rave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 08 May 2027 · 19:00</div>
         <h3 class="event-title">SunBet Arena Winter Awakening Rave</h3>

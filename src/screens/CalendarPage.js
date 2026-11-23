@@ -143,7 +143,7 @@ const WeekStrip = ({ selectedDate, onSelect, primary, bg, textColor, muted, even
               isSelected && { backgroundColor: primary },
               !isSelected && isToday && { borderColor: primary, borderWidth: 1.5 },
             ]}
-            onPress={() => onSelect(d)}
+            onPress={() => onSelect?.(d)}
             accessibilityLabel={cellLabel}
             accessibilityRole="button"
             accessibilityState={{ selected: isSelected }}
@@ -200,7 +200,7 @@ const MonthGrid = ({ year, month, selectedDate, onSelect, primary, textColor, mu
             <TouchableOpacity
               key={day}
               style={[mg.cell, { width: '14.285%', height: 44 }]}
-              onPress={() => onSelect(d)}
+              onPress={() => onSelect?.(d)}
             >
               <View style={[
                 mg.innerCircle,
@@ -373,7 +373,7 @@ const UpcomingStrip = ({ events, primary, textColor, muted, onPress }) => {
               key={ev.id}
               {...fx('rim lift rise', i)}
               style={[us.card, { backgroundColor: `${catColor}12`, borderColor: `${catColor}25` }]}
-              onPress={() => onPress(ev)}
+              onPress={() => onPress?.(ev)}
             >
               <View style={[us.dot, { backgroundColor: catColor }]} />
               <Text style={[us.date, { color: primary }]}>{d.getDate()} {MONTH_NAMES[d.getMonth()]}</Text>

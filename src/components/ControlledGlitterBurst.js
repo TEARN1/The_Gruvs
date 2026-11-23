@@ -2,126 +2,133 @@
  * ControlledGlitterBurst — Tight, localized micro-glitter sparkle effect.
  *
  * Designed specifically for reaction buttons, emoji chips, and action badges.
- * Unlike full-screen confetti, this burst is strictly contained to the immediate
- * boundary (~28–36px radius) around the button so it feels crisp, tactile,
- * and high-end ("controlled glitters").
+ * Strictly contained to the immediate perimeter (~24–36px radius) around the
+ * button so it feels crisp, luminous, and tactile.
  *
- * Usage:
- *   const [glitterFx, setGlitterFx] = useState(0);
- *   <TouchableOpacity onPress={() => setGlitterFx(Date.now())} style={{ position: 'relative' }}>
- *     <Text style={{ fontSize: 20 }}>🔥</Text>
- *     <ControlledGlitterBurst trigger={glitterFx} />
- *   </TouchableOpacity>
+ * Features:
+ * - 100% Vector particle shapes (glowing discs, diamonds, and sparkle crosses).
+ *   Zero raw font glyphs — eliminates font rendering glitches and stuck text.
+ * - Self-cleaning lifecycle: unmounts cleanly from DOM / tree after 600ms.
+ * - Expanding neon micro-shockwave ring on trigger.
+ * - Smooth native / web hardware-accelerated transforms.
  */
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { View, Text, Animated, Easing, StyleSheet, Platform } from 'react-native';
+import { View, Animated, Easing, StyleSheet, Platform } from 'react-native';
 import { haptics } from '../utils/haptics';
 
 const IS_WEB = Platform.OS === 'web';
-const GLITTER_GLYPHS = ['✦', '✨', '⋆', '•', '✧', '★'];
 const NEON_PALETTE = ['#00f2ff', '#fde047', '#ff007a', '#10b981', '#a855f7', '#ffffff'];
+const SHAPES = ['diamond', 'dot', 'sparkle', 'diamond', 'dot'];
 
 export function ControlledGlitterBurst({
   trigger = 0,
   count = 10,
-  radius = 32,
+  radius = 28,
   colors = NEON_PALETTE,
   enableHaptics = true,
 }) {
   const anim = useRef(new Animated.Value(0)).current;
-  const [cycle, setCycle] = useState(0);
+  const [active, setActive] = useState(false);
 
-  // Generate tightly controlled particle trajectories around the button perimeter
+  // Generate deterministic, balanced radial trajectories around the button perimeter
   const particles = useMemo(() => {
     return Array.from({ length: count }).map((_, i) => {
-      // Web uses fixed (pseudo-random) trajectories: each becomes a CSS
-      // @keyframes rule, and fixed values let the same few rules be reused.
-      const r1 = IS_WEB ? ((i * 37) % 11) / 10 : Math.random();
-      const r2 = IS_WEB ? ((i * 53) % 7) / 6 : Math.random();
-      const angle = (Math.PI * 2 * i) / count + (r1 - 0.5) * 0.45;
-      const dist = radius * 0.65 + r2 * (radius * 0.45);
+      const spread = (Math.PI * 2 * i) / count;
+      const angleJitter = ((i * 17) % 5 - 2) * 0.08;
+      const angle = spread + angleJitter;
+      const dist = radius * 0.7 + (((i * 23) % 7) / 6) * (radius * 0.45);
+      const color = colors[i % colors.length];
+      const shape = SHAPES[i % SHAPES.length];
+      const size = 6 + ((i * 13) % 5);
+      const spin = (i % 2 === 0 ? 1 : -1) * (140 + ((i * 31) % 120));
+
       return {
+        id: i,
         angle,
         dist,
-        glyph: GLITTER_GLYPHS[i % GLITTER_GLYPHS.length],
-        color: colors[i % colors.length],
-        spin: (i % 2 ? 1 : -1) * Math.round(180 + r1 * 180),
-        size: Math.round(8 + r2 * 6),
+        color,
+        shape,
+        size,
+        spin,
       };
     });
-  }, [cycle, count, radius, colors]);
+  }, [count, radius, colors]);
 
   useEffect(() => {
     if (!trigger) return;
+
+    setActive(true);
+    anim.setValue(0);
+
     if (enableHaptics) {
       try { haptics.light(); } catch {}
     }
-    setCycle((c) => c + 1);
-    if (IS_WEB) return;   // web: CSS keyframes below
-    anim.setValue(0);
+
     Animated.timing(anim, {
       toValue: 1,
-      duration: 580,
-      easing: Easing.out(Easing.back(1.5)),
-      useNativeDriver: true,
+      duration: 540,
+      easing: Easing.bezier(0.16, 1, 0.3, 1),
+      useNativeDriver: !IS_WEB,
     }).start();
+
+    // Auto-cleanup: remove all elements from DOM / tree once animation finishes
+    const timer = setTimeout(() => {
+      setActive(false);
+    }, 580);
+
+    return () => clearTimeout(timer);
   }, [trigger, anim, enableHaptics]);
 
-  if (!trigger) return null;
+  if (!trigger || !active) return null;
 
-  // Web: one CSS animation per particle (Animated would re-render all of them
-  // in JavaScript every frame, right as the panel they open is mounting).
-  if (IS_WEB) {
-    return (
-      <View pointerEvents="none" style={styles.anchor}>
-        {particles.map((p, i) => {
-          const dx = Math.round(Math.cos(p.angle) * p.dist);
-          const dy = Math.round(Math.sin(p.angle) * p.dist);
-          return (
-            <Text
-              key={`${cycle}-${i}`}
-              style={[styles.sparkle, {
-                color: p.color,
-                fontSize: p.size,
-                textShadow: `0 0 5px ${p.color}`,
-                animationKeyframes: [{
-                  '0%': { opacity: 0, transform: 'translate(0px,0px) scale(0.3) rotate(0deg)' },
-                  '15%': { opacity: 1 },
-                  '35%': { transform: `translate(${Math.round(dx * 0.7)}px,${Math.round(dy * 0.7)}px) scale(1.25) rotate(${Math.round(p.spin * 0.35)}deg)` },
-                  '65%': { opacity: 0.9 },
-                  '100%': { opacity: 0, transform: `translate(${dx}px,${dy}px) scale(0.4) rotate(${p.spin}deg)` },
-                }],
-                animationDuration: '580ms',
-                animationTimingFunction: 'cubic-bezier(.2,.8,.2,1)',
-                animationFillMode: 'both',
-              }]}
-            >
-              {p.glyph}
-            </Text>
-          );
-        })}
-      </View>
-    );
-  }
+  // Expanding micro-glow ring
+  const ringScale = anim.interpolate({
+    inputRange: [0, 0.3, 1],
+    outputRange: [0.35, 1.1, 1.7],
+  });
+  const ringOpacity = anim.interpolate({
+    inputRange: [0, 0.15, 0.65, 1],
+    outputRange: [0.8, 0.6, 0.25, 0],
+  });
+  const ringColor = colors[0] || '#00f2ff';
 
   return (
     <View pointerEvents="none" style={styles.anchor}>
-      {particles.map((p, i) => {
+      {/* Shockwave ring */}
+      <Animated.View
+        style={[
+          styles.ring,
+          {
+            width: radius * 1.5,
+            height: radius * 1.5,
+            borderRadius: (radius * 1.5) / 2,
+            borderColor: ringColor,
+            opacity: ringOpacity,
+            transform: [{ scale: ringScale }],
+            ...(IS_WEB
+              ? { boxShadow: `0 0 10px ${ringColor}` }
+              : { shadowColor: ringColor, shadowRadius: 5 }),
+          },
+        ]}
+      />
+
+      {/* Radiant particle bursts */}
+      {particles.map((p) => {
         const translateX = anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, Math.cos(p.angle) * p.dist],
+          inputRange: [0, 0.4, 1],
+          outputRange: [0, Math.cos(p.angle) * (p.dist * 0.75), Math.cos(p.angle) * p.dist],
         });
         const translateY = anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, Math.sin(p.angle) * p.dist],
+          inputRange: [0, 0.4, 1],
+          outputRange: [0, Math.sin(p.angle) * (p.dist * 0.75), Math.sin(p.angle) * p.dist],
         });
         const opacity = anim.interpolate({
-          inputRange: [0, 0.15, 0.65, 1],
-          outputRange: [0, 1, 0.9, 0],
+          inputRange: [0, 0.15, 0.7, 1],
+          outputRange: [0, 1, 0.85, 0],
         });
         const scale = anim.interpolate({
           inputRange: [0, 0.35, 1],
-          outputRange: [0.3, 1.25, 0.4],
+          outputRange: [0.2, 1.3, 0],
         });
         const rotate = anim.interpolate({
           inputRange: [0, 1],
@@ -129,23 +136,81 @@ export function ControlledGlitterBurst({
         });
 
         return (
-          <Animated.Text
-            key={i}
+          <Animated.View
+            key={p.id}
             style={[
-              styles.sparkle,
+              styles.sparkleWrap,
               {
-                color: p.color,
-                fontSize: p.size,
                 opacity,
                 transform: [{ translateX }, { translateY }, { scale }, { rotate }],
-                ...(IS_WEB
-                  ? { textShadow: `0 0 5px ${p.color}` }
-                  : { textShadowColor: p.color, textShadowRadius: 4 }),
               },
             ]}
           >
-            {p.glyph}
-          </Animated.Text>
+            {p.shape === 'dot' ? (
+              <View
+                style={{
+                  width: p.size,
+                  height: p.size,
+                  borderRadius: p.size / 2,
+                  backgroundColor: p.color,
+                  ...(IS_WEB
+                    ? { boxShadow: `0 0 8px ${p.color}, 0 0 3px #ffffff` }
+                    : { shadowColor: p.color, shadowRadius: 4, shadowOpacity: 0.9 }),
+                }}
+              />
+            ) : p.shape === 'sparkle' ? (
+              <View
+                style={{
+                  width: p.size + 4,
+                  height: p.size + 4,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: 2,
+                    height: p.size + 4,
+                    borderRadius: 1,
+                    backgroundColor: p.color,
+                  }}
+                />
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: p.size + 4,
+                    height: 2,
+                    borderRadius: 1,
+                    backgroundColor: p.color,
+                  }}
+                />
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: 4,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: '#ffffff',
+                  }}
+                />
+              </View>
+            ) : (
+              // diamond
+              <View
+                style={{
+                  width: p.size,
+                  height: p.size,
+                  borderRadius: 1.5,
+                  backgroundColor: p.color,
+                  transform: [{ rotate: '45deg' }],
+                  ...(IS_WEB
+                    ? { boxShadow: `0 0 7px ${p.color}` }
+                    : { shadowColor: p.color, shadowRadius: 4, shadowOpacity: 0.9 }),
+                }}
+              />
+            )}
+          </Animated.View>
         );
       })}
     </View>
@@ -161,11 +226,16 @@ const styles = StyleSheet.create({
     height: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 99,
+    zIndex: 999,
   },
-  sparkle: {
+  ring: {
     position: 'absolute',
-    fontWeight: '900',
+    borderWidth: 1.5,
+  },
+  sparkleWrap: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

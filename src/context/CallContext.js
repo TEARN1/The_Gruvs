@@ -14,7 +14,7 @@
  * startCall is a friendly no-op.
  */
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated, PanResponder, Dimensions, DeviceEventEmitter } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated, PanResponder, Dimensions, Modal, DeviceEventEmitter } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { supabase } from '../services/supabase';
 import { PeerSession, isCallSupported, ringChannelName, ringUser } from '../services/webrtcCall';
@@ -383,6 +383,18 @@ export function CallProvider({ children }) {
   return (
     <CallContext.Provider value={value}>
       {children}
+      {/* In its own Modal: calls start from the DM screen, which is itself a
+          Modal, and on Android a Modal sits above every normal view — the call
+          screen rendered UNDER the chat, so the caller saw nothing and had no
+          hang-up button (WebRTC was connecting invisibly). Android back
+          minimises an active call, or declines an incoming one. */}
+      <Modal
+        visible={!!call && !isMinimized}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => (call?.status === 'incoming' ? rejectCall() : toggleMinimize())}
+      >
       {call && !isMinimized && (
         <CallOverlay
           status={call.status}
@@ -415,6 +427,7 @@ export function CallProvider({ children }) {
           onToggleScreenShare={toggleScreenShare}
         />
       )}
+      </Modal>
 
       {/* Floating Call PiP Bubble when minimized with Drag Physics */}
       {call && isMinimized && (

@@ -140,7 +140,7 @@ function ViberRow({ viber, primary, textColor, muted, bg, onPress, onMessage, is
   return (
     <TouchableOpacity
       style={[s.row, { backgroundColor: bg, borderColor: checkOnline(viber) ? `${primary}30` : 'rgba(255,255,255,0.06)' }]}
-      onPress={() => onPress(viber)}
+      onPress={() => onPress?.(viber)}
       activeOpacity={0.82}
     >
       {/* Avatar */}

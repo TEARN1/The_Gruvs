@@ -52,7 +52,7 @@ export const SmartAlertEngine = {
             category: provider.category,
             tagline: provider.description || 'Custom event attire & styling',
             priceLabel: (provider.price_min || provider.price) ? `From R${provider.price_min || provider.price}` : 'Custom Quote',
-            coverImage: Array.isArray(provider.media) ? provider.media[0] : undefined,
+            coverImage: Array.isArray(provider.media) ? (provider.media[0]?.url || provider.media[0] || undefined) : undefined,
             matchReason: rawDressCode ? `Matches "${rawDressCode}" dress code` : `Fits ${event.category || 'event'} style`,
             providerId: provider.user_id,
           }));

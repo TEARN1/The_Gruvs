@@ -5,13 +5,12 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Animated, Alert, TextInput, ActivityIndicator,
   Switch, Dimensions, useWindowDimensions, Share, Platform, RefreshControl, Modal,
-  KeyboardAvoidingView, Pressable, Image, Linking,
+  KeyboardAvoidingView, Pressable, Image, Linking, BackHandler,
 } from 'react-native';
 import { SmartImage } from '../components/SmartImage';
 import { WritingStylePicker } from '../components/WritingStylePicker';
 import { CurrencyPicker } from '../components/CurrencyPicker';
 import { SettingsScreen } from './SettingsScreen';
-import { CrossedPathsModal } from '../components/CrossedPathsModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '../icons/MaterialCommunityIcons';
@@ -48,6 +47,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SafeSection } from '../components/SafeSection';
 import { useIdentity } from '../context/IdentityContext';
 import { RoyalGovernance } from '../services/royalGovernance';
+import { APP_CHANGELOG } from '../constants/changelog';
 import { BiometricAuth, RichHaptics } from '../services/smartphoneFeatures';
 import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
@@ -67,12 +67,8 @@ import { VerifiedRequestCard } from '../components/VerifiedRequestCard';
 import { ClubScreen } from './ClubScreen';
 import { getZodiacSign, daysUntilBirthday } from '../utils/birthday';
 
-// ── Static imports — avoids "unknown module" chunk failures on web ──
-import { DirectMessageModal }      from '../components/DirectMessageModal';
-import { CategoryPickerModal }     from '../components/CategoryPickerModal';
 import { deferred } from '../utils/deferred';
 import { PathMapScreen }           from './lazyScreens';
-import { FollowListModal } from '../components/FollowListModal';
 import { WalletScreen }            from './lazyScreens';
 import { MonetizationService }     from '../services/monetizationService';
 import projectDNA                  from '../services/projectDNA.json';
@@ -82,6 +78,10 @@ import { fx } from '../styles/webFx';
 import { cssLoop, IS_WEB as IS_WEB_FX } from '../utils/cssLoop';
 
 // ── Deferred heavy modals & sub-screens — load on first open ──
+const DirectMessageModal      = deferred(() => require('../components/DirectMessageModal').DirectMessageModal, 'DirectMessageModal');
+const CategoryPickerModal     = deferred(() => require('../components/CategoryPickerModal').CategoryPickerModal, 'CategoryPickerModal');
+const FollowListModal         = deferred(() => require('../components/FollowListModal').FollowListModal, 'FollowListModal');
+const CrossedPathsModal       = deferred(() => require('../components/CrossedPathsModal').CrossedPathsModal, 'CrossedPathsModal');
 const PostEventModal          = deferred(() => require('../components/PostEventModal').PostEventModal, 'PostEventModal');
 const EditEventModal          = deferred(() => require('../components/EditEventModal').EditEventModal, 'EditEventModal');
 const LeaderboardScreen       = deferred(() => require('./LeaderboardScreen').LeaderboardScreen, 'LeaderboardScreen');
@@ -2236,15 +2236,30 @@ const UPDATE_TYPE_COLOR = { feature: "#00f2ff", fix: "#10b981", improvement: "#8
 const UPDATE_TYPE_ICON  = { feature: 'star', fix: 'tool', improvement: 'trending-up', security: 'shield' };
 
 const AppUpdatesSection = ({ primary, muted, textColor, surface }) => {
-  const [updates, setUpdates] = React.useState([]);
+  const [updates, setUpdates] = React.useState(APP_CHANGELOG.slice(0, 5));
 
   React.useEffect(() => {
     supabase
       .from('app_updates')
       .select('*')
       .order('released_at', { ascending: false })
-      .limit(5)
-      .then(({ data }) => setUpdates(data || []));
+      .limit(10)
+      .then(({ data }) => {
+        if (data?.length) {
+          setUpdates(prev => {
+            const map = new Map();
+            (prev || []).forEach(u => map.set(u.version ? `v-${u.version}-${u.title}` : (u.id || u.title), u));
+            data.forEach(u => {
+              const key = u.version ? `v-${u.version}-${u.title}` : (u.id || u.title);
+              map.set(key, { ...map.get(key), ...u });
+            });
+            return Array.from(map.values())
+              .sort((a, b) => new Date(b.released_at || 0) - new Date(a.released_at || 0))
+              .slice(0, 5);
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   if (!updates.length) return null;
@@ -2289,6 +2304,14 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
   const toast = useToast();
 
   const [subView, setSubView] = useState(null);
+  // Settings / Find Me / Find Them are in-page sub-views, not navigator
+  // screens, so Android's Back button did nothing on them (users got stuck in
+  // Settings). Back now closes the sub-view, like its on-screen back arrow.
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !subView) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { setSubView(null); return true; });
+    return () => sub.remove();
+  }, [subView]);
   const [discoverRadius, setDiscoverRadius] = useState(5); // km — feeds Find Them
   const [refreshing, setRefreshing] = useState(false);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
@@ -3041,6 +3064,8 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
           activeOpacity={0.9}
           style={[styles.coverPhoto, { backgroundColor: `${primary}18` }]}
           onPress={() => profile?.cover_url && setImageViewerUri(profile.cover_url)}
+          accessibilityRole={profile?.cover_url ? 'imagebutton' : 'image'}
+          accessibilityLabel={profile?.cover_url ? 'View cover photo' : 'Cover photo'}
         >
           {profile?.cover_url
             ? <SmartImage source={thumb.cover(profile.cover_url)} style={StyleSheet.absoluteFill} resizeMode="cover" />
@@ -3050,7 +3075,7 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             </>
           }
           {user && (
-            <TouchableOpacity style={styles.coverEditBtn} onPress={handleCoverUpload}>
+            <TouchableOpacity style={styles.coverEditBtn} onPress={handleCoverUpload} accessibilityRole="button" accessibilityLabel="Change cover photo">
               <Feather name="camera" size={14} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
           )}
@@ -3063,6 +3088,9 @@ export const ProfilePage = ({ onAuthRequired, onNavigateToEvent, onNavigateToTab
             onPress={() => avatarUrl ? setImageViewerUri(avatarUrl) : (user && handleAvatarUpload())}
             onLongPress={() => user && handleAvatarUpload()}
             activeOpacity={0.85}
+            accessibilityRole="imagebutton"
+            accessibilityLabel={avatarUrl ? 'View profile photo' : 'Add profile photo'}
+            accessibilityHint={user && avatarUrl ? 'Long press to change it' : undefined}
           >
             {avatarUrl
               ? <SmartImage source={thumb.avatarLg(avatarUrl)} style={[styles.avatar, { borderColor: primary }]} />

@@ -464,6 +464,195 @@ export const NotificationService = {
     } catch (e) { logError('Notify.sportFixture', e); }
   },
 
+  // ── Ecosystem Notifications: The Gruvs (Consumer & Merchant) ─────────────
+
+  async notifyProximityVibeRadar(recipientId, count, closestEventTitle) {
+    return this.send(recipientId, {
+      type: 'proximity_vibe_radar',
+      title: `🔥 ${count} Vibes Near Your Area`,
+      body: `Including ${closestEventTitle}. Tap to explore this weekend's radar.`,
+      data: { count, closestEventTitle },
+    });
+  },
+
+  async notifySquadPass(recipientId, crewJoinedCount, neededCount = 1) {
+    return this.send(recipientId, {
+      type: 'squad_pass',
+      title: '🎟️ Squad Pass Unlocked!',
+      body: `${crewJoinedCount} friends joined. Invite ${neededCount} more to unlock secret VIP queue bypass.`,
+      data: { crewJoinedCount, neededCount },
+    });
+  },
+
+  async notifyEventGeofence(recipientId, eventId, eventTitle, vibePoints = 50) {
+    return this.send(recipientId, {
+      type: 'geofence_arrival',
+      title: `📍 You've Arrived at ${eventTitle}!`,
+      body: `Check in to claim +${vibePoints} Vibe Points and see your crew inside.`,
+      eventId,
+      data: { vibePoints },
+    });
+  },
+
+  async notifyStageDrop(recipientId, eventId, artistName, stageName = 'Main Stage') {
+    return this.send(recipientId, {
+      type: 'stage_drop',
+      title: `🎤 STAGE DROP: ${artistName}`,
+      body: `Just stepped onto ${stageName}! Beat the rush to the front.`,
+      eventId,
+      data: { artistName, stageName },
+    });
+  },
+
+  async notifyTicketScarcity(recipientId, eventId, eventTitle, remainingCount = 40) {
+    return this.send(recipientId, {
+      type: 'ticket_scarcity',
+      title: `⚡ Low Ticket Alert: ${eventTitle}`,
+      body: `Only ${remainingCount} early-bird tickets remaining before tier price increase.`,
+      eventId,
+      data: { remainingCount },
+    });
+  },
+
+  async notifyMerchantForecast(recipientId, area, totalCrowd, topTrend) {
+    return this.send(recipientId, {
+      type: 'merchant_crowd_forecast',
+      title: `📊 Weekend Crowd Forecast: ${totalCrowd}`,
+      body: `${area} is surging. Top search: "${topTrend}". Check vendor permits.`,
+      data: { area, totalCrowd, topTrend },
+    });
+  },
+
+  async notifyMerchantSearchSurge(recipientId, area, searchCount = 50) {
+    return this.send(recipientId, {
+      type: 'merchant_search_surge',
+      title: `🔥 High Search Surge in ${area}`,
+      body: `${searchCount}+ Gruvers searching food & drinks nearby. Tap to boost your pin for 2 hours.`,
+      data: { area, searchCount },
+    });
+  },
+
+  async notifyVendorPermit(recipientId, eventTitle, status = 'approved', stallNumber = 'Stall #14') {
+    return this.send(recipientId, {
+      type: 'vendor_permit',
+      title: `✅ Pop-Up Permit ${status.toUpperCase()}`,
+      body: `Confirmed for ${stallNumber} at ${eventTitle}. View your digital QR access pass.`,
+      data: { eventTitle, status, stallNumber },
+    });
+  },
+
+  async notifyMerchantPayout(recipientId, amountRands, bankName = 'FNB') {
+    return this.send(recipientId, {
+      type: 'instant_payout',
+      title: `💰 Payout Dispatched: R${amountRands}`,
+      body: `Settled instantly to your ${bankName} account with zero processing delays.`,
+      data: { amountRands, bankName },
+    });
+  },
+
+  // ── Ecosystem Notifications: The Resident (Stays & Mobility) ──────────────
+
+  async notifyWeekendLockIn(recipientId, eventTitle, padsCount = 3, minPrice = 180) {
+    return this.send(recipientId, {
+      type: 'weekend_lock_in',
+      title: `🛌 Verified Crash Pads near ${eventTitle}`,
+      body: `${padsCount} verified rooms with solar backup available from R${minPrice}/night.`,
+      data: { eventTitle, padsCount, minPrice },
+    });
+  },
+
+  async notifyCarpoolMatch(recipientId, captainName, fromArea, toArea, fareRands = 45) {
+    return this.send(recipientId, {
+      type: 'carpool_match',
+      title: `🚗 Carpool Match: ${fromArea} ➔ ${toArea}`,
+      body: `Ride with verified Capt. ${captainName} for R${fareRands}/seat. Tap to secure.`,
+      data: { captainName, fromArea, toArea, fareRands },
+    });
+  },
+
+  async notifyGuardianShield(recipientId, minutesRemaining = 15, destination = 'Home Base') {
+    return this.send(recipientId, {
+      type: 'guardian_shield_timer',
+      title: `🛡️ Guardian Shield Active: ${minutesRemaining}m Remaining`,
+      body: `En route to ${destination}. Tap to confirm arrival or extend safety timer.`,
+      data: { minutesRemaining, destination },
+    });
+  },
+
+  async notifyGuardianEmergency(contactId, travelerName, lastLocation, mapUrl) {
+    return this.send(contactId, {
+      type: 'guardian_emergency',
+      title: `⚠️ EMERGENCY ALERT: ${travelerName}`,
+      body: `Did not confirm arrival. Last GPS: ${lastLocation}. Tap map link immediately.`,
+      data: { travelerName, lastLocation, mapUrl },
+    });
+  },
+
+  async notifyHostDemandSurge(hostId, area, eventTitle, projectedYield = 'R950') {
+    return this.send(hostId, {
+      type: 'host_demand_surge',
+      title: `📈 High Stay Demand in ${area}`,
+      body: `${eventTitle} is 90% full. Average weekend yield: ${projectedYield}/night. List your cottage.`,
+      data: { area, eventTitle, projectedYield },
+    });
+  },
+
+  async notifyHostBooking(hostId, guestName, payoutRands) {
+    return this.send(hostId, {
+      type: 'host_booking',
+      title: `🛎️ New Stay Confirmed: ${guestName}`,
+      body: `R${payoutRands} secured in escrow. Dual-ID verified. View guest arrival details.`,
+      data: { guestName, payoutRands },
+    });
+  },
+
+  async notifyCarpoolCorridorCallout(captainId, fromArea, toArea, earningsEst = 'R280') {
+    return this.send(captainId, {
+      type: 'carpool_callout',
+      title: `🚕 02:00 AM Nightlife Route Open`,
+      body: `High passenger volume from ${fromArea} to ${toArea}. Earn ~${earningsEst}/run.`,
+      data: { fromArea, toArea, earningsEst },
+    });
+  },
+
+  // ── Ecosystem Notifications: Excellency Academy (Creators & Talent) ──────
+
+  async notifyScholarshipDrop(recipientId, vibePoints, courseTitle, discountPercent = 30) {
+    return this.send(recipientId, {
+      type: 'scholarship_drop',
+      title: `🎟️ ${discountPercent}% Tuition Scholarship Unlocked!`,
+      body: `Your ${vibePoints} Vibe Points qualify you for ${courseTitle}. Redeem now.`,
+      data: { vibePoints, courseTitle, discountPercent },
+    });
+  },
+
+  async notifyFestivalGig(recipientId, roleTitle, eventTitle, rateRands = 1200) {
+    return this.send(recipientId, {
+      type: 'festival_gig',
+      title: `💼 Open Paid Gig: ${roleTitle}`,
+      body: `${eventTitle} needs certified crew (R${rateRands}/day). Apply with Academy ID.`,
+      data: { roleTitle, eventTitle, rateRands },
+    });
+  },
+
+  async notifyStudioSession(recipientId, sessionTitle, studioRoom = 'Studio 4', timeStr = '15:00') {
+    return this.send(recipientId, {
+      type: 'studio_session',
+      title: `🎛️ Studio Session Starting at ${timeStr}`,
+      body: `${sessionTitle} in ${studioRoom}. Bring your USB with 3 unreleased stems.`,
+      data: { sessionTitle, studioRoom, timeStr },
+    });
+  },
+
+  async notifyRecruiterTalent(promoterId, candidateCount, requiredRole) {
+    return this.send(promoterId, {
+      type: 'recruiter_talent',
+      title: `🎪 ${candidateCount} Certified ${requiredRole}s Available`,
+      body: `Excellency Academy graduates matched your event production crew request.`,
+      data: { candidateCount, requiredRole },
+    });
+  },
+
   async markAllRead(userId) {
     if (!userId) return;
     try {

@@ -29,6 +29,7 @@ import { WritingStylePicker } from '../components/WritingStylePicker';
 import { CurrencyPicker } from '../components/CurrencyPicker';
 import { Biometric } from '../services/biometric';
 import { NotificationService } from '../services/notificationService';
+import { getLearnTipsEnabled, setLearnTipsEnabled } from '../services/learnTips';
 import { SoundFX } from '../services/soundFX';
 import { PanicMode } from '../services/panicMode';
 import { SafetyHubModal } from '../components/SafetyHubModal';
@@ -259,6 +260,22 @@ export const SettingsScreen = ({
       toast?.show('Could not save that setting. Try again.', 'error');
     }
   }, [user, refreshProfile, toast]);
+
+  // Learn-the-app tips (local notifications, phones only).
+  const [tipsOn, setTipsOn] = useState(true);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let alive = true;
+    getLearnTipsEnabled().then((on) => { if (alive) setTipsOn(on); });
+    return () => { alive = false; };
+  }, []);
+  const toggleTips = useCallback(async (next) => {
+    setTipsOn(next);
+    const scheduled = await setLearnTipsEnabled(next);
+    if (!next) toast?.show('Tips off', 'info');
+    else if (scheduled) toast?.show('Tips on: one a day for a week 💡', 'success');
+    else toast?.show('Tips are on. Allow notifications to get them.', 'info');
+  }, [toast]);
 
   const togglePush = useCallback(async (next) => {
     if (!user) return;
@@ -614,6 +631,11 @@ export const SettingsScreen = ({
             value={pushOn} onValueChange={togglePush} disabled={pushBusy}
             primary={primary} muted={muted} textColor={textColor} />
           {pushBusy && <ActivityIndicator color={primary} style={{ marginTop: 8 }} />}
+          {Platform.OS !== 'web' && (
+            <ToggleRow label="Learn-the-app tips" sub="One quick tip a day for your first week"
+              value={tipsOn} onValueChange={toggleTips}
+              primary={primary} muted={muted} textColor={textColor} />
+          )}
           <ToggleRow label="Sound effects" sub="Signature Gruvs sounds for messages, pings & Touch Downs"
             value={soundOn} onValueChange={toggleSound}
             primary={primary} muted={muted} textColor={textColor} />

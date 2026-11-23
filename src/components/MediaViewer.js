@@ -5,7 +5,13 @@ import Feather from '@expo/vector-icons/Feather';
 import { AutoPlayVideo } from './AutoPlayVideo';
 import { SmartImage } from './SmartImage';
 import { useAuth } from '../context/AuthContext';
-import { getMediaLikes, toggleMediaLike } from '../services/mediaLikes';
+import {
+  getMediaLikes,
+  toggleMediaLike,
+  subscribeMediaLike,
+  subscribeMediaDownload,
+  notifyMediaDownload,
+} from '../services/mediaLikes';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const placeholderSource = require('../../assets/events/pixel.jpg');
@@ -23,8 +29,20 @@ const useLikedImages = (media, userId, eventId) => {
   useEffect(() => {
     let alive = true;
     if (!urlKey) return;
-    getMediaLikes(urlKey.split('\n'), userId).then((state) => { if (alive && Object.keys(state).length) setLikes(state); });
-    return () => { alive = false; };
+    getMediaLikes(urlKey.split('\n'), userId).then((state) => {
+      if (alive && Object.keys(state).length) setLikes(s => ({ ...s, ...state }));
+    });
+
+    const unsub = subscribeMediaLike((url, state) => {
+      if (alive) {
+        setLikes(prev => ({ ...prev, [url]: state }));
+      }
+    });
+
+    return () => {
+      alive = false;
+      unsub();
+    };
   }, [urlKey, userId]);
 
   const toggle = useCallback(async (url) => {
@@ -32,9 +50,9 @@ const useLikedImages = (media, userId, eventId) => {
     const prev = likes[url] || { count: 0, mine: false };
     const liking = !prev.mine;
     setLikes(s => ({ ...s, [url]: { count: Math.max(0, prev.count + (liking ? 1 : -1)), mine: liking } }));
-    const ok = userId ? await toggleMediaLike(url, userId, { like: liking, eventId }) : false;
-    if (!ok) setLikes(s => ({ ...s, [url]: prev })); // roll back — don't pretend it saved
-    return ok && liking;
+    const ok = await toggleMediaLike(url, userId, { like: liking, eventId });
+    if (!ok && userId) setLikes(s => ({ ...s, [url]: prev })); // roll back — don't pretend it saved
+    return liking;
   }, [likes, userId, eventId]);
 
   return [likes, toggle];
@@ -64,7 +82,7 @@ const downloadImage = async (url) => {
 };
 
 // ── Single media item ────────────────────────────────────────────────────────
-const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover', onNaturalSize }) => {
+const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover', priority = 'normal', onNaturalSize }) => {
   const [loadFailed, setLoadFailed] = useState(false);
   const prevUrlRef = useRef(item?.url);
 
@@ -100,6 +118,7 @@ const MediaItem = ({ item, isActive, width, height, resizeMode = 'cover', onNatu
       style={[{ backgroundColor: '#11161b' }, mediaStyle]}
       fallbackColor="#11161b"
       resizeMode={resizeMode}
+      priority={priority}
       onLoad={(e) => {
         // ONLY notify natural aspect ratio for actual real media items, never after a load failure / fallback
         if (!loadFailed) {
@@ -135,7 +154,7 @@ const HeartBurst = ({ onComplete }) => {
 // ── Main MediaViewer ─────────────────────────────────────────────────────────
 // emptyPoster: { title, category, date, time, venue, color } — drawn instead of
 // the "No photo added" box when the event has no picture at all.
-export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', fitToImage = false, maxHeightRatio = null, eventId = null, onAuthRequired, emptyPoster = null }) => {
+export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initialIndex = 0, resizeMode = 'cover', fitToImage = false, maxHeightRatio = null, eventId = null, priority = 'normal', onAuthRequired, emptyPoster = null }) => {
   const { user } = useAuth();
   const [measuredWidth, setMeasuredWidth] = useState(containerWidth || SCREEN_WIDTH);
   // fitToImage: a poster/flyer should fill the frame with no letterbox bars and
@@ -176,17 +195,26 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
 
   const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 60 });
 
+  useEffect(() => {
+    const unsub = subscribeMediaDownload((url) => {
+      setDownloadedKeys(prev => ({ ...prev, [url]: true }));
+      setTimeout(() => setDownloadedKeys(prev => ({ ...prev, [url]: false })), 2000);
+    });
+    return unsub;
+  }, []);
+
   const handleLike = useCallback(async (key) => {
-    if (!user) { onAuthRequired?.(); return; }
     const likedNow = await toggleLike(key);
     // Show heart burst only when liking (not un-liking / failed save)
     if (likedNow) setHeartBursts(prev => ({ ...prev, [key]: true }));
-  }, [user, toggleLike, onAuthRequired]);
+  }, [toggleLike]);
 
   const handleDownload = useCallback(async (url, key) => {
     await downloadImage(url);
-    setDownloadedKeys(prev => ({ ...prev, [key]: true }));
-    setTimeout(() => setDownloadedKeys(prev => ({ ...prev, [key]: false })), 2000);
+    const targetKey = url || key;
+    setDownloadedKeys(prev => ({ ...prev, [targetKey]: true, [key]: true }));
+    notifyMediaDownload(targetKey);
+    setTimeout(() => setDownloadedKeys(prev => ({ ...prev, [targetKey]: false, [key]: false })), 2000);
   }, []);
 
   if ((!media || media.length === 0) && emptyPoster) {
@@ -227,6 +255,7 @@ export const MediaViewer = ({ media, containerWidth, aspectRatio = 16 / 9, initi
           width={MEDIA_WIDTH}
           height={MEDIA_HEIGHT}
           resizeMode={effectiveResize}
+          priority={priority}
           onNaturalSize={fitToImage && index === 0 ? handleNaturalSize : undefined}
         />
 

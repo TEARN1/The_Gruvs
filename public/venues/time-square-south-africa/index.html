@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -264,36 +317,6 @@
       "position": 1,
       "item": {
         "@type": "Event",
-        "name": "Afrikaans is Groot 2026: Konsert 2",
-        "startDate": "2026-11-21T13:00:00+02:00",
-        "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "item": {
-        "@type": "Event",
-        "name": "Afrikaans is Groot 2026: Konsert 3",
-        "startDate": "2026-11-21T19:30:00+02:00",
-        "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "item": {
-        "@type": "Event",
-        "name": "Afrikaans is Groot 2026: Konsert 4",
-        "startDate": "2026-11-22T12:00:00+02:00",
-        "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 4,
-      "item": {
-        "@type": "Event",
         "name": "Afrikaans is Groot 2026: Konsert 6",
         "startDate": "2026-11-27T19:30:00+02:00",
         "url": "https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383"
@@ -301,7 +324,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 5,
+      "position": 2,
       "item": {
         "@type": "Event",
         "name": "Afrikaans is Groot 2026: Konsert 8",
@@ -311,7 +334,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 6,
+      "position": 3,
       "item": {
         "@type": "Event",
         "name": "Afrikaans is Groot 2026: Konsert 10",
@@ -321,7 +344,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 7,
+      "position": 4,
       "item": {
         "@type": "Event",
         "name": "+LIVE+ at Time Square (Night 1)",
@@ -331,7 +354,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 8,
+      "position": 5,
       "item": {
         "@type": "Event",
         "name": "+LIVE+ at Time Square (Night 2)",
@@ -374,11 +397,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events at Time Square South Africa, Pretoria — Schedule & Tickets | The Gruvs",
+  "description": "View upcoming events, concerts, and parties at Time Square South Africa in Pretoria. Dates, directions and how to RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/venues/time-square-south-africa",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -418,50 +488,11 @@
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
-      <h2 style="font-size:20px; font-weight:800; margin-bottom:20px;">Upcoming Dates (8)</h2>
+      <h2 style="font-size:20px; font-weight:800; margin-bottom:20px;">Upcoming Dates (5)</h2>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-2-time-square-south-africa-pretoria-532511cc-d017-4923-b5c6-5b81436370e3">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 2" loading="lazy" />
-      <div class="event-body">
-        <div class="event-date">Sat, 21 Nov 2026 · 13:00</div>
-        <h3 class="event-title">Afrikaans is Groot 2026: Konsert 2</h3>
-        <p class="event-venue">Time Square South Africa · Pretoria</p>
-        <div class="event-footer">
-          <span class="event-price">Paid</span>
-          <span class="btn-view">Get Tickets →</span>
-        </div>
-      </div>
-    </a>
-  
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-3-time-square-south-africa-pretoria-fa2b7fb9-0be1-4b50-8ec1-fdd7cd54ccc6">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 3" loading="lazy" />
-      <div class="event-body">
-        <div class="event-date">Sat, 21 Nov 2026 · 19:30</div>
-        <h3 class="event-title">Afrikaans is Groot 2026: Konsert 3</h3>
-        <p class="event-venue">Time Square South Africa · Pretoria</p>
-        <div class="event-footer">
-          <span class="event-price">Paid</span>
-          <span class="btn-view">Get Tickets →</span>
-        </div>
-      </div>
-    </a>
-  
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 4" loading="lazy" />
-      <div class="event-body">
-        <div class="event-date">Sun, 22 Nov 2026 · 12:00</div>
-        <h3 class="event-title">Afrikaans is Groot 2026: Konsert 4</h3>
-        <p class="event-venue">Time Square South Africa · Pretoria</p>
-        <div class="event-footer">
-          <span class="event-price">Paid</span>
-          <span class="btn-view">Get Tickets →</span>
-        </div>
-      </div>
-    </a>
-  
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 6" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-6-time-square-south-africa-pretoria-f6005dd7-bded-4782-b56a-34ba12737383" data-title="afrikaans is groot 2026: konsert 6" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-27">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 6" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 27 Nov 2026 · 19:30</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 6</h3>
@@ -473,8 +504,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a">
-      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 8" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-8-time-square-south-africa-pretoria-b14232e7-de9e-43e2-8ff0-d6e186647c6a" data-title="afrikaans is groot 2026: konsert 8" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-28">
+      <img class="event-img" src="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" alt="Afrikaans is Groot 2026: Konsert 8" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 28 Nov 2026 · 19:30</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 8</h3>
@@ -486,8 +517,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/9e0a02757503c6feaa7f95823c5435585768ab532ee52f8bb78426a001d53310-rimg-w1200-h566-dc083848-gmir?v=1788206754" alt="Afrikaans is Groot 2026: Konsert 10" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-10-time-square-south-africa-pretoria-4e5bfa12-7c2e-4033-a447-dc5f26846c0e" data-title="afrikaans is groot 2026: konsert 10" data-venue="time square south africa" data-city="pretoria" data-date="2026-11-29">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/9e0a02757503c6feaa7f95823c5435585768ab532ee52f8bb78426a001d53310-rimg-w1200-h566-dc083848-gmir?v=1788206754" alt="Afrikaans is Groot 2026: Konsert 10" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 29 Nov 2026 · 18:00</div>
         <h3 class="event-title">Afrikaans is Groot 2026: Konsert 10</h3>
@@ -499,8 +530,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 1)" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-1-time-square-south-africa-pretoria-c25d5c0c-f951-4615-8d63-704238fcd6d2" data-title="+live+ at time square (night 1)" data-venue="time square south africa" data-city="pretoria" data-date="2026-12-11">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 1)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 11 Dec 2026 · 20:00</div>
         <h3 class="event-title">+LIVE+ at Time Square (Night 1)</h3>
@@ -512,8 +543,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 2)" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843" data-title="+live+ at time square (night 2)" data-venue="time square south africa" data-city="pretoria" data-date="2026-12-12">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" alt="+LIVE+ at Time Square (Night 2)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 20:00</div>
         <h3 class="event-title">+LIVE+ at Time Square (Night 2)</h3>

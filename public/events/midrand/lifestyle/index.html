@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -250,6 +303,16 @@
       "position": 1,
       "item": {
         "@type": "Event",
+        "name": "Waterfall City Founders & Venture Networking Breakfast",
+        "startDate": "2026-12-11T08:30:00+02:00",
+        "url": "https://thegruvs.com/events/waterfall-city-founders-and-venture-networking-breakfast-waterfall-8fde1dac-d0db-4b99-8b34-d228acd79073"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "Event",
         "name": "Christmas Day Family Garden Feast",
         "startDate": "2026-12-25T11:00:00+02:00",
         "url": "https://thegruvs.com/events/christmas-day-family-garden-feast-waterfall-city-park-midrand-bbae7b21-26d6-4af3-8f31-2b1136be8dc4"
@@ -257,7 +320,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 2,
+      "position": 3,
       "item": {
         "@type": "Event",
         "name": "Waterfall City Beats & Bites Carnival",
@@ -267,7 +330,17 @@
     },
     {
       "@type": "ListItem",
-      "position": 3,
+      "position": 4,
+      "item": {
+        "@type": "Event",
+        "name": "Waterfall City CleanTech & ESG Venture Forum",
+        "startDate": "2027-01-29T09:00:00+02:00",
+        "url": "https://thegruvs.com/events/waterfall-city-cleantech-and-esg-venture-forum-waterfall-city-park-c2d63480-253b-4b55-a3b0-7f16060f3e0c"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
       "item": {
         "@type": "Event",
         "name": "Kyalami Trackside Summer Music Fest",
@@ -277,7 +350,17 @@
     },
     {
       "@type": "ListItem",
-      "position": 4,
+      "position": 6,
+      "item": {
+        "@type": "Event",
+        "name": "Kyalami Clean Mobility & EV Fleet Summit",
+        "startDate": "2027-02-15T09:00:00+02:00",
+        "url": "https://thegruvs.com/events/kyalami-clean-mobility-and-ev-fleet-summit-kyalami-grand-prix-circuit-f7da67af-af2f-4ed5-a316-ddbc918dd79f"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
       "item": {
         "@type": "Event",
         "name": "Kyalami Night Track Festival & Drifting",
@@ -287,7 +370,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 5,
+      "position": 8,
       "item": {
         "@type": "Event",
         "name": "Autumn Beats Outdoor Festival",
@@ -297,7 +380,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 6,
+      "position": 9,
       "item": {
         "@type": "Event",
         "name": "Kyalami Autumn Supercar Parade & Track Fest",
@@ -307,7 +390,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 7,
+      "position": 10,
       "item": {
         "@type": "Event",
         "name": "Kyalami Autumn Track Days & DJ Festival",
@@ -317,7 +400,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 8,
+      "position": 11,
       "item": {
         "@type": "Event",
         "name": "Waterfall City Street Food & Craft Gin Fest",
@@ -327,7 +410,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 9,
+      "position": 12,
       "item": {
         "@type": "Event",
         "name": "Kyalami Winter Endurance Fest",
@@ -370,11 +453,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Altitude Beach & Kyalami Track Days in Midrand — The Gruvs",
+  "description": "Pool parties at Altitude Beach, Kyalami drifting festivals, and Waterfall City street food.",
+  "url": "https://thegruvs.com/events/midrand/lifestyle",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -398,8 +528,21 @@
       <p class="hero-lead">Pool parties at Altitude Beach, Kyalami drifting festivals, and Waterfall City street food.</p>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/christmas-day-family-garden-feast-waterfall-city-park-midrand-bbae7b21-26d6-4af3-8f31-2b1136be8dc4">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Christmas Day Family Garden Feast" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-founders-and-venture-networking-breakfast-waterfall-8fde1dac-d0db-4b99-8b34-d228acd79073" data-title="waterfall city founders &amp; venture networking breakfast" data-venue="waterfall city park event pavilion" data-city="midrand" data-date="2026-12-11">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Waterfall City Founders &amp; Venture Networking Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 11 Dec 2026 · 08:30</div>
+        <h3 class="event-title">Waterfall City Founders &amp; Venture Networking Breakfast</h3>
+        <p class="event-venue">Waterfall City Park Event Pavilion · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/christmas-day-family-garden-feast-waterfall-city-park-midrand-bbae7b21-26d6-4af3-8f31-2b1136be8dc4" data-title="christmas day family garden feast" data-venue="waterfall city park" data-city="midrand" data-date="2026-12-25">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Christmas Day Family Garden Feast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 25 Dec 2026 · 11:00</div>
         <h3 class="event-title">Christmas Day Family Garden Feast</h3>
@@ -411,8 +554,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-beats-and-bites-carnival-waterfall-city-park-midrand-b9b4806c-e29f-43ca-bda4-87f132ccbdc1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Waterfall City Beats &amp; Bites Carnival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-beats-and-bites-carnival-waterfall-city-park-midrand-b9b4806c-e29f-43ca-bda4-87f132ccbdc1" data-title="waterfall city beats &amp; bites carnival" data-venue="waterfall city park" data-city="midrand" data-date="2027-01-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Waterfall City Beats &amp; Bites Carnival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 29 Jan 2027 · 12:00</div>
         <h3 class="event-title">Waterfall City Beats &amp; Bites Carnival</h3>
@@ -424,8 +567,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-trackside-summer-music-fest-kyalami-grand-prix-circuit-midrand-3d1c1825-de26-478d-8b3a-a027c222adb7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Trackside Summer Music Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-cleantech-and-esg-venture-forum-waterfall-city-park-c2d63480-253b-4b55-a3b0-7f16060f3e0c" data-title="waterfall city cleantech &amp; esg venture forum" data-venue="waterfall city park event pavilion" data-city="midrand" data-date="2027-01-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Waterfall City CleanTech &amp; ESG Venture Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 29 Jan 2027 · 09:00</div>
+        <h3 class="event-title">Waterfall City CleanTech &amp; ESG Venture Forum</h3>
+        <p class="event-venue">Waterfall City Park Event Pavilion · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-trackside-summer-music-fest-kyalami-grand-prix-circuit-midrand-3d1c1825-de26-478d-8b3a-a027c222adb7" data-title="kyalami trackside summer music fest" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-01-30">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Trackside Summer Music Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 30 Jan 2027 · 14:00</div>
         <h3 class="event-title">Kyalami Trackside Summer Music Fest</h3>
@@ -437,8 +593,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-night-track-festival-and-drifting-kyalami-grand-prix-circuit-b275f41b-f2f7-4a70-a4e5-d30f84607d39">
-      <img class="event-img" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Night Track Festival &amp; Drifting" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-clean-mobility-and-ev-fleet-summit-kyalami-grand-prix-circuit-f7da67af-af2f-4ed5-a316-ddbc918dd79f" data-title="kyalami clean mobility &amp; ev fleet summit" data-venue="kyalami grand prix circuit conference centre" data-city="midrand" data-date="2027-02-15">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Clean Mobility &amp; EV Fleet Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 15 Feb 2027 · 09:00</div>
+        <h3 class="event-title">Kyalami Clean Mobility &amp; EV Fleet Summit</h3>
+        <p class="event-venue">Kyalami Grand Prix Circuit Conference Centre · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-night-track-festival-and-drifting-kyalami-grand-prix-circuit-b275f41b-f2f7-4a70-a4e5-d30f84607d39" data-title="kyalami night track festival &amp; drifting" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-02-20">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Night Track Festival &amp; Drifting" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 20 Feb 2027 · 16:00</div>
         <h3 class="event-title">Kyalami Night Track Festival &amp; Drifting</h3>
@@ -450,8 +619,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/autumn-beats-outdoor-festival-waterfall-city-park-midrand-5c1dda7a-491a-44a7-8e9d-e4dbe20ab2b4">
-      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Autumn Beats Outdoor Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/autumn-beats-outdoor-festival-waterfall-city-park-midrand-5c1dda7a-491a-44a7-8e9d-e4dbe20ab2b4" data-title="autumn beats outdoor festival" data-venue="waterfall city park" data-city="midrand" data-date="2027-03-05">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Autumn Beats Outdoor Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 05 Mar 2027 · 13:00</div>
         <h3 class="event-title">Autumn Beats Outdoor Festival</h3>
@@ -463,8 +632,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-autumn-supercar-parade-and-track-fest-kyalami-grand-prix-fb05ffcb-1f78-4f78-8dd7-cb3666e9542f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Autumn Supercar Parade &amp; Track Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-autumn-supercar-parade-and-track-fest-kyalami-grand-prix-fb05ffcb-1f78-4f78-8dd7-cb3666e9542f" data-title="kyalami autumn supercar parade &amp; track fest" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-03-20">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Autumn Supercar Parade &amp; Track Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 20 Mar 2027 · 12:00</div>
         <h3 class="event-title">Kyalami Autumn Supercar Parade &amp; Track Fest</h3>
@@ -476,8 +645,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-autumn-track-days-and-dj-festival-kyalami-grand-prix-circuit-0991ff45-5164-43f7-b48a-7f3f09f52a4f">
-      <img class="event-img" src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Autumn Track Days &amp; DJ Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-autumn-track-days-and-dj-festival-kyalami-grand-prix-circuit-0991ff45-5164-43f7-b48a-7f3f09f52a4f" data-title="kyalami autumn track days &amp; dj festival" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-04-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Autumn Track Days &amp; DJ Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 17 Apr 2027 · 12:00</div>
         <h3 class="event-title">Kyalami Autumn Track Days &amp; DJ Festival</h3>
@@ -489,8 +658,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-street-food-and-craft-gin-fest-waterfall-city-park-1ab62b64-56f3-4f2c-b9dd-036f5dcea1c8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Waterfall City Street Food &amp; Craft Gin Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/waterfall-city-street-food-and-craft-gin-fest-waterfall-city-park-1ab62b64-56f3-4f2c-b9dd-036f5dcea1c8" data-title="waterfall city street food &amp; craft gin fest" data-venue="waterfall city park" data-city="midrand" data-date="2027-04-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Waterfall City Street Food &amp; Craft Gin Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 17 Apr 2027 · 11:00</div>
         <h3 class="event-title">Waterfall City Street Food &amp; Craft Gin Fest</h3>
@@ -502,8 +671,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Winter Endurance Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec" data-title="kyalami winter endurance fest" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-05-21">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Winter Endurance Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 21 May 2027 · 12:00</div>
         <h3 class="event-title">Kyalami Winter Endurance Fest</h3>

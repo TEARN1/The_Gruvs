@@ -28,11 +28,19 @@ export function EcosystemUniverseBar({
   const { width } = useWindowDimensions();
   const isCompact = width < 370;
 
+  // The universe bar card background is dark (rgba(10, 14, 16, 0.94)).
+  // Guarantee high-contrast, crisp legibility across all 24 themes (including light/earth palettes).
+  const unselectedTitleColor = '#f1f5f9';
+  const unselectedSubColor = 'rgba(241, 245, 249, 0.65)';
+  const unselectedIconColor = 'rgba(241, 245, 249, 0.60)';
+
   const handlePress = (app) => {
-    cyberAudio.play('telemetryTick');
-    if (app.id === 'thegruvs') {
+    try {
+      cyberAudio.play('telemetryTick');
+    } catch {}
+    if (app?.id === 'thegruvs') {
       onSelectApp?.(app.id);
-    } else {
+    } else if (app) {
       // Open in-app ecosystem portal (never eject user out of app)
       setPortalApp(app);
     }
@@ -65,12 +73,12 @@ export function EcosystemUniverseBar({
               ]}
               activeOpacity={0.82}
             >
-              <Feather name={app.icon || 'circle'} size={14} color={isActive ? app.color : muted} style={{ marginRight: 4 }} />
+              <Feather name={app.icon || 'circle'} size={14} color={isActive ? app.color : unselectedIconColor} style={{ marginRight: 4 }} />
               <View style={styles.textWrap}>
                 <Text
                   style={[
                     styles.tabTitle,
-                    { color: isActive ? app.color : textColor },
+                    { color: isActive ? app.color : unselectedTitleColor },
                   ]}
                   numberOfLines={1}
                   maxFontSizeMultiplier={1.2}
@@ -78,7 +86,7 @@ export function EcosystemUniverseBar({
                   {app.name.replace('The ', '')}
                 </Text>
                 {!isCompact && (
-                  <Text style={[styles.tabSub, { color: muted }]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+                  <Text style={[styles.tabSub, { color: isActive ? `${app.color}cc` : unselectedSubColor }]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
                     {app.id === 'thegruvs' ? 'Nightlife' : app.id === 'theresident' ? 'Stays' : 'Audio'}
                   </Text>
                 )}
@@ -98,14 +106,16 @@ export function EcosystemUniverseBar({
       </View>
 
       {/* In-App Ecosystem Portal (The Resident & Excellency inside The Gruvs) */}
-      <EcosystemPortalModal
-        visible={!!portalApp}
-        app={portalApp}
-        onClose={() => setPortalApp(null)}
-        primary={primary}
-        textColor={textColor}
-        muted={muted}
-      />
+      {!!portalApp && (
+        <EcosystemPortalModal
+          visible={true}
+          app={portalApp}
+          onClose={() => setPortalApp(null)}
+          primary={primary}
+          textColor={textColor}
+          muted={muted}
+        />
+      )}
     </View>
   );
 }

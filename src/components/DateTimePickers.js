@@ -305,7 +305,7 @@ export const TimePicker = ({
             </Text>
             <TouchableOpacity
               style={[tp.confirmBtn, { backgroundColor: primary }]}
-              onPress={() => onConfirm(hour, minute)}
+              onPress={() => onConfirm?.(hour, minute)}
             >
               <Text style={tp.confirmText}>Confirm Time</Text>
             </TouchableOpacity>
@@ -317,7 +317,7 @@ export const TimePicker = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={tp.overlay} activeOpacity={1} onPress={onClose}>
+      <TouchableOpacity style={tp.overlay} activeOpacity={1} onPress={() => onClose?.()}>
         <TouchableOpacity activeOpacity={1} style={[tp.card, { backgroundColor: bg }]}>
           <Text style={[tp.title, { color: textColor }]}>Pick a Time</Text>
 
@@ -339,7 +339,7 @@ export const TimePicker = ({
 
           <TouchableOpacity
             style={[tp.confirmBtn, { backgroundColor: primary }]}
-            onPress={() => onConfirm(hour, minute)}
+            onPress={() => onConfirm?.(hour, minute)}
           >
             <Text style={tp.confirmText}>Confirm Time</Text>
           </TouchableOpacity>

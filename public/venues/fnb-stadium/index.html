@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -334,11 +387,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events at FNB Stadium, Johannesburg — Schedule & Tickets | The Gruvs",
+  "description": "View upcoming events, concerts, and parties at FNB Stadium in Johannesburg. Dates, directions and how to RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/venues/fnb-stadium",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -381,8 +481,8 @@
       <h2 style="font-size:20px; font-weight:800; margin-bottom:20px;">Upcoming Dates (4)</h2>
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" alt="J. Cole: The Fall-Off Tour" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659" data-title="j. cole: the fall-off tour" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-12">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" alt="J. Cole: The Fall-Off Tour" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 18:00</div>
         <h3 class="event-title">J. Cole: The Fall-Off Tour</h3>
@@ -394,8 +494,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/m/u/n/38f72e26-d769-4675-9001-82c2204da85a.png" alt="Limp Bizkit in Johannesburg" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/limp-bizkit-in-johannesburg-fnb-stadium-johannesburg-3b6c30d1-b400-4f93-ab4d-607622446298" data-title="limp bizkit in johannesburg" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-13">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/m/u/n/38f72e26-d769-4675-9001-82c2204da85a.png" alt="Limp Bizkit in Johannesburg" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 13 Dec 2026 · 16:00</div>
         <h3 class="event-title">Limp Bizkit in Johannesburg</h3>
@@ -407,8 +507,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fnb-stadium-ke-dezemba-superfest-fnb-stadium-johannesburg-cbafa4c0-009e-48b1-b4e5-d260dc30b333">
-      <img class="event-img" src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FNB Stadium Ke Dezemba SuperFest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/fnb-stadium-ke-dezemba-superfest-fnb-stadium-johannesburg-cbafa4c0-009e-48b1-b4e5-d260dc30b333" data-title="fnb stadium ke dezemba superfest" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="FNB Stadium Ke Dezemba SuperFest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 23 Dec 2026 · 14:00</div>
         <h3 class="event-title">FNB Stadium Ke Dezemba SuperFest</h3>
@@ -420,8 +520,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/freedom-day-eve-all-star-amapiano-festival-fnb-stadium-johannesburg-eb8f67e3-6367-478b-b1c9-80d1dfda02c8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Eve All-Star Amapiano Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/freedom-day-eve-all-star-amapiano-festival-fnb-stadium-johannesburg-eb8f67e3-6367-478b-b1c9-80d1dfda02c8" data-title="freedom day eve all-star amapiano festival" data-venue="fnb stadium" data-city="johannesburg" data-date="2027-04-26">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Freedom Day Eve All-Star Amapiano Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 26 Apr 2027 · 16:00</div>
         <h3 class="event-title">Freedom Day Eve All-Star Amapiano Festival</h3>

@@ -1997,8 +1997,8 @@ SELECT
   true,
   'published',
   false,
-  ${sqlEsc(img)},
-  ARRAY[${sqlEsc(img)}]
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = ${sqlEsc(ev.title)} AND event_date = '${ev.date}'::date AND deleted_at IS NULL
@@ -2043,8 +2043,8 @@ SELECT
   true,
   'published',
   false,
-  ${sqlEsc(img)},
-  ARRAY[${sqlEsc(img)}]
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = ${sqlEsc(ev.title)} AND event_date = '${ev.date}'::date AND deleted_at IS NULL

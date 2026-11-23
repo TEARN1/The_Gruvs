@@ -30,12 +30,13 @@ import { loadViewerAge, viewerAgeSync } from '../utils/viewerAge';
 import { SecurityService } from '../services/securityService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ShakeDetector, RichHaptics } from '../services/smartphoneFeatures';
-import { FeedManager, TrendingManager, VibeManager, BookmarkManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline } from '../services/dataFlow';
+import { FeedManager, TrendingManager, VibeManager, BookmarkManager, CAT_KEY_TO_SUBCATS, isOnline as checkOnline, hasPosterOrImage } from '../services/dataFlow';
 import { recordEventView, flushEventViews } from '../services/personalizationEngine';
 import { collapseTourStops } from '../services/tours';
 import { resilient } from '../utils/resilience';
 import { RouteEngine } from '../services/routeEngine';
 import { CATEGORY_CONFIG, CATEGORY_KEYS, getCategoryColor, REACTION_LIST } from '../constants/CategoryConfig';
+import { CategoryCover, getCategoryPhoto } from '../components/EventPoster';
 import { priceLabel } from '../constants/currencies';
 import { ReelsObservers } from '../services/reelsDataFlow';
 import { FONT } from '../constants/DesignTokens';
@@ -76,11 +77,8 @@ import { GoOutNudge } from '../components/GoOutNudge';
 import { appInstallService } from '../services/appInstallService';
 import birthdaySpotlight from '../services/birthdaySpotlight';
 import { deferred } from '../utils/deferred';
-import { ViberProfileModal }    from '../components/ViberProfileModal';
-import { ActivityCenterModal }  from '../components/ActivityCenterModal';
-import { QuickToolsSheet }      from '../components/QuickToolsSheet';
+import { QuickThemeBar }        from '../components/QuickThemeBar';
 import { PathMapScreen }        from './lazyScreens';
-import { EventDetailScreen }    from './EventDetailScreen';
 import { countdown as getCountdown } from '../utils/countdown';
 import { friendsGoing, friendsLabel } from '../services/socialProof';
 import { insertStartHeaders } from '../utils/startGroup';
@@ -91,8 +89,13 @@ import { sensoryHaptics } from '../services/sensoryHapticEngine';
 import { BorderTracer } from '../components/KasiIndustrialUI';
 import { cssLoop, IS_WEB as IS_WEB_LOOP } from '../utils/cssLoop';
 import { fx } from '../styles/webFx';
+import { markStartup } from '../utils/startupTrace';
 
-// ── Deferred heavy modals — load on first open to keep startup instant ───────
+// ── Deferred heavy screens & modals — load on first open to keep startup instant ──
+const EventDetailScreen    = deferred(() => require('./EventDetailScreen').EventDetailScreen, 'EventDetailScreen');
+const ViberProfileModal    = deferred(() => require('../components/ViberProfileModal').ViberProfileModal, 'ViberProfileModal');
+const ActivityCenterModal  = deferred(() => require('../components/ActivityCenterModal').ActivityCenterModal, 'ActivityCenterModal');
+const QuickToolsSheet      = deferred(() => require('../components/QuickToolsSheet').QuickToolsSheet, 'QuickToolsSheet');
 const PostEventModal       = deferred(() => require('../components/PostEventModal').PostEventModal, 'PostEventModal');
 const EventAdminPanel      = deferred(() => require('../components/EventAdminPanel').EventAdminPanel, 'EventAdminPanel');
 const EditEventModal       = deferred(() => require('../components/EditEventModal').EditEventModal, 'EditEventModal');
@@ -149,12 +152,16 @@ const SkeletonCard = ({ primary }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
     if (IS_WEB_LOOP) return;   // web: CSS animation (cssLoop) — no per-frame re-render
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.7, duration: 1000, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 0.3, duration: 1000, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    loop.start();
+    // Stop on unmount. Without this the native loop outlived the skeleton,
+    // and every feed load added another endless animation.
+    return () => loop.stop();
   }, []);
   return (
     <Animated.View style={[skStyles.card, IS_WEB_LOOP ? { opacity: 0.3, ...cssLoop({ '0%': { opacity: 0.3 }, '100%': { opacity: 0.7 } }, 1000) } : { opacity: pulse }, { borderColor: `${primary}30` }]}>
@@ -232,19 +239,18 @@ const TrendingModal = ({ visible, onClose, trending, primary, bg, textColor, mut
             onPress={() => { onClose(); onSelectEvent && onSelectEvent(spot); }}
             activeOpacity={0.75}
             accessibilityRole="button"
-            accessibilityLabel={`Trending: ${spot.description || spot.title || 'Trending Gruv'}, ${spot.rsvp_count || spot.going || 0} vibing`}
+            accessibilityLabel={`Trending: ${spot.title || spot.description || 'Trending Gruv'}, ${spot.rsvp_count || spot.going || 0} vibing`}
           >
-            <Image
-              source={typeof spot.image === 'string' ? { uri: spot.image } : (spot.image || require('../../assets/events/pixel.jpg'))}
-              style={tm.thumb}
-            />
+            {spot.image
+              ? <Image source={typeof spot.image === 'string' ? { uri: spot.image } : spot.image} style={tm.thumb} />
+              : <View style={[tm.thumb, { overflow: 'hidden' }]}><CategoryCover color={getCategoryColor(spot.category) || primary} /></View>}
             <View style={{ flex: 1 }}>
               <View style={tm.rankRow}>
                 <View style={[tm.rankBadge, { backgroundColor: i < 3 ? `${primary}25` : 'rgba(255,255,255,0.06)' }]}>
                   <Feather name="trending-up" size={10} color={i < 3 ? primary : muted} />
                 </View>
                 <Text style={[tm.spotName, { color: textColor }]} numberOfLines={1}>
-                  {spot.description || spot.title || 'Trending Gruv'}
+                  {spot.title || spot.description || 'Trending Gruv'}
                 </Text>
               </View>
               <View style={tm.metaRow}>
@@ -393,7 +399,9 @@ const EventCard = React.memo(({
     }
     // Serve feed images downscaled (weserv) — full-res photos here were
     // the #1 cause of slow feed load. Videos are left untouched.
-    if (m?.length) m = m.map(x => (x && x.type !== 'video' && x.url) ? { ...x, url: thumb.feed(x.url) } : x);
+    if (m?.length) {
+      m = m.map(x => (x && x.type !== 'video' && x.url) ? { ...x, url: thumb.feed(x.url) } : x);
+    }
     return m?.length ? m : null;
   }, [event.media, event.media_urls, event.cover_url, event.cover_image, event.image_url, event.event_date]);
 
@@ -424,12 +432,12 @@ const EventCard = React.memo(({
             },
             isWeb && { cursor: 'pointer' },
           ]}
-          accessibilityRole="button"
+          accessibilityRole="article"
           accessibilityLabel={`${title}${cardDate ? ', ' + cardDate : ''}${event.venue_name ? ', at ' + event.venue_name : ''}`}
           {...(isWeb ? {
             className: 'event-card',
             tabIndex: 0,
-            onKeyPress: (e) => e.nativeEvent?.key === 'Enter' && onSelectEvent(event),
+            onKeyPress: (e) => e.nativeEvent?.key === 'Enter' && onSelectEvent?.(event),
           } : {})}
         >
           {/* Sweeping kinetic hairline tracer for live/highlighted cards */}
@@ -464,10 +472,10 @@ const EventCard = React.memo(({
           {/* Media — double-tap to vibe, long-press for quick actions */}
           <TouchableOpacity
             activeOpacity={1}
-            onPress={() => onImageTap(event)}
-            onPressIn={() => onCardPressIn(id)}
-            onPressOut={() => onCardPressOut(id)}
-            onLongPress={(e) => onImageLongPress(event, e?.nativeEvent)}
+            onPress={() => onImageTap?.(event)}
+            onPressIn={() => onCardPressIn?.(id)}
+            onPressOut={() => onCardPressOut?.(id)}
+            onLongPress={(e) => onImageLongPress?.(event, e?.nativeEvent)}
             delayLongPress={400}
           >
           {matchCard ? (
@@ -486,7 +494,7 @@ const EventCard = React.memo(({
               )}
               <TouchableOpacity
                 style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
-                onPress={(e) => { e.stopPropagation?.(); onBookmark(id); }}
+                onPress={(e) => { e?.stopPropagation?.(); onBookmark?.(id); }}
                 accessibilityRole="button"
                 accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -506,6 +514,7 @@ const EventCard = React.memo(({
               fitToImage
               maxHeightRatio={1.5}
               emptyPoster={{ title, category: event.category, date: event.event_date, time: event.event_time, venue: event.venue_name, color: catColor }}
+              priority={index <= 1 ? 'high' : 'low'}
               media={resolvedMedia} />
             {/* Double-tap heart burst overlay */}
             {heartAnim && (
@@ -567,7 +576,7 @@ const EventCard = React.memo(({
             {/* Bookmark — separate touch target, stops propagation to image tap */}
             <TouchableOpacity
               style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
-              onPress={(e) => { e.stopPropagation?.(); onBookmark(id); }}
+              onPress={(e) => { e?.stopPropagation?.(); onBookmark?.(id); }}
               accessibilityRole="button"
               accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -582,7 +591,7 @@ const EventCard = React.memo(({
           <View style={styles.cardBody}>
             {/* User row */}
             <View style={styles.userRow}>
-              <TouchableOpacity onPress={() => onOpenViberProfile(event.profiles)}>
+              <TouchableOpacity onPress={() => onOpenViberProfile?.(event.profiles)}>
                 <View style={styles.avatarWrap}>
                   {event.profiles?.avatar_url
                     ? <SmartImage source={thumb.avatar(event.profiles.avatar_url)} style={[styles.avatar, { borderColor: primary }]} />
@@ -616,7 +625,7 @@ const EventCard = React.memo(({
               </View>
               {user && event.profiles?.id && event.profiles.id !== user.id && (
                 <TouchableOpacity
-                  onPress={() => onFollow(event.profiles.id)}
+                  onPress={() => onFollow?.(event.profiles.id)}
                   style={[styles.feedFollowBtn, isFollowing && { backgroundColor: 'transparent', borderColor: muted }]}
                 >
                   <Text style={[styles.feedFollowText, isFollowing && { color: muted }]}>
@@ -698,7 +707,7 @@ const EventCard = React.memo(({
               <TouchableOpacity
                 style={{ flex: 1, minWidth: 0 }}
                 activeOpacity={0.8}
-                onPress={() => onSelectEvent(event)}
+                onPress={() => onSelectEvent?.(event)}
                 accessibilityHint="Double-tap to open event details"
               >
                 <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
@@ -747,7 +756,7 @@ const EventCard = React.memo(({
             {(event.venue_name || event.address) ? (
               <TouchableOpacity
                 style={[styles.venueRow, { borderColor: `${primary}22`, backgroundColor: `${primary}08` }]}
-                onPress={() => onSelectEvent(event)}
+                onPress={() => onSelectEvent?.(event)}
                 accessibilityRole="button"
                 accessibilityLabel={`View ${event.venue_name || event.address} details`}
               >
@@ -833,7 +842,7 @@ const EventCard = React.memo(({
           {event.schedule?.length > 0 && (
             <TouchableOpacity
               style={[styles.schedulePreview, { backgroundColor: `${primary}0d`, borderTopColor: `${primary}20` }]}
-              onPress={() => onSelectEvent(event)}
+              onPress={() => onSelectEvent?.(event)}
               activeOpacity={0.8}
             >
               <Feather name="calendar" size={13} color={primary} />
@@ -849,7 +858,7 @@ const EventCard = React.memo(({
           {event.reaction_count > 0 ? (
             <TouchableOpacity
               style={[styles.reactionSummary, { borderTopColor: `${primary}12`, borderBottomColor: `${primary}12` }]}
-              onPress={() => onSetReactorsEvent(id)}
+              onPress={() => onSetReactorsEvent?.(id)}
               activeOpacity={0.8}
             >
               <Text style={styles.reactionEmojis}>
@@ -873,7 +882,7 @@ const EventCard = React.memo(({
                   onPress={() => {
                     const canVibe = !!user && (isVibed || event.author_id !== user.id);
                     if (canVibe) setLikeFx(f => ({ n: f.n + 1, kind: isVibed ? 'unlike' : 'like', burst: isVibed ? f.burst : Date.now() }));
-                    onVibe(id);
+                    onVibe?.(id);
                   }}
                   accessibilityRole="button"
                   accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
@@ -890,7 +899,7 @@ const EventCard = React.memo(({
                 {/* React */}
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => onToggleSection(id, 'react')}
+                  onPress={() => onToggleSection?.(id, 'react')}
                   accessibilityRole="button"
                   accessibilityLabel="React to this event"
                 >
@@ -906,7 +915,7 @@ const EventCard = React.memo(({
                 {/* Echo (Comments) */}
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => onToggleSection(id, 'echo')}
+                  onPress={() => onToggleSection?.(id, 'echo')}
                   accessibilityRole="button"
                   accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
                 >
@@ -917,7 +926,7 @@ const EventCard = React.memo(({
                 {/* Share */}
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => onShare(event)}
+                  onPress={() => onShare?.(event)}
                   accessibilityRole="button"
                   accessibilityLabel={`Share event: ${title}`}
                 >
@@ -927,7 +936,7 @@ const EventCard = React.memo(({
                 {/* More Tools Toggle */}
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => onToggleSection(id, 'more')}
+                  onPress={() => onToggleSection?.(id, 'more')}
                   accessibilityRole="button"
                   accessibilityLabel="More event tools"
                 >
@@ -938,7 +947,7 @@ const EventCard = React.memo(({
               {/* Bookmark Button */}
               <TouchableOpacity
                 style={styles.actionBtn}
-                onPress={() => onBookmark(id)}
+                onPress={() => onBookmark?.(id)}
                 accessibilityRole="button"
                 accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -955,7 +964,7 @@ const EventCard = React.memo(({
               <View style={[styles.moreToolsTray, { borderTopColor: `${primary}15` }]}>
                 <TouchableOpacity
                   style={[styles.moreToolPill, { borderColor: isRoute ? primary : 'rgba(255,255,255,0.12)', backgroundColor: isRoute ? `${primary}15` : 'transparent' }]}
-                  onPress={() => onToggleRoute(event)}
+                  onPress={() => onToggleRoute?.(event)}
                 >
                   <Feather name={isRoute ? "map-pin" : "plus-circle"} size={13} color={isRoute ? primary : muted} />
                   <Text style={[styles.moreToolText, { color: isRoute ? primary : textColor }]}>{isRoute ? 'In Journey' : 'Journey'}</Text>
@@ -963,7 +972,7 @@ const EventCard = React.memo(({
 
                 <TouchableOpacity
                   style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
-                  onPress={() => onToggleSection(id, 'gallery')}
+                  onPress={() => onToggleSection?.(id, 'gallery')}
                 >
                   <Feather name="camera" size={13} color={muted} />
                   <Text style={[styles.moreToolText, { color: textColor }]}>Gallery</Text>
@@ -971,7 +980,7 @@ const EventCard = React.memo(({
 
                 <TouchableOpacity
                   style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
-                  onPress={() => onToggleSection(id, 'pulse')}
+                  onPress={() => onToggleSection?.(id, 'pulse')}
                 >
                   <Feather name="activity" size={13} color={muted} />
                   <Text style={[styles.moreToolText, { color: textColor }]}>Pulse</Text>
@@ -979,7 +988,7 @@ const EventCard = React.memo(({
 
                 <TouchableOpacity
                   style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
-                  onPress={() => onToggleSection(id, 'rate')}
+                  onPress={() => onToggleSection?.(id, 'rate')}
                 >
                   <Feather name="star" size={13} color={muted} />
                   <Text style={[styles.moreToolText, { color: textColor }]}>Rate</Text>
@@ -987,7 +996,7 @@ const EventCard = React.memo(({
 
                 <TouchableOpacity
                   style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
-                  onPress={() => onReportTarget({ id, type: 'event' })}
+                  onPress={() => onReportTarget?.({ id, type: 'event' })}
                 >
                   <Feather name="flag" size={13} color={muted} />
                   <Text style={[styles.moreToolText, { color: muted }]}>Report</Text>
@@ -996,7 +1005,7 @@ const EventCard = React.memo(({
                 {isOwner && (
                   <TouchableOpacity
                     style={[styles.moreToolPill, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}
-                    onPress={() => onEditEvent(event)}
+                    onPress={() => onEditEvent?.(event)}
                   >
                     <Feather name="edit-2" size={13} color={primary} />
                     <Text style={[styles.moreToolText, { color: primary }]}>Edit</Text>
@@ -1006,7 +1015,7 @@ const EventCard = React.memo(({
                 {isOwner && (
                   <TouchableOpacity
                     style={[styles.moreToolPill, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}
-                    onPress={() => onAdminEvent(event)}
+                    onPress={() => onAdminEvent?.(event)}
                   >
                     <Feather name="bar-chart-2" size={13} color={primary} />
                     <Text style={[styles.moreToolText, { color: primary }]}>Admin</Text>
@@ -1128,6 +1137,8 @@ const orderForGuest = (list) =>
 //  filters, dedupes and collapses tours; it never re-ranks.)
 
 export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTargetHandled, refreshKey, onNavigateToServices, onNavigateToReels, onNavigateToMap, onNavigateToTab, initialFeedFilter, onClearInitialFeedFilter }) => {
+  markStartup('LandingPage first render');
+  useEffect(() => { markStartup('LandingPage mounted'); }, []);
   // Header fit on small phones: at 320 px the logo, wordmark and five round
   // buttons were wider than the screen and the "+" (post) button was cut off.
   const { width: winW } = useWindowDimensions();
@@ -1138,13 +1149,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const iconSize = tightHeader ? 32 : 36;
   const iconBox = { width: iconSize, height: iconSize, borderRadius: iconSize / 2 };
   const insets = useSafeAreaInsets();
-  const { currentTheme } = useTheme();
+  const { currentTheme, isLight, toggleLightDark } = useTheme();
   const { user, profile } = useAuth();
   const toast = useToast();
   const { identityMode, modeConfig } = useIdentity();
   const flatListRef = useRef(null);
 
+  const [themeBarOpen, setThemeBarOpen] = useState(false);
+
   const [events, setEvents] = useState([]);
+  useEffect(() => { if (events.length > 0) markStartup('Feed: first events committed to screen'); }, [events.length]);
   // New seed each mount/refresh so the feed line-up varies every visit.
   const [birthdaysToday, setBirthdaysToday] = useState([]);
   const [birthdayLeadUp, setBirthdayLeadUp] = useState(null);
@@ -1154,6 +1168,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [loading, setLoading] = useState(true);
   const [ridesModalVisible, setRidesModalVisible] = useState(false);
   const [selectedCat, setSelectedCat] = useState('all');
+  // An empty feed under a category chip means "nothing in THIS category",
+  // not "nothing upcoming" — say which, so people know to switch back to All.
+  const catEmpty = selectedCat !== 'all' && !!CATEGORY_CONFIG[selectedCat];
+  const catEmptyLabel = catEmpty ? CATEGORY_CONFIG[selectedCat].label : '';
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -1230,6 +1248,13 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  // loadData is memoised without these in its deps, so it read stale copies:
+  // a stale loadingMore=true made every pull-to-refresh return early with
+  // `refreshing` still on (spinner stuck at the top of The Drop forever).
+  const loadingMoreRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  loadingMoreRef.current = loadingMore;
+  hasMoreRef.current = hasMore;
   const PAGE_SIZE = 10;
 
   // Modals
@@ -1273,6 +1298,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [crewRsvpMap, setCrewRsvpMap] = useState({}); // eventId → count of followed users going
   const followedIdsRef = useRef([]); // stable ref so fetchPage can use it without re-render
   const pageRef = useRef(0);
+  const loadSeqRef = useRef(0); // newest feed refresh; older ones are ignored
   // Just-posted events: a fresh feed fetch (read-replica lag / ranking) can omit
   // an event you just created, so a refresh would clobber the optimistic prepend
   // and the post seems to "disappear / take long". Hold them briefly and merge
@@ -1290,6 +1316,31 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   const [activeHashtag, setActiveHashtag] = useState(null);
   const [pathMapVisible, setPathMapVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // An event opened from another tab (Explore, Calendar, Notifications) lands
+  // here as targetEvent. It was accepted but never used, so those taps only
+  // switched to The Drop without opening anything. Open it, fetching the full
+  // row when we were handed only an id (e.g. a Trending spot).
+  useEffect(() => {
+    if (!targetEvent) return undefined;
+    let alive = true;
+    const id = targetEvent.id || targetEvent.event_id;
+    (async () => {
+      let ev = targetEvent.id && targetEvent.title ? targetEvent : null;
+      if (!ev && id) {
+        const { data } = await supabase.from('events').select('*').eq('id', id).maybeSingle();
+        ev = data || null;
+      }
+      if (alive && ev) {
+        if (targetEvent.initialReaction) {
+          ev = { ...ev, initialReaction: targetEvent.initialReaction };
+        }
+        setSelectedEvent(ev);
+      }
+      onTargetHandled?.();
+    })().catch(() => onTargetHandled?.());
+    return () => { alive = false; };
+  }, [targetEvent, onTargetHandled]);
   const [feedMode, setFeedMode] = useState('upcoming'); // 'upcoming' | 'all' | 'following' | 'mine'
   const [eventCheckins, setEventCheckins] = useState({}); // eventId → checkins array
   const fetchedCheckinIds = useRef(new Set());
@@ -1469,11 +1520,15 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     } catch { /* trending load is best-effort — feed still works without it */ }
   }, []);
 
+  const interestsKey = (feedMode === 'upcoming' || feedMode === 'mine')
+    ? ''
+    : JSON.stringify(profile?.interests || []);
+
   const loadData = useCallback(async (isRefreshing = false) => {
-    if (loadingMore || (!hasMore && !isRefreshing)) {
-      if (isRefreshing) setLoading(false);
-      return;
-    }
+    // A refresh always runs (the seq check below discards an older load-more);
+    // only load-more is skipped while one is in flight or the feed is exhausted.
+    if (!isRefreshing && (loadingMoreRef.current || !hasMoreRef.current)) return;
+    if (!isRefreshing) loadingMoreRef.current = true;
 
     if (isRefreshing) {
       pageRef.current = 0;
@@ -1485,6 +1540,11 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     }
 
     const currentPage = isRefreshing ? 0 : pageRef.current;
+    // Only the NEWEST refresh may touch the screen. Several refreshes start
+    // together on open (mount, profile, age); an older one finishing last used
+    // to overwrite the feed — sometimes with an empty "Nothing Upcoming Yet".
+    const seq = isRefreshing ? ++loadSeqRef.current : loadSeqRef.current;
+    const isCurrent = () => seq === loadSeqRef.current;
     const fetchOpts = {
       page: currentPage,
       category: selectedCat,
@@ -1498,7 +1558,16 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
     };
 
     try {
-      const { events: fetchedEvents, hasMore: moreAvailable } = await FeedManager.fetchPage(fetchOpts);
+      markStartup(`Feed: first request (${feedMode}, ${user?.id ? 'user' : 'guest'})`);
+      const { events: fetchedEvents, hasMore: moreAvailable, failed } = await FeedManager.fetchPage(fetchOpts);
+      markStartup(`Feed: first response (${fetchedEvents?.length ?? 0} events${failed ? ', FAILED' : ''})`);
+      if (!isCurrent()) return; // a newer load owns the screen now
+      if (failed) {
+        // Couldn't load (timeout / offline). Keep whatever is already showing
+        // rather than replacing it with an empty feed.
+        if (events.length === 0) toast.show('Failed to load gruvs. Check your connection.', 'error');
+        return;
+      }
       // Logged-out visitors get the "happening soon + buzzing" ordering for an
       // exciting first impression; signed-in users keep their personalized feed.
       const orderedEvents = user?.id ? fetchedEvents : orderForGuest(fetchedEvents);
@@ -1509,7 +1578,8 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       const _allowed = new Set(
         filterByViewerAge(orderedEvents, _vAge, e => `${e.title || ''} ${e.description || ''}`).map(e => e.id)
       );
-      const newEvents = orderedEvents.filter(e => _allowed.has(e.id) || (user?.id && e.author_id === user.id));
+      // Strict poster policy: only display events that have their own poster / flyer
+      const newEvents = orderedEvents.filter(e => hasPosterOrImage(e) && (_allowed.has(e.id) || (user?.id && e.author_id === user.id)));
 
       if (isRefreshing) {
         // Keep just-posted events that the fresh fetch hasn't caught up to yet,
@@ -1517,7 +1587,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         const recent = getRecentPosts();
         if (recent.length) {
           const fetchedIds = new Set(newEvents.map(e => e.id));
-          const missing = recent.filter(e => !fetchedIds.has(e.id));
+          const missing = recent.filter(e => hasPosterOrImage(e) && !fetchedIds.has(e.id));
           setEvents(missing.length ? [...missing, ...newEvents] : newEvents);
         } else {
           setEvents(newEvents);
@@ -1525,7 +1595,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
       } else {
         setEvents(prev => {
           const existingIds = new Set(prev.map(e => e.id));
-          return [...prev, ...newEvents.filter(e => !existingIds.has(e.id))];
+          return [...prev.filter(hasPosterOrImage), ...newEvents.filter(e => !existingIds.has(e.id))];
         });
       }
       setHasMore(moreAvailable);
@@ -1562,15 +1632,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         FeedManager.prefetchPage({ ...fetchOpts, page: currentPage + 1 });
       }
     } catch (err) {
+      if (!isCurrent()) return;
       logError('Feed.load', err, { mode: feedMode, page: currentPage });
       toast.show('Failed to load gruvs. Check your connection.', 'error');
     } finally {
-      setLoading(false);
+      loadingMoreRef.current = false;
       setLoadingMore(false);
-      setRefreshing(false);
+      if (isCurrent()) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  // page/hasMore intentionally excluded — use pageRef to read page without recreating on every scroll
-  }, [selectedCat, debouncedQuery, feedMode, user?.id, profile?.interests, dateRange]);
+  // page/hasMore intentionally excluded — use pageRef to read page without recreating on every scroll.
+  // Interests only shape ranking in the personalised modes, and are keyed by
+  // VALUE: a profile re-fetch with the same interests no longer reloads the feed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCat, debouncedQuery, feedMode, user?.id, interestsKey, dateRange]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -1678,7 +1755,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         const { data, ts } = JSON.parse(raw);
         // Only use cache if < 10 minutes old and we haven't loaded network data yet
         if (Date.now() - ts < 600000 && Array.isArray(data) && data.length) {
-          setEvents(prev => prev.length === 0 ? data : prev);
+          setEvents(prev => prev.length === 0 ? data.filter(hasPosterOrImage) : prev);
           setLoading(false);
         }
       })
@@ -1785,10 +1862,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
   // would leave an adult viewer over-filtered until their next load, so when a
   // real age lands late we re-run the filter. That second pass reads the feed
   // cache populated moments earlier, so it costs no additional network trip.
+  // The main feed effect above already loads on mount and on user change; this
+  // one only re-runs the age filter if the viewer's age arrives late. (It used
+  // to ALSO call loadData(true) here, doubling every cold-start load.)
   useEffect(() => {
     let alive = true;
     const ageWasKnown = viewerAgeSync() != null;
-    loadData(true);
     loadViewerAge(user?.id)
       .then((age) => { if (alive && age != null && !ageWasKnown) loadData(true); })
       .catch(() => {});
@@ -1879,11 +1958,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
 
   // When a trending spot is tapped — scroll to the matching event in the feed
   const handleTrendingPress = (spot) => {
-    const matchTitle = spot.description || spot.title || '';
-    const match = events.find(e =>
-      e.title?.toLowerCase().includes(matchTitle.toLowerCase().slice(0, 10)) ||
-      e.id === spot.event_id
-    );
+    const matchTitle = spot.title || spot.description || '';
+    const match = events.find(e => e.id === spot.event_id)
+      || (matchTitle ? events.find(e => e.title?.toLowerCase().includes(matchTitle.toLowerCase().slice(0, 10))) : null);
     if (match) {
       const idx = events.indexOf(match);
       setHighlightedId(match.id);
@@ -2303,6 +2380,22 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
             </TouchableOpacity>
           )}
           <TouchableOpacity
+            style={[
+              styles.iconBtn,
+              iconBox,
+              {
+                backgroundColor: themeBarOpen ? `${primary}35` : isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+                borderColor: themeBarOpen ? primary : `${primary}35`,
+              },
+            ]}
+            onPress={() => setThemeBarOpen((v) => !v)}
+            onLongPress={() => toggleLightDark?.()}
+            accessibilityRole="button"
+            accessibilityLabel={`Toggle themes and light/dark brightness (currently ${isLight ? 'Light' : 'Dark'})`}
+          >
+            <Feather name={isLight ? 'sun' : 'moon'} size={16} color={primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.iconBtn, iconBox, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: `${primary}35` }]}
             onPress={() => setQuickToolsVisible(true)}
             accessibilityRole="button"
@@ -2320,6 +2413,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Quick Theme & Brightness Bar directly accessible near top */}
+      <QuickThemeBar isOpen={themeBarOpen} onClose={() => setThemeBarOpen(false)} />
 
       <StoriesRow onAuthRequired={onAuthRequired} />
 
@@ -2561,10 +2657,9 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 onPress={() => handleTrendingPress(spot)}
                 activeOpacity={0.85}
               >
-                <Image
-                  source={spot.image ? { uri: thumb.thumbnail(spot.image) } : { uri: '' }}
-                  style={styles.trendImg}
-                />
+                {spot.image
+                  ? <Image source={{ uri: thumb.thumbnail(spot.image) }} style={styles.trendImg} />
+                  : <CategoryCover category={spot.category} color={getCategoryColor(spot.category) || primary} />}
                 <View style={[styles.trendOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
                 {/* Rank badge */}
                 <View style={[styles.trendRank, { backgroundColor: i < 3 ? `${primary}cc` : 'rgba(0,0,0,0.55)', width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }]}>
@@ -2572,7 +2667,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 </View>
                 <View style={styles.trendBody}>
                   <Text style={styles.trendName} numberOfLines={2}>
-                    {spot.description || spot.title || 'Trending Gruv'}
+                    {spot.title || spot.description || 'Trending Gruv'}
                   </Text>
                   <View style={styles.trendMetaRow}>
                     <Feather name="zap" size={10} color="rgba(255,255,255,0.8)" />
@@ -2878,9 +2973,10 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         // matter how far you scroll — "I only see 5 events"). Browsers handle a
         // few hundred cards fine, so render everything and let the DOM scroll.
         disableVirtualization={Platform.OS === 'web'}
-        maxToRenderPerBatch={Platform.OS === 'web' ? 24 : 5}
-        windowSize={Platform.OS === 'web' ? 25 : 7}
-        initialNumToRender={Platform.OS === 'web' ? 16 : 5}
+        maxToRenderPerBatch={Platform.OS === 'web' ? 8 : 4}
+        windowSize={Platform.OS === 'web' ? 11 : 7}
+        // Initial render: 5 covers the visible viewport so first paint is instantaneous
+        initialNumToRender={Platform.OS === 'web' ? 5 : 3}
         updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <>
@@ -2915,10 +3011,12 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
                 <View style={[styles.emptyIconGlow, { backgroundColor: primary }]} />
               </View>
               <Text style={[styles.emptyTitle, { color: textColor }]}>
-                {feedMode === 'following' ? 'Your Crew is Quiet' : feedMode === 'mine' ? 'No Gruvs Yet' : feedMode === 'upcoming' ? 'Nothing Upcoming Yet' : 'The Kingdom is Quiet'}
+                {catEmpty ? `No ${catEmptyLabel} Gruvs Yet` : feedMode === 'following' ? 'Your Crew is Quiet' : feedMode === 'mine' ? 'No Gruvs Yet' : feedMode === 'upcoming' ? 'Nothing Upcoming Yet' : 'The Kingdom is Quiet'}
               </Text>
               <Text style={[styles.emptyText, { color: muted }]}>
-                {feedMode === 'following'
+                {catEmpty
+                  ? `Nothing in ${catEmptyLabel} right now. Try All, or drop the first one.`
+                  : feedMode === 'following'
                   ? "You aren't following anyone who has posted recently, or they haven't dropped any Gruvs yet."
                   : feedMode === 'mine'
                   ? "You haven't posted any Gruvs yet. Drop your first and every event you create shows up right here."
@@ -3007,6 +3105,7 @@ export const LandingPage = ({ mode = 'drop', onAuthRequired, targetEvent, onTarg
         onOpenReels={onNavigateToReels}
         onOpenCalendar={() => onNavigateToTab?.('calendar')}
         onOpenNotifications={() => onNavigateToTab?.('notifications')}
+        onOpenThemeBar={() => setThemeBarOpen(true)}
         hasReels={!!onNavigateToReels}
         hasSensory={feature('sensorySuite')}
         primary={primary}

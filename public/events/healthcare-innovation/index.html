@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -250,6 +303,46 @@
       "position": 1,
       "item": {
         "@type": "Event",
+        "name": "Women Founders & Executive Leadership Forum",
+        "startDate": "2026-12-09T09:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Greenhouse Oxford Parks",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/women-founders-and-executive-leadership-forum-the-greenhouse-oxford-950d2e70-cf47-4bcf-92cd-e49c1f1388f8"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "Event",
+        "name": "Pretoria MedTech & Clinical Devices Pitch Night",
+        "startDate": "2027-01-13T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "CSIR International Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/pretoria-medtech-and-clinical-devices-pitch-night-csir-international-123552d9-0614-49d9-ad60-3d55896e94f2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "Event",
         "name": "AI & Enterprise Automation Summit 2027",
         "startDate": "2027-01-14T09:00:00+02:00",
         "location": {
@@ -261,13 +354,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/ai-and-enterprise-automation-summit-2027-gallagher-convention-centre-608387bc-f93b-431e-8cd6-2e183d8320b8"
       }
     },
     {
       "@type": "ListItem",
-      "position": 2,
+      "position": 4,
       "item": {
         "@type": "Event",
         "name": "Healthcare Innovation & MedTech Expo",
@@ -281,13 +374,33 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/healthcare-innovation-and-medtech-expo-cape-town-international-83ce472d-8bb9-416b-aab3-de376d7077d7"
       }
     },
     {
       "@type": "ListItem",
-      "position": 3,
+      "position": 5,
+      "item": {
+        "@type": "Event",
+        "name": "Midrand Food Truck & Mobile Catering Incubator",
+        "startDate": "2027-01-30T11:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Gallagher Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/midrand-food-truck-and-mobile-catering-incubator-gallagher-convention-9ef10545-3042-4877-b96a-fd789d228d3d"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
       "item": {
         "@type": "Event",
         "name": "AI in Healthcare & Life Sciences Congress",
@@ -301,13 +414,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/ai-in-healthcare-and-life-sciences-congress-cape-town-international-30a0bcb3-6b5b-4b54-8a9a-99a2bdb6aa01"
       }
     },
     {
       "@type": "ListItem",
-      "position": 4,
+      "position": 7,
       "item": {
         "@type": "Event",
         "name": "Digital Health & HealthTech Southern Africa",
@@ -321,7 +434,7 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/digital-health-and-healthtech-southern-africa-the-marc-sandton-b5fe8265-b091-47d8-a149-b5a997e10898"
       }
     }
@@ -384,11 +497,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Healthcare Innovation & MedTech Events & Parties in South Africa (2026) — The Gruvs",
+  "description": "Experience the top Healthcare Innovation & MedTech events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/events/healthcare-innovation",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -414,8 +574,34 @@
 
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/ai-and-enterprise-automation-summit-2027-gallagher-convention-centre-608387bc-f93b-431e-8cd6-2e183d8320b8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="AI &amp; Enterprise Automation Summit 2027" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/women-founders-and-executive-leadership-forum-the-greenhouse-oxford-950d2e70-cf47-4bcf-92cd-e49c1f1388f8" data-title="women founders &amp; executive leadership forum" data-venue="the greenhouse oxford parks" data-city="johannesburg" data-date="2026-12-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Women Founders &amp; Executive Leadership Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 09 Dec 2026 · 09:30</div>
+        <h3 class="event-title">Women Founders &amp; Executive Leadership Forum</h3>
+        <p class="event-venue">The Greenhouse Oxford Parks · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-medtech-and-clinical-devices-pitch-night-csir-international-123552d9-0614-49d9-ad60-3d55896e94f2" data-title="pretoria medtech &amp; clinical devices pitch night" data-venue="csir international convention centre" data-city="pretoria" data-date="2027-01-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria MedTech &amp; Clinical Devices Pitch Night" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 13 Jan 2027 · 17:30</div>
+        <h3 class="event-title">Pretoria MedTech &amp; Clinical Devices Pitch Night</h3>
+        <p class="event-venue">CSIR International Convention Centre · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/ai-and-enterprise-automation-summit-2027-gallagher-convention-centre-608387bc-f93b-431e-8cd6-2e183d8320b8" data-title="ai &amp; enterprise automation summit 2027" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-01-14">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="AI &amp; Enterprise Automation Summit 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 14 Jan 2027 · 09:00</div>
         <h3 class="event-title">AI &amp; Enterprise Automation Summit 2027</h3>
@@ -427,8 +613,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/healthcare-innovation-and-medtech-expo-cape-town-international-83ce472d-8bb9-416b-aab3-de376d7077d7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Healthcare Innovation &amp; MedTech Expo" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/healthcare-innovation-and-medtech-expo-cape-town-international-83ce472d-8bb9-416b-aab3-de376d7077d7" data-title="healthcare innovation &amp; medtech expo" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-01-28">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Healthcare Innovation &amp; MedTech Expo" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 28 Jan 2027 · 09:00</div>
         <h3 class="event-title">Healthcare Innovation &amp; MedTech Expo</h3>
@@ -440,8 +626,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ai-in-healthcare-and-life-sciences-congress-cape-town-international-30a0bcb3-6b5b-4b54-8a9a-99a2bdb6aa01">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="AI in Healthcare &amp; Life Sciences Congress" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/midrand-food-truck-and-mobile-catering-incubator-gallagher-convention-9ef10545-3042-4877-b96a-fd789d228d3d" data-title="midrand food truck &amp; mobile catering incubator" data-venue="gallagher convention centre" data-city="midrand" data-date="2027-01-30">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Midrand Food Truck &amp; Mobile Catering Incubator" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 30 Jan 2027 · 11:00</div>
+        <h3 class="event-title">Midrand Food Truck &amp; Mobile Catering Incubator</h3>
+        <p class="event-venue">Gallagher Convention Centre · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/ai-in-healthcare-and-life-sciences-congress-cape-town-international-30a0bcb3-6b5b-4b54-8a9a-99a2bdb6aa01" data-title="ai in healthcare &amp; life sciences congress" data-venue="cape town international convention centre (cticc)" data-city="cape town" data-date="2027-03-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="AI in Healthcare &amp; Life Sciences Congress" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 09 Mar 2027 · 09:00</div>
         <h3 class="event-title">AI in Healthcare &amp; Life Sciences Congress</h3>
@@ -453,8 +652,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/digital-health-and-healthtech-southern-africa-the-marc-sandton-b5fe8265-b091-47d8-a149-b5a997e10898">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Digital Health &amp; HealthTech Southern Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/digital-health-and-healthtech-southern-africa-the-marc-sandton-b5fe8265-b091-47d8-a149-b5a997e10898" data-title="digital health &amp; healthtech southern africa" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-04-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Digital Health &amp; HealthTech Southern Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 29 Apr 2027 · 09:00</div>
         <h3 class="event-title">Digital Health &amp; HealthTech Southern Africa</h3>

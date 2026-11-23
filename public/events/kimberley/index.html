@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -239,6 +292,36 @@
 
   <!-- Schema.org JSON-LD -->
   <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Events in Kimberley",
+  "description": "Diamond pavilion soundstages, Northern Cape heritage festivals, and local music.",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v Bangladesh — 1st T20I",
+        "startDate": "2026-12-10T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Diamond Oval",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Kimberley",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-bangladesh-1st-t20i-diamond-oval-kimberley-f7324bdc-7980-4d67-b6a8-9284b0e69bc3"
+      }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -294,11 +377,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Upcoming Events in Kimberley (2026) — The Gruvs",
+  "description": "Discover upcoming events, nightlife, and festivals in Kimberley. Dates, venues and directions on The Gruvs.",
+  "url": "https://thegruvs.com/events/kimberley",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -322,6 +452,8 @@
       <h1 class="hero-title">Events in <span class="brand-accent">Kimberley</span></h1>
       <p class="hero-lead">Diamond pavilion soundstages, Northern Cape heritage festivals, and local music. Browse what's listed, with dates, venues and directions.</p>
 
+      
+
       <div class="resident-banner">
         <div class="resident-banner-text">
           <h3>Need Accommodation in Kimberley?</h3>
@@ -330,7 +462,29 @@
         <a href="https://theresidentcrew.com" target="_blank" rel="noopener" class="resident-btn">Find Stays Nearby →</a>
       </div>
 
-      <p class="hero-lead">No events in Kimberley are listed on The Gruvs yet. <a href="https://thegruvs.com/">See everything that's on</a>, or post one yourself.</p>
+      
+
+      <div class="event-grid">
+        
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-bangladesh-1st-t20i-diamond-oval-kimberley-f7324bdc-7980-4d67-b6a8-9284b0e69bc3" data-title="proteas v bangladesh — 1st t20i" data-venue="diamond oval" data-city="kimberley" data-date="2026-12-10">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v Bangladesh — 1st T20I" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 10 Dec 2026</div>
+        <h3 class="event-title">Proteas v Bangladesh — 1st T20I</h3>
+        <p class="event-venue">Diamond Oval · Kimberley</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+      </div>
+
+      <div class="hub-guide-box">
+        <h2>Insider Guide to Kimberley Events & Nightlife</h2>
+        <p>Explore verified concerts, nightlife, business conferences, and cultural festivals in Kimberley. Check live venue coordinates, ticket prices in ZAR, and RSVP directly on The Gruvs.</p>
+      </div>
     
   </div>
 

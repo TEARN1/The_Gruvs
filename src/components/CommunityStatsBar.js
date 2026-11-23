@@ -41,7 +41,7 @@ const ViberRow = React.memo(({ item, primary, surface, textColor, muted, onMessa
     </View>
     <TouchableOpacity
       style={[ss.msgBtn, { backgroundColor: `${primary}18`, borderColor: `${primary}35` }]}
-      onPress={() => onMessage(item)}
+      onPress={() => onMessage?.(item)}
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
       <Feather name="message-circle" size={16} color={primary} />
@@ -159,7 +159,10 @@ export const CommunityStatsBar = ({ variant = 'bar' }) => {
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.6, duration: 900, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1,   duration: 900, useNativeDriver: true }),
-      ])
+      ]),
+      // A few pulses to catch the eye, then rest — an endless pulse kept the
+      // phone redrawing every frame while the app sat idle.
+      { iterations: 3 }
     );
     loop.start();
     return () => loop.stop();

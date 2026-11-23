@@ -225,6 +225,59 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .filter-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--surface-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: rgba(0,242,255,0.14);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hub-guide-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 36px 0;
+    }
+    .hub-guide-box h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hub-guide-box p {
+      color: rgba(255,255,255,0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+    .explore-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .explore-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
     footer.site-footer {
       border-top: 1px solid var(--surface-border);
       padding: 32px 24px;
@@ -250,24 +303,44 @@
       "position": 1,
       "item": {
         "@type": "Event",
-        "name": "Ride Joburg",
-        "startDate": "2026-11-22T05:00:00+02:00",
+        "name": "Proteas v Bangladesh — 2nd Test",
+        "startDate": "2026-11-23T10:00:00+02:00",
         "location": {
           "@type": "Place",
-          "name": "Kyalami Grand Prix Circuit",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "Event",
+        "name": "Betway Summer Cup 2026",
+        "startDate": "2026-11-28T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Turffontein Racecourse",
           "address": {
             "@type": "PostalAddress",
             "addressLocality": "Johannesburg",
             "addressCountry": "ZA"
           }
         },
-        "image": "https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998",
-        "url": "https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e"
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/betway-summer-cup-2026-turffontein-racecourse-johannesburg-4c234abb-5ce8-4c48-9a13-150862763311"
       }
     },
     {
       "@type": "ListItem",
-      "position": 2,
+      "position": 3,
       "item": {
         "@type": "Event",
         "name": "TinMan Joburg #5",
@@ -287,7 +360,67 @@
     },
     {
       "@type": "ListItem",
-      "position": 3,
+      "position": 4,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v Bangladesh — 1st ODI",
+        "startDate": "2026-12-01T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Buffalo Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "East London",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-bangladesh-1st-odi-buffalo-park-east-london-2295df42-b988-4169-a79b-809c9662a8f7"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "item": {
+        "@type": "Event",
+        "name": "TGMA Gauteng Year End Function",
+        "startDate": "2026-12-01T11:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Bryanston Sports Club",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Sandton",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events3/banners/6f57d6756f467141fb18cf5b913ef8cea58a960ddf0c10ce6bff6b167be5bb3c-rimg-w1200-h1697-dcf8f8f8-gmir?v=1794089368",
+        "url": "https://thegruvs.com/events/tgma-gauteng-year-end-function-bryanston-sports-club-sandton-96c0e913-5c28-4e2a-a336-4f47b4442c28"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "item": {
+        "@type": "Event",
+        "name": "Nedbank Golf Challenge 2026",
+        "startDate": "2026-12-03T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Gary Player Country Club",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Sun City",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/nedbank-golf-challenge-2026-gary-player-country-club-sun-city-02a2cee5-7ad4-4d0f-8b8d-ead43ecc0cd5"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
       "item": {
         "@type": "Event",
         "name": "AmfiHart '26 (5 Jaar van AMFIHART)",
@@ -307,7 +440,107 @@
     },
     {
       "@type": "ListItem",
-      "position": 4,
+      "position": 8,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v Bangladesh — 2nd ODI",
+        "startDate": "2026-12-04T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "St George's Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Gqeberha",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-bangladesh-2nd-odi-st-george-s-park-gqeberha-06a308c9-a26f-43c9-a18e-9e5645a74c66"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 9,
+      "item": {
+        "@type": "Event",
+        "name": "HSBC SVNS Cape Town",
+        "startDate": "2026-12-05T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "DHL Stadium",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Cape Town",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/hsbc-svns-cape-town-dhl-stadium-cape-town-3919dbce-f970-4065-a9e3-988198e603f6"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 10,
+      "item": {
+        "@type": "Event",
+        "name": "URC: Lions v Bulls",
+        "startDate": "2026-12-05T14:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Ellis Park Stadium",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/urc-lions-v-bulls-ellis-park-stadium-johannesburg-3bef2b2b-391f-443e-94b8-ac1d6d6dfe03"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 11,
+      "item": {
+        "@type": "Event",
+        "name": "URC: Sharks v Stormers",
+        "startDate": "2026-12-05T17:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Hollywoodbets Kings Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Durban",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/urc-sharks-v-stormers-hollywoodbets-kings-park-durban-8a2432e2-bed6-4fcf-b3b5-e33b75ab6fd7"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 12,
+      "item": {
+        "@type": "Event",
+        "name": "Township Tech & SME Innovation Summit",
+        "startDate": "2026-12-05T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Soweto Theatre Business & Cultural Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Soweto",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/township-tech-and-sme-innovation-summit-soweto-theatre-business-and-6a02563d-cf9a-4495-8566-85da39bb0b24"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 13,
       "item": {
         "@type": "Event",
         "name": "Brooks Campus Run: Summer Race",
@@ -327,7 +560,27 @@
     },
     {
       "@type": "ListItem",
-      "position": 5,
+      "position": 14,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v Bangladesh — 3rd ODI",
+        "startDate": "2026-12-07T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Newlands Cricket Ground",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Cape Town",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-bangladesh-3rd-odi-newlands-cricket-ground-cape-town-8ce10fc2-c7cc-4c50-bdcc-a9473ad13194"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 15,
       "item": {
         "@type": "Event",
         "name": "Gauteng Commercial Real Estate & Investment Summit",
@@ -341,13 +594,53 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57"
       }
     },
     {
       "@type": "ListItem",
-      "position": 6,
+      "position": 16,
+      "item": {
+        "@type": "Event",
+        "name": "Women Founders & Executive Leadership Forum",
+        "startDate": "2026-12-09T09:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Greenhouse Oxford Parks",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/women-founders-and-executive-leadership-forum-the-greenhouse-oxford-950d2e70-cf47-4bcf-92cd-e49c1f1388f8"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 17,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v Bangladesh — 1st T20I",
+        "startDate": "2026-12-10T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Diamond Oval",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Kimberley",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-bangladesh-1st-t20i-diamond-oval-kimberley-f7324bdc-7980-4d67-b6a8-9284b0e69bc3"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 18,
       "item": {
         "@type": "Event",
         "name": "Africa Trade & Port Logistics Round-Table",
@@ -361,13 +654,53 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305"
       }
     },
     {
       "@type": "ListItem",
-      "position": 7,
+      "position": 19,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v Bangladesh — 2nd T20I",
+        "startDate": "2026-12-12T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Willowmoore Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Benoni",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-bangladesh-2nd-t20i-willowmoore-park-benoni-f0770794-aa10-4b63-9ec6-40d0a481b8c9"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 20,
+      "item": {
+        "@type": "Event",
+        "name": "Challenge Cup: Sharks v Scarlets",
+        "startDate": "2026-12-12T19:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Hollywoodbets Kings Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Durban",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/challenge-cup-sharks-v-scarlets-hollywoodbets-kings-park-durban-ce984bd0-2a68-47c6-b82a-73412506416e"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 21,
       "item": {
         "@type": "Event",
         "name": "J. Cole: The Fall-Off Tour",
@@ -387,7 +720,147 @@
     },
     {
       "@type": "ListItem",
-      "position": 8,
+      "position": 22,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v Bangladesh — 3rd T20I",
+        "startDate": "2026-12-13T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-bangladesh-3rd-t20i-supersport-park-centurion-3721c6ac-6f33-40c5-abae-f4adcfdda8fb"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 23,
+      "item": {
+        "@type": "Event",
+        "name": "Rosebank E-Commerce & D2C Growth Conference",
+        "startDate": "2026-12-16T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Zone @ Rosebank Innovation Hall",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/rosebank-e-commerce-and-d2c-growth-conference-the-zone-rosebank-7cd667f2-8eae-4134-991d-9f71a2422667"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 24,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v England — 1st Test",
+        "startDate": "2026-12-17T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "DP World Wanderers Stadium",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-england-1st-test-dp-world-wanderers-stadium-johannesburg-aaab8b61-2c5f-41b4-a24f-a23242cd1855"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 25,
+      "item": {
+        "@type": "Event",
+        "name": "URC: Sharks v Bulls",
+        "startDate": "2026-12-19T18:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Hollywoodbets Kings Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Durban",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/urc-sharks-v-bulls-hollywoodbets-kings-park-durban-676fe550-8f96-4794-9334-275631f85859"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 26,
+      "item": {
+        "@type": "Event",
+        "name": "URC: Stormers v Lions",
+        "startDate": "2026-12-19T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "DHL Stadium",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Cape Town",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/urc-stormers-v-lions-dhl-stadium-cape-town-a134247f-ded7-42be-9e20-3e00c0ac0fe0"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 27,
+      "item": {
+        "@type": "Event",
+        "name": "Emperors Palace Airport Logistics & Cargo Trade Summit",
+        "startDate": "2026-12-23T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Emperors Palace Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Ekurhuleni",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/emperors-palace-airport-logistics-and-cargo-trade-summit-emperors-3e222e76-a1b5-41ff-9fff-a917c72fba97"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 28,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v England — Boxing Day Test",
+        "startDate": "2026-12-26T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-england-boxing-day-test-supersport-park-centurion-8ba8845b-0853-4424-b455-a81a7d239d7d"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 29,
       "item": {
         "@type": "Event",
         "name": "Max's Lifestyle Festive Sunday Shisanyama",
@@ -401,13 +874,173 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/max-s-lifestyle-festive-sunday-shisanyama-max-s-lifestyle-village-a3e13494-d497-4003-9803-807d296fb691"
       }
     },
     {
       "@type": "ListItem",
-      "position": 9,
+      "position": 30,
+      "item": {
+        "@type": "Event",
+        "name": "URC: Sharks v Lions",
+        "startDate": "2027-01-02T17:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Hollywoodbets Kings Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Durban",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/urc-sharks-v-lions-hollywoodbets-kings-park-durban-49200417-d150-467c-961c-fed658f63b1c"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 31,
+      "item": {
+        "@type": "Event",
+        "name": "URC: Stormers v Bulls",
+        "startDate": "2027-01-03T16:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "DHL Stadium",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Cape Town",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/urc-stormers-v-bulls-dhl-stadium-cape-town-2210e9f9-c556-4240-bc30-830b839f5517"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 32,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v England — New Year's Test",
+        "startDate": "2027-01-03T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Newlands Cricket Ground",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Cape Town",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-england-new-year-s-test-newlands-cricket-ground-cape-town-a8b87e6c-ae49-49fa-b371-5c52931b3ba2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 33,
+      "item": {
+        "@type": "Event",
+        "name": "We are through 🗣️🇿🇦🚨",
+        "startDate": "2027-01-03T16:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Copperleaf, Centurion, South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events8/banners/1f7c316a76639ec152f8a1f11d12b12e637808cf92a405f86ef90593b75829bb-rimg-w1100-h1100-dc080808-gmir?v=1791261494",
+        "url": "https://thegruvs.com/events/we-are-through-copperleaf-centurion-south-africa-centurion-babc3d07-c5d1-4cba-855f-85dd4a3ba983"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 34,
+      "item": {
+        "@type": "Event",
+        "name": "L'Ormarins King's Plate 2027",
+        "startDate": "2027-01-09T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Hollywoodbets Kenilworth Racecourse",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Cape Town",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/l-ormarins-king-s-plate-2027-hollywoodbets-kenilworth-racecourse-cape-556c9fab-a133-4e2b-8a27-a2d417c14dc8"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 35,
+      "item": {
+        "@type": "Event",
+        "name": "Champions Cup: Bulls v Bath",
+        "startDate": "2027-01-09T17:15:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Loftus Versfeld",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Pretoria",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/champions-cup-bulls-v-bath-loftus-versfeld-pretoria-dae53448-dc68-414a-ba44-9504df6ae2bb"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 36,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v England — 1st ODI",
+        "startDate": "2027-01-10T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Boland Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Paarl",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-england-1st-odi-boland-park-paarl-4bef8a92-47fb-42ea-a063-171bc184e91a"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 37,
+      "item": {
+        "@type": "Event",
+        "name": "Proteas v England — 3rd ODI",
+        "startDate": "2027-01-15T18:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Mangaung Oval",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Bloemfontein",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/proteas-v-england-3rd-odi-mangaung-oval-bloemfontein-b2338563-1338-4aaf-bdbc-833bd218cf82"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 38,
       "item": {
         "@type": "Event",
         "name": "Rosebank Street Culture & Sneaker Festival",
@@ -421,13 +1054,113 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/rosebank-street-culture-and-sneaker-festival-the-zone-rosebank-ec36ddf2-9150-45a6-98e4-5d579edee209"
       }
     },
     {
       "@type": "ListItem",
-      "position": 10,
+      "position": 39,
+      "item": {
+        "@type": "Event",
+        "name": "Soweto Youth Business Incubator Open Day",
+        "startDate": "2027-01-16T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Soweto Theatre Business & Cultural Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Soweto",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/soweto-youth-business-incubator-open-day-soweto-theatre-business-and-3ef17535-3b64-462d-bde5-6172ad45b423"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 40,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Sunrisers Eastern Cape v Pretoria Capitals",
+        "startDate": "2027-01-17T15:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "St George's Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Gqeberha",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-pretoria-capitals-st-george-s-park-f0a982fb-3264-402e-a47e-ee4375c258e2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 41,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Paarl Royals v Joburg Super Kings",
+        "startDate": "2027-01-18T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Boland Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Paarl",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-paarl-royals-v-joburg-super-kings-boland-park-paarl-9a407873-e9fd-4545-ad42-c25d215a0b96"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 42,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Pretoria Capitals v Durban's Super Giants",
+        "startDate": "2027-01-19T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-pretoria-capitals-v-durban-s-super-giants-supersport-park-ceed7cf2-58eb-48df-8e4d-6373711c8829"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 43,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Durban's Super Giants v Sunrisers Eastern Cape",
+        "startDate": "2027-01-21T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Kingsmead",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Durban",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-durban-s-super-giants-v-sunrisers-eastern-cape-kingsmead-durban-5e452465-1505-4189-8dfb-61950603f09a"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 44,
       "item": {
         "@type": "Event",
         "name": "eCommerce Africa Logistics & Payments Forum",
@@ -441,13 +1174,93 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/ecommerce-africa-logistics-and-payments-forum-sandton-convention-f52a871a-00df-47b6-8304-e46fea869106"
       }
     },
     {
       "@type": "ListItem",
-      "position": 11,
+      "position": 45,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Joburg Super Kings v Sunrisers Eastern Cape",
+        "startDate": "2027-01-23T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "DP World Wanderers Stadium",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-joburg-super-kings-v-sunrisers-eastern-cape-dp-world-wanderers-487d1a3a-5842-4e9a-a737-1203ec214de2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 46,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Durban's Super Giants v Pretoria Capitals",
+        "startDate": "2027-01-23T13:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Kingsmead",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Durban",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-durban-s-super-giants-v-pretoria-capitals-kingsmead-durban-dc5dd9fd-61ba-42f8-9812-5eccfa378cc0"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 47,
+      "item": {
+        "@type": "Event",
+        "name": "Midrand Logistics & Trucking Business Workshop",
+        "startDate": "2027-01-23T09:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Riversands I-Hub",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/midrand-logistics-and-trucking-business-workshop-riversands-i-hub-b19b7649-4c64-4744-a825-cc8a0ac2145a"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 48,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Paarl Royals v MI Cape Town",
+        "startDate": "2027-01-24T15:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Boland Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Paarl",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-paarl-royals-v-mi-cape-town-boland-park-paarl-566979a3-9cf6-436e-b8cb-00378af82aa8"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 49,
       "item": {
         "@type": "Event",
         "name": "Durban Manufacturing & Export Excellence Conference",
@@ -461,13 +1274,53 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/durban-manufacturing-and-export-excellence-conference-durban-icc-367074d0-4117-4c3e-970d-152383357166"
       }
     },
     {
       "@type": "ListItem",
-      "position": 12,
+      "position": 50,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Pretoria Capitals v Sunrisers Eastern Cape",
+        "startDate": "2027-01-26T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-pretoria-capitals-v-sunrisers-eastern-cape-supersport-park-6e09bb1c-2139-4cb4-bc9d-c032c4bf7077"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 51,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Durban's Super Giants v Paarl Royals",
+        "startDate": "2027-01-27T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Kingsmead",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Durban",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-durban-s-super-giants-v-paarl-royals-kingsmead-durban-852a1203-4ae3-4dfa-b43e-833c702e6bc0"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 52,
       "item": {
         "@type": "Event",
         "name": "Venture Capital Africa Investor Breakfast",
@@ -481,13 +1334,233 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/venture-capital-africa-investor-breakfast-the-marc-sandton-6787796f-8642-4a94-887c-ac89d6963ce7"
       }
     },
     {
       "@type": "ListItem",
-      "position": 13,
+      "position": 53,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Sunrisers Eastern Cape v Joburg Super Kings",
+        "startDate": "2027-01-28T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "St George's Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Gqeberha",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-joburg-super-kings-st-george-s-park-b360184c-fcd7-452a-beb1-530878885b39"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 54,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Paarl Royals v Pretoria Capitals",
+        "startDate": "2027-01-29T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Boland Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Paarl",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-paarl-royals-v-pretoria-capitals-boland-park-paarl-4bcff4bc-1c90-42f9-9059-67791c47c665"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 55,
+      "item": {
+        "@type": "Event",
+        "name": "Ekurhuleni Manufacturing & Industrial SME Hub",
+        "startDate": "2027-01-29T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Emperors Palace Convention Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Ekurhuleni",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/ekurhuleni-manufacturing-and-industrial-sme-hub-emperors-palace-1f2a625c-4899-4242-ae92-4b1d1d2750e2"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 56,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Joburg Super Kings v Durban's Super Giants",
+        "startDate": "2027-01-30T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "DP World Wanderers Stadium",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-joburg-super-kings-v-durban-s-super-giants-dp-world-wanderers-be0b7c89-73d2-4ba3-b50d-502d6c946b79"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 57,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Sunrisers Eastern Cape v MI Cape Town",
+        "startDate": "2027-01-30T13:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "St George's Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Gqeberha",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-mi-cape-town-st-george-s-park-gqeberha-529f26af-d861-4ee5-8b14-8174799eb84e"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 58,
+      "item": {
+        "@type": "Event",
+        "name": "SA20: Pretoria Capitals v Paarl Royals",
+        "startDate": "2027-01-31T15:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "SuperSport Park",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Centurion",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sa20-pretoria-capitals-v-paarl-royals-supersport-park-centurion-f8c05c66-60f0-41d7-8e8a-6a89fde69732"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 59,
+      "item": {
+        "@type": "Event",
+        "name": "who will win the league",
+        "startDate": "2027-02-01T02:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Halfway Gardens Ext 3, Midrand",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events10/banners/c071089c5012b067b8ac9a507a7ad28e6694efd0b613017eef6405db8b0f150b-rimg-w959-h1198-dc080808-gmir?v=1792822151",
+        "url": "https://thegruvs.com/events/who-will-win-the-league-halfway-gardens-ext-3-midrand-midrand-849743d7-89bd-42d7-9fda-eacf0327d59e"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 60,
+      "item": {
+        "@type": "Event",
+        "name": "Bafana Bafana",
+        "startDate": "2027-02-01T12:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Moroka, Gauteng, South Africa",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Soweto",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events3/banners/e4fc77df74f017e40f2ddd154b2fd3377dca69a99678a8e9274587529808d424-rimg-w1200-h1504-dc287808-gmir?v=1794989355",
+        "url": "https://thegruvs.com/events/bafana-bafana-moroka-gauteng-south-africa-soweto-a3e42cd2-c92d-4793-9f20-9cafd0815768"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 61,
+      "item": {
+        "@type": "Event",
+        "name": "AI Product Founders & LLM Builders Workshop",
+        "startDate": "2027-02-06T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Tshimologong Digital Innovation Precinct",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/ai-product-founders-and-llm-builders-workshop-tshimologong-digital-9cef81a6-bf83-468e-a634-6d4ea6f89ea4"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 62,
+      "item": {
+        "@type": "Event",
+        "name": "Joburg Super Kings vs Pretoria Capitals",
+        "startDate": "2027-02-07T17:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Wanderers Stadium",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://cdn-az.allevents.in/events1/banners/c0f95e8c2ec6df61d8cd33e491d37b0c23ca4e241e9d90bb3da8aa608ba86a0b-rimg-w1200-h628-dcf8d808-gmir?v=1795432387",
+        "url": "https://thegruvs.com/events/joburg-super-kings-vs-pretoria-capitals-wanderers-stadium-johannesburg-ba3bfbbd-24d9-4841-901d-1937ab7aa051"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 63,
+      "item": {
+        "@type": "Event",
+        "name": "Kyalami Clean Mobility & EV Fleet Summit",
+        "startDate": "2027-02-15T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Kyalami Grand Prix Circuit Conference Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/kyalami-clean-mobility-and-ev-fleet-summit-kyalami-grand-prix-circuit-f7da67af-af2f-4ed5-a316-ddbc918dd79f"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 64,
       "item": {
         "@type": "Event",
         "name": "FinTech Africa Payments & Cross-Border Remittances",
@@ -501,13 +1574,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9"
       }
     },
     {
       "@type": "ListItem",
-      "position": 14,
+      "position": 65,
       "item": {
         "@type": "Event",
         "name": "Durban Port Supply Chain & Maritime Tech Forum",
@@ -521,13 +1594,93 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/durban-port-supply-chain-and-maritime-tech-forum-durban-icc-durban-a5ca2a52-f8ce-47d9-abc8-0d2fc5059ce0"
       }
     },
     {
       "@type": "ListItem",
-      "position": 15,
+      "position": 66,
+      "item": {
+        "@type": "Event",
+        "name": "Cross-Border African Trade & AfCFTA Masterclass",
+        "startDate": "2027-02-18T09:30:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Riversands I-Hub",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Midrand",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/cross-border-african-trade-and-afcfta-masterclass-riversands-i-hub-334562e4-f240-4fb7-b073-8edce1bfbbdf"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 67,
+      "item": {
+        "@type": "Event",
+        "name": "Sandton Corporate Venture Capital & M&A Forum",
+        "startDate": "2027-02-23T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "The Marc Sandton",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/sandton-corporate-venture-capital-and-m-and-a-forum-the-marc-sandton-5011f0e9-0cb1-42a7-b61f-b7a34ede61eb"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 68,
+      "item": {
+        "@type": "Event",
+        "name": "Soweto Artisan Trades & Construction Guild Launch",
+        "startDate": "2027-02-25T10:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Soweto Theatre Business & Cultural Centre",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Soweto",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/soweto-artisan-trades-and-construction-guild-launch-soweto-theatre-dfac7de0-5fc1-4d69-802c-7a1590349413"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 69,
+      "item": {
+        "@type": "Event",
+        "name": "Founders Mental Resilience & High-Performance Retreat",
+        "startDate": "2027-02-26T09:00:00+02:00",
+        "location": {
+          "@type": "Place",
+          "name": "Radisson Blu Gautrain Hotel Sandton",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Johannesburg",
+            "addressCountry": "ZA"
+          }
+        },
+        "image": "https://thegruvs.com/og-default.jpg",
+        "url": "https://thegruvs.com/events/founders-mental-resilience-and-high-performance-retreat-radisson-blu-8ebd31c8-7fe0-45fa-b05f-f11e934e72b0"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 70,
       "item": {
         "@type": "Event",
         "name": "Durban Ocean Economy & Maritime Trade Summit",
@@ -541,13 +1694,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/durban-ocean-economy-and-maritime-trade-summit-durban-icc-durban-fbc77e61-f8ec-4e13-8307-0a957812427d"
       }
     },
     {
       "@type": "ListItem",
-      "position": 16,
+      "position": 71,
       "item": {
         "@type": "Event",
         "name": "SME Exporting & Global E-Commerce Workshop",
@@ -561,13 +1714,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/sme-exporting-and-global-e-commerce-workshop-the-marc-sandton-1ec2fa0e-6704-450b-9edc-162b16d42de8"
       }
     },
     {
       "@type": "ListItem",
-      "position": 17,
+      "position": 72,
       "item": {
         "@type": "Event",
         "name": "Clean Energy & Green Hydrogen Southern Africa",
@@ -581,13 +1734,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/clean-energy-and-green-hydrogen-southern-africa-sandton-convention-014c8514-cb47-40f5-813b-7396c999ef4c"
       }
     },
     {
       "@type": "ListItem",
-      "position": 18,
+      "position": 73,
       "item": {
         "@type": "Event",
         "name": "Africa Sustainability, ESG & Carbon Markets Forum",
@@ -601,13 +1754,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/africa-sustainability-esg-and-carbon-markets-forum-the-marc-sandton-9b88bc5f-6ee1-4a39-9f8f-042521e5fa4e"
       }
     },
     {
       "@type": "ListItem",
-      "position": 19,
+      "position": 74,
       "item": {
         "@type": "Event",
         "name": "Western Cape Wine Export & Trade Conference",
@@ -621,13 +1774,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/western-cape-wine-export-and-trade-conference-spier-wine-farm-609df65a-5d12-497b-9fae-4f11f1e64af8"
       }
     },
     {
       "@type": "ListItem",
-      "position": 20,
+      "position": 75,
       "item": {
         "@type": "Event",
         "name": "Durban Port Logistics & Rail Freight Conclave",
@@ -641,13 +1794,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/durban-port-logistics-and-rail-freight-conclave-durban-icc-durban-4bad0dfb-95ab-44d0-8c43-c6b968d7f9d1"
       }
     },
     {
       "@type": "ListItem",
-      "position": 21,
+      "position": 76,
       "item": {
         "@type": "Event",
         "name": "Pretoria GovTech & Smart Public Services Summit",
@@ -661,13 +1814,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad"
       }
     },
     {
       "@type": "ListItem",
-      "position": 22,
+      "position": 77,
       "item": {
         "@type": "Event",
         "name": "Freedom Day Beach Festival Durban",
@@ -681,13 +1834,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/freedom-day-beach-festival-durban-moses-mabhida-stadium-peoples-park-578b02c6-5bc5-4f70-a45f-56824b354694"
       }
     },
     {
       "@type": "ListItem",
-      "position": 23,
+      "position": 78,
       "item": {
         "@type": "Event",
         "name": "Africa Trade & AfCFTA Implementation Forum",
@@ -701,13 +1854,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/africa-trade-and-afcfta-implementation-forum-durban-icc-durban-918a5b41-1620-4add-b69f-3141a149a4fb"
       }
     },
     {
       "@type": "ListItem",
-      "position": 24,
+      "position": 79,
       "item": {
         "@type": "Event",
         "name": "Commercial Real Estate Logistics & Warehousing Summit",
@@ -721,13 +1874,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/commercial-real-estate-logistics-and-warehousing-summit-the-marc-40756299-78b6-48be-b5c3-3fdd4740c68e"
       }
     },
     {
       "@type": "ListItem",
-      "position": 25,
+      "position": 80,
       "item": {
         "@type": "Event",
         "name": "Pretoria Clean Energy & EV Infrastructure Forum",
@@ -741,13 +1894,13 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db"
       }
     },
     {
       "@type": "ListItem",
-      "position": 26,
+      "position": 81,
       "item": {
         "@type": "Event",
         "name": "Kyalami Winter Endurance Fest",
@@ -761,7 +1914,7 @@
             "addressCountry": "ZA"
           }
         },
-        "image": "https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80",
+        "image": "https://thegruvs.com/og-default.jpg",
         "url": "https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec"
       }
     }
@@ -824,11 +1977,58 @@
   "@type": "WebSite",
   "name": "The Gruvs",
   "url": "https://thegruvs.com",
+  "sameAs": [
+    "https://www.instagram.com/thegruvs",
+    "https://twitter.com/thegruvs",
+    "https://www.tiktok.com/@thegruvs"
+  ],
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://thegruvs.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Trade, AfCFTA, Maritime & Ports Events & Parties in South Africa (2026) — The Gruvs",
+  "description": "Experience the top Trade, AfCFTA, Maritime & Ports events, DJ sets, and festivals in Gauteng and South Africa. See dates and RSVP on The Gruvs.",
+  "url": "https://thegruvs.com/events/trade-and-logistics",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".hero-title",
+      ".hero-lead"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": [
+    "Events in Johannesburg",
+    "Events in Cape Town",
+    "Events in Durban",
+    "Business & Tech Summits",
+    "Amapiano Events",
+    "Ke Dezemba 2026",
+    "Free Events",
+    "28 Event Services"
+  ],
+  "url": [
+    "https://thegruvs.com/events/johannesburg",
+    "https://thegruvs.com/events/cape-town",
+    "https://thegruvs.com/events/durban",
+    "https://thegruvs.com/events/business",
+    "https://thegruvs.com/events/amapiano",
+    "https://thegruvs.com/events/ke-dezemba",
+    "https://thegruvs.com/events/free",
+    "https://thegruvs.com/services"
+  ]
 }
 </script>
 </head>
@@ -854,12 +2054,12 @@
 
       <div class="event-grid">
         
-    <a class="event-card" href="https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e">
-      <img class="event-img" src="https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998" alt="Ride Joburg" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8" data-title="proteas v bangladesh — 2nd test" data-venue="supersport park" data-city="centurion" data-date="2026-11-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v Bangladesh — 2nd Test" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
-        <div class="event-date">Sun, 22 Nov 2026 · 05:00</div>
-        <h3 class="event-title">Ride Joburg</h3>
-        <p class="event-venue">Kyalami Grand Prix Circuit · Johannesburg</p>
+        <div class="event-date">Mon, 23 Nov 2026 · 10:00</div>
+        <h3 class="event-title">Proteas v Bangladesh — 2nd Test</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
         <div class="event-footer">
           <span class="event-price">Paid</span>
           <span class="btn-view">Get Tickets →</span>
@@ -867,8 +2067,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891">
-      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703" alt="TinMan Joburg #5" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/betway-summer-cup-2026-turffontein-racecourse-johannesburg-4c234abb-5ce8-4c48-9a13-150862763311" data-title="betway summer cup 2026" data-venue="turffontein racecourse" data-city="johannesburg" data-date="2026-11-28">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Betway Summer Cup 2026" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 28 Nov 2026</div>
+        <h3 class="event-title">Betway Summer Cup 2026</h3>
+        <p class="event-venue">Turffontein Racecourse · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/tinman-joburg-5-prime-view-adventure-and-leisure-midrand-769e24ee-453b-4995-9f0a-143c34aac891" data-title="tinman joburg #5" data-venue="prime view adventure and leisure" data-city="midrand" data-date="2026-11-29">
+      <img class="event-img" src="https://cdn-az.allevents.in/events9/banners/79ce8306da7ca1526f2edfdda2629b6d2b610fa19b88d754afd4752060245777-rimg-w600-h400-dc080808-gmir?v=1788287703" alt="TinMan Joburg #5" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 29 Nov 2026 · 06:30</div>
         <h3 class="event-title">TinMan Joburg #5</h3>
@@ -880,8 +2093,47 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/amfihart-26-5-jaar-van-amfihart-f9ebe47a-8398-4f60-a190-d04cda9977b9">
-      <img class="event-img" src="https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1784615984067_y6dljqt351.jpg" alt="AmfiHart '26 (5 Jaar van AMFIHART)" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-bangladesh-1st-odi-buffalo-park-east-london-2295df42-b988-4169-a79b-809c9662a8f7" data-title="proteas v bangladesh — 1st odi" data-venue="buffalo park" data-city="east london" data-date="2026-12-01">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v Bangladesh — 1st ODI" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 01 Dec 2026</div>
+        <h3 class="event-title">Proteas v Bangladesh — 1st ODI</h3>
+        <p class="event-venue">Buffalo Park · East London</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/tgma-gauteng-year-end-function-bryanston-sports-club-sandton-96c0e913-5c28-4e2a-a336-4f47b4442c28" data-title="tgma gauteng year end function" data-venue="bryanston sports club" data-city="sandton" data-date="2026-12-01">
+      <img class="event-img" src="https://cdn-az.allevents.in/events3/banners/6f57d6756f467141fb18cf5b913ef8cea58a960ddf0c10ce6bff6b167be5bb3c-rimg-w1200-h1697-dcf8f8f8-gmir?v=1794089368" alt="TGMA Gauteng Year End Function" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 01 Dec 2026 · 11:30</div>
+        <h3 class="event-title">TGMA Gauteng Year End Function</h3>
+        <p class="event-venue">Bryanston Sports Club · Sandton</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/nedbank-golf-challenge-2026-gary-player-country-club-sun-city-02a2cee5-7ad4-4d0f-8b8d-ead43ecc0cd5" data-title="nedbank golf challenge 2026" data-venue="gary player country club" data-city="sun city" data-date="2026-12-03">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Nedbank Golf Challenge 2026" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 03 Dec 2026</div>
+        <h3 class="event-title">Nedbank Golf Challenge 2026</h3>
+        <p class="event-venue">Gary Player Country Club · Sun City</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/amfihart-26-5-jaar-van-amfihart-f9ebe47a-8398-4f60-a190-d04cda9977b9" data-title="amfihart '26 (5 jaar van amfihart)" data-venue="" data-city="" data-date="2026-12-04">
+      <img class="event-img" src="https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/event-media/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/events/1784615984067_y6dljqt351.jpg" alt="AmfiHart '26 (5 Jaar van AMFIHART)" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 04 Dec 2026 · 12:00</div>
         <h3 class="event-title">AmfiHart '26 (5 Jaar van AMFIHART)</h3>
@@ -893,8 +2145,73 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1">
-      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/a11d1e7886e9264767ba00b6bc8f8053175004fe674cf51c77dec47d8b540573-rimg-w1200-h628-dcf8f8f8-gmir?v=1787602769" alt="Brooks Campus Run: Summer Race" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-bangladesh-2nd-odi-st-george-s-park-gqeberha-06a308c9-a26f-43c9-a18e-9e5645a74c66" data-title="proteas v bangladesh — 2nd odi" data-venue="st george's park" data-city="gqeberha" data-date="2026-12-04">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v Bangladesh — 2nd ODI" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 04 Dec 2026</div>
+        <h3 class="event-title">Proteas v Bangladesh — 2nd ODI</h3>
+        <p class="event-venue">St George's Park · Gqeberha</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/hsbc-svns-cape-town-dhl-stadium-cape-town-3919dbce-f970-4065-a9e3-988198e603f6" data-title="hsbc svns cape town" data-venue="dhl stadium" data-city="cape town" data-date="2026-12-05">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="HSBC SVNS Cape Town" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 05 Dec 2026</div>
+        <h3 class="event-title">HSBC SVNS Cape Town</h3>
+        <p class="event-venue">DHL Stadium · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">From R180</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/urc-lions-v-bulls-ellis-park-stadium-johannesburg-3bef2b2b-391f-443e-94b8-ac1d6d6dfe03" data-title="urc: lions v bulls" data-venue="ellis park stadium" data-city="johannesburg" data-date="2026-12-05">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="URC: Lions v Bulls" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 05 Dec 2026 · 14:30</div>
+        <h3 class="event-title">URC: Lions v Bulls</h3>
+        <p class="event-venue">Ellis Park Stadium · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">From R70</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/urc-sharks-v-stormers-hollywoodbets-kings-park-durban-8a2432e2-bed6-4fcf-b3b5-e33b75ab6fd7" data-title="urc: sharks v stormers" data-venue="hollywoodbets kings park" data-city="durban" data-date="2026-12-05">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="URC: Sharks v Stormers" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 05 Dec 2026 · 17:00</div>
+        <h3 class="event-title">URC: Sharks v Stormers</h3>
+        <p class="event-venue">Hollywoodbets Kings Park · Durban</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/township-tech-and-sme-innovation-summit-soweto-theatre-business-and-6a02563d-cf9a-4495-8566-85da39bb0b24" data-title="township tech &amp; sme innovation summit" data-venue="soweto theatre business &amp; cultural centre" data-city="soweto" data-date="2026-12-05">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Township Tech &amp; SME Innovation Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 05 Dec 2026 · 10:00</div>
+        <h3 class="event-title">Township Tech &amp; SME Innovation Summit</h3>
+        <p class="event-venue">Soweto Theatre Business &amp; Cultural Centre · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1" data-title="brooks campus run: summer race" data-venue="the campus" data-city="sandton" data-date="2026-12-06">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/a11d1e7886e9264767ba00b6bc8f8053175004fe674cf51c77dec47d8b540573-rimg-w1200-h628-dcf8f8f8-gmir?v=1787602769" alt="Brooks Campus Run: Summer Race" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 06 Dec 2026 · 07:00</div>
         <h3 class="event-title">Brooks Campus Run: Summer Race</h3>
@@ -906,8 +2223,21 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Gauteng Commercial Real Estate &amp; Investment Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-bangladesh-3rd-odi-newlands-cricket-ground-cape-town-8ce10fc2-c7cc-4c50-bdcc-a9473ad13194" data-title="proteas v bangladesh — 3rd odi" data-venue="newlands cricket ground" data-city="cape town" data-date="2026-12-07">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v Bangladesh — 3rd ODI" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 07 Dec 2026</div>
+        <h3 class="event-title">Proteas v Bangladesh — 3rd ODI</h3>
+        <p class="event-venue">Newlands Cricket Ground · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/gauteng-commercial-real-estate-and-investment-summit-the-marc-sandton-12be4d9d-ed46-4c71-9860-19f563130b57" data-title="gauteng commercial real estate &amp; investment summit" data-venue="the marc sandton" data-city="johannesburg" data-date="2026-12-08">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Gauteng Commercial Real Estate &amp; Investment Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 08 Dec 2026 · 08:30</div>
         <h3 class="event-title">Gauteng Commercial Real Estate &amp; Investment Summit</h3>
@@ -919,8 +2249,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; Port Logistics Round-Table" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/women-founders-and-executive-leadership-forum-the-greenhouse-oxford-950d2e70-cf47-4bcf-92cd-e49c1f1388f8" data-title="women founders &amp; executive leadership forum" data-venue="the greenhouse oxford parks" data-city="johannesburg" data-date="2026-12-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Women Founders &amp; Executive Leadership Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 09 Dec 2026 · 09:30</div>
+        <h3 class="event-title">Women Founders &amp; Executive Leadership Forum</h3>
+        <p class="event-venue">The Greenhouse Oxford Parks · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-bangladesh-1st-t20i-diamond-oval-kimberley-f7324bdc-7980-4d67-b6a8-9284b0e69bc3" data-title="proteas v bangladesh — 1st t20i" data-venue="diamond oval" data-city="kimberley" data-date="2026-12-10">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v Bangladesh — 1st T20I" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 10 Dec 2026</div>
+        <h3 class="event-title">Proteas v Bangladesh — 1st T20I</h3>
+        <p class="event-venue">Diamond Oval · Kimberley</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-port-logistics-round-table-durban-icc-durban-b1a18387-1c2a-4d5f-af7b-d4de24948305" data-title="africa trade &amp; port logistics round-table" data-venue="durban icc" data-city="durban" data-date="2026-12-10">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa Trade &amp; Port Logistics Round-Table" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 10 Dec 2026 · 09:00</div>
         <h3 class="event-title">Africa Trade &amp; Port Logistics Round-Table</h3>
@@ -932,8 +2288,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659">
-      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" alt="J. Cole: The Fall-Off Tour" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-bangladesh-2nd-t20i-willowmoore-park-benoni-f0770794-aa10-4b63-9ec6-40d0a481b8c9" data-title="proteas v bangladesh — 2nd t20i" data-venue="willowmoore park" data-city="benoni" data-date="2026-12-12">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v Bangladesh — 2nd T20I" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 12 Dec 2026</div>
+        <h3 class="event-title">Proteas v Bangladesh — 2nd T20I</h3>
+        <p class="event-venue">Willowmoore Park · Benoni</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/challenge-cup-sharks-v-scarlets-hollywoodbets-kings-park-durban-ce984bd0-2a68-47c6-b82a-73412506416e" data-title="challenge cup: sharks v scarlets" data-venue="hollywoodbets kings park" data-city="durban" data-date="2026-12-12">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Challenge Cup: Sharks v Scarlets" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 12 Dec 2026 · 19:30</div>
+        <h3 class="event-title">Challenge Cup: Sharks v Scarlets</h3>
+        <p class="event-venue">Hollywoodbets Kings Park · Durban</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659" data-title="j. cole: the fall-off tour" data-venue="fnb stadium" data-city="johannesburg" data-date="2026-12-12">
+      <img class="event-img" src="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" alt="J. Cole: The Fall-Off Tour" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sat, 12 Dec 2026 · 18:00</div>
         <h3 class="event-title">J. Cole: The Fall-Off Tour</h3>
@@ -945,8 +2327,99 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-festive-sunday-shisanyama-max-s-lifestyle-village-a3e13494-d497-4003-9803-807d296fb691">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Max's Lifestyle Festive Sunday Shisanyama" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-bangladesh-3rd-t20i-supersport-park-centurion-3721c6ac-6f33-40c5-abae-f4adcfdda8fb" data-title="proteas v bangladesh — 3rd t20i" data-venue="supersport park" data-city="centurion" data-date="2026-12-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v Bangladesh — 3rd T20I" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 13 Dec 2026</div>
+        <h3 class="event-title">Proteas v Bangladesh — 3rd T20I</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/rosebank-e-commerce-and-d2c-growth-conference-the-zone-rosebank-7cd667f2-8eae-4134-991d-9f71a2422667" data-title="rosebank e-commerce &amp; d2c growth conference" data-venue="the zone @ rosebank innovation hall" data-city="johannesburg" data-date="2026-12-16">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Rosebank E-Commerce &amp; D2C Growth Conference" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 16 Dec 2026 · 10:00</div>
+        <h3 class="event-title">Rosebank E-Commerce &amp; D2C Growth Conference</h3>
+        <p class="event-venue">The Zone @ Rosebank Innovation Hall · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-england-1st-test-dp-world-wanderers-stadium-johannesburg-aaab8b61-2c5f-41b4-a24f-a23242cd1855" data-title="proteas v england — 1st test" data-venue="dp world wanderers stadium" data-city="johannesburg" data-date="2026-12-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v England — 1st Test" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 17 Dec 2026</div>
+        <h3 class="event-title">Proteas v England — 1st Test</h3>
+        <p class="event-venue">DP World Wanderers Stadium · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/urc-sharks-v-bulls-hollywoodbets-kings-park-durban-676fe550-8f96-4794-9334-275631f85859" data-title="urc: sharks v bulls" data-venue="hollywoodbets kings park" data-city="durban" data-date="2026-12-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="URC: Sharks v Bulls" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 19 Dec 2026 · 18:30</div>
+        <h3 class="event-title">URC: Sharks v Bulls</h3>
+        <p class="event-venue">Hollywoodbets Kings Park · Durban</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/urc-stormers-v-lions-dhl-stadium-cape-town-a134247f-ded7-42be-9e20-3e00c0ac0fe0" data-title="urc: stormers v lions" data-venue="dhl stadium" data-city="cape town" data-date="2026-12-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="URC: Stormers v Lions" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 19 Dec 2026</div>
+        <h3 class="event-title">URC: Stormers v Lions</h3>
+        <p class="event-venue">DHL Stadium · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/emperors-palace-airport-logistics-and-cargo-trade-summit-emperors-3e222e76-a1b5-41ff-9fff-a917c72fba97" data-title="emperors palace airport logistics &amp; cargo trade summit" data-venue="emperors palace convention centre" data-city="ekurhuleni" data-date="2026-12-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Emperors Palace Airport Logistics &amp; Cargo Trade Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 23 Dec 2026 · 10:00</div>
+        <h3 class="event-title">Emperors Palace Airport Logistics &amp; Cargo Trade Summit</h3>
+        <p class="event-venue">Emperors Palace Convention Centre · Ekurhuleni</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-england-boxing-day-test-supersport-park-centurion-8ba8845b-0853-4424-b455-a81a7d239d7d" data-title="proteas v england — boxing day test" data-venue="supersport park" data-city="centurion" data-date="2026-12-26">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v England — Boxing Day Test" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 26 Dec 2026</div>
+        <h3 class="event-title">Proteas v England — Boxing Day Test</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/max-s-lifestyle-festive-sunday-shisanyama-max-s-lifestyle-village-a3e13494-d497-4003-9803-807d296fb691" data-title="max's lifestyle festive sunday shisanyama" data-venue="max's lifestyle village" data-city="durban" data-date="2026-12-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Max's Lifestyle Festive Sunday Shisanyama" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Sun, 27 Dec 2026 · 13:00</div>
         <h3 class="event-title">Max's Lifestyle Festive Sunday Shisanyama</h3>
@@ -958,8 +2431,112 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/rosebank-street-culture-and-sneaker-festival-the-zone-rosebank-ec36ddf2-9150-45a6-98e4-5d579edee209">
-      <img class="event-img" src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Rosebank Street Culture &amp; Sneaker Festival" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/urc-sharks-v-lions-hollywoodbets-kings-park-durban-49200417-d150-467c-961c-fed658f63b1c" data-title="urc: sharks v lions" data-venue="hollywoodbets kings park" data-city="durban" data-date="2027-01-02">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="URC: Sharks v Lions" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 02 Jan 2027 · 17:00</div>
+        <h3 class="event-title">URC: Sharks v Lions</h3>
+        <p class="event-venue">Hollywoodbets Kings Park · Durban</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/urc-stormers-v-bulls-dhl-stadium-cape-town-2210e9f9-c556-4240-bc30-830b839f5517" data-title="urc: stormers v bulls" data-venue="dhl stadium" data-city="cape town" data-date="2027-01-03">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="URC: Stormers v Bulls" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 03 Jan 2027 · 16:00</div>
+        <h3 class="event-title">URC: Stormers v Bulls</h3>
+        <p class="event-venue">DHL Stadium · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-england-new-year-s-test-newlands-cricket-ground-cape-town-a8b87e6c-ae49-49fa-b371-5c52931b3ba2" data-title="proteas v england — new year's test" data-venue="newlands cricket ground" data-city="cape town" data-date="2027-01-03">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v England — New Year's Test" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 03 Jan 2027</div>
+        <h3 class="event-title">Proteas v England — New Year's Test</h3>
+        <p class="event-venue">Newlands Cricket Ground · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/we-are-through-copperleaf-centurion-south-africa-centurion-babc3d07-c5d1-4cba-855f-85dd4a3ba983" data-title="we are through 🗣️🇿🇦🚨" data-venue="copperleaf, centurion, south africa" data-city="centurion" data-date="2027-01-03">
+      <img class="event-img" src="https://cdn-az.allevents.in/events8/banners/1f7c316a76639ec152f8a1f11d12b12e637808cf92a405f86ef90593b75829bb-rimg-w1100-h1100-dc080808-gmir?v=1791261494" alt="We are through 🗣️🇿🇦🚨" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 03 Jan 2027 · 16:00</div>
+        <h3 class="event-title">We are through 🗣️🇿🇦🚨</h3>
+        <p class="event-venue">Copperleaf, Centurion, South Africa · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/l-ormarins-king-s-plate-2027-hollywoodbets-kenilworth-racecourse-cape-556c9fab-a133-4e2b-8a27-a2d417c14dc8" data-title="l'ormarins king's plate 2027" data-venue="hollywoodbets kenilworth racecourse" data-city="cape town" data-date="2027-01-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="L'Ormarins King's Plate 2027" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 09 Jan 2027</div>
+        <h3 class="event-title">L'Ormarins King's Plate 2027</h3>
+        <p class="event-venue">Hollywoodbets Kenilworth Racecourse · Cape Town</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/champions-cup-bulls-v-bath-loftus-versfeld-pretoria-dae53448-dc68-414a-ba44-9504df6ae2bb" data-title="champions cup: bulls v bath" data-venue="loftus versfeld" data-city="pretoria" data-date="2027-01-09">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Champions Cup: Bulls v Bath" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 09 Jan 2027 · 17:15</div>
+        <h3 class="event-title">Champions Cup: Bulls v Bath</h3>
+        <p class="event-venue">Loftus Versfeld · Pretoria</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-england-1st-odi-boland-park-paarl-4bef8a92-47fb-42ea-a063-171bc184e91a" data-title="proteas v england — 1st odi" data-venue="boland park" data-city="paarl" data-date="2027-01-10">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v England — 1st ODI" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 10 Jan 2027</div>
+        <h3 class="event-title">Proteas v England — 1st ODI</h3>
+        <p class="event-venue">Boland Park · Paarl</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/proteas-v-england-3rd-odi-mangaung-oval-bloemfontein-b2338563-1338-4aaf-bdbc-833bd218cf82" data-title="proteas v england — 3rd odi" data-venue="mangaung oval" data-city="bloemfontein" data-date="2027-01-15">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Proteas v England — 3rd ODI" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 15 Jan 2027</div>
+        <h3 class="event-title">Proteas v England — 3rd ODI</h3>
+        <p class="event-venue">Mangaung Oval · Bloemfontein</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/rosebank-street-culture-and-sneaker-festival-the-zone-rosebank-ec36ddf2-9150-45a6-98e4-5d579edee209" data-title="rosebank street culture &amp; sneaker festival" data-venue="the zone @ rosebank" data-city="johannesburg" data-date="2027-01-15">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Rosebank Street Culture &amp; Sneaker Festival" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 15 Jan 2027 · 11:00</div>
         <h3 class="event-title">Rosebank Street Culture &amp; Sneaker Festival</h3>
@@ -971,8 +2548,73 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/ecommerce-africa-logistics-and-payments-forum-sandton-convention-f52a871a-00df-47b6-8304-e46fea869106">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="eCommerce Africa Logistics &amp; Payments Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/soweto-youth-business-incubator-open-day-soweto-theatre-business-and-3ef17535-3b64-462d-bde5-6172ad45b423" data-title="soweto youth business incubator open day" data-venue="soweto theatre business &amp; cultural centre" data-city="soweto" data-date="2027-01-16">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Soweto Youth Business Incubator Open Day" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 16 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Soweto Youth Business Incubator Open Day</h3>
+        <p class="event-venue">Soweto Theatre Business &amp; Cultural Centre · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-pretoria-capitals-st-george-s-park-f0a982fb-3264-402e-a47e-ee4375c258e2" data-title="sa20: sunrisers eastern cape v pretoria capitals" data-venue="st george's park" data-city="gqeberha" data-date="2027-01-17">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Sunrisers Eastern Cape v Pretoria Capitals" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 17 Jan 2027 · 15:30</div>
+        <h3 class="event-title">SA20: Sunrisers Eastern Cape v Pretoria Capitals</h3>
+        <p class="event-venue">St George's Park · Gqeberha</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-paarl-royals-v-joburg-super-kings-boland-park-paarl-9a407873-e9fd-4545-ad42-c25d215a0b96" data-title="sa20: paarl royals v joburg super kings" data-venue="boland park" data-city="paarl" data-date="2027-01-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Paarl Royals v Joburg Super Kings" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 18 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Paarl Royals v Joburg Super Kings</h3>
+        <p class="event-venue">Boland Park · Paarl</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-durban-s-super-giants-supersport-park-ceed7cf2-58eb-48df-8e4d-6373711c8829" data-title="sa20: pretoria capitals v durban's super giants" data-venue="supersport park" data-city="centurion" data-date="2027-01-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Pretoria Capitals v Durban's Super Giants" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 19 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Pretoria Capitals v Durban's Super Giants</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-durban-s-super-giants-v-sunrisers-eastern-cape-kingsmead-durban-5e452465-1505-4189-8dfb-61950603f09a" data-title="sa20: durban's super giants v sunrisers eastern cape" data-venue="kingsmead" data-city="durban" data-date="2027-01-21">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Durban's Super Giants v Sunrisers Eastern Cape" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 21 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Durban's Super Giants v Sunrisers Eastern Cape</h3>
+        <p class="event-venue">Kingsmead · Durban</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/ecommerce-africa-logistics-and-payments-forum-sandton-convention-f52a871a-00df-47b6-8304-e46fea869106" data-title="ecommerce africa logistics &amp; payments forum" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-01-21">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="eCommerce Africa Logistics &amp; Payments Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 21 Jan 2027 · 09:30</div>
         <h3 class="event-title">eCommerce Africa Logistics &amp; Payments Forum</h3>
@@ -984,8 +2626,60 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-manufacturing-and-export-excellence-conference-durban-icc-367074d0-4117-4c3e-970d-152383357166">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Manufacturing &amp; Export Excellence Conference" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sa20-joburg-super-kings-v-sunrisers-eastern-cape-dp-world-wanderers-487d1a3a-5842-4e9a-a737-1203ec214de2" data-title="sa20: joburg super kings v sunrisers eastern cape" data-venue="dp world wanderers stadium" data-city="johannesburg" data-date="2027-01-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Joburg Super Kings v Sunrisers Eastern Cape" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 23 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Joburg Super Kings v Sunrisers Eastern Cape</h3>
+        <p class="event-venue">DP World Wanderers Stadium · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-durban-s-super-giants-v-pretoria-capitals-kingsmead-durban-dc5dd9fd-61ba-42f8-9812-5eccfa378cc0" data-title="sa20: durban's super giants v pretoria capitals" data-venue="kingsmead" data-city="durban" data-date="2027-01-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Durban's Super Giants v Pretoria Capitals" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 23 Jan 2027 · 13:00</div>
+        <h3 class="event-title">SA20: Durban's Super Giants v Pretoria Capitals</h3>
+        <p class="event-venue">Kingsmead · Durban</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/midrand-logistics-and-trucking-business-workshop-riversands-i-hub-b19b7649-4c64-4744-a825-cc8a0ac2145a" data-title="midrand logistics &amp; trucking business workshop" data-venue="riversands i-hub" data-city="midrand" data-date="2027-01-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Midrand Logistics &amp; Trucking Business Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 23 Jan 2027 · 09:30</div>
+        <h3 class="event-title">Midrand Logistics &amp; Trucking Business Workshop</h3>
+        <p class="event-venue">Riversands I-Hub · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-paarl-royals-v-mi-cape-town-boland-park-paarl-566979a3-9cf6-436e-b8cb-00378af82aa8" data-title="sa20: paarl royals v mi cape town" data-venue="boland park" data-city="paarl" data-date="2027-01-24">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Paarl Royals v MI Cape Town" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 24 Jan 2027 · 15:30</div>
+        <h3 class="event-title">SA20: Paarl Royals v MI Cape Town</h3>
+        <p class="event-venue">Boland Park · Paarl</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/durban-manufacturing-and-export-excellence-conference-durban-icc-367074d0-4117-4c3e-970d-152383357166" data-title="durban manufacturing &amp; export excellence conference" data-venue="durban icc" data-city="durban" data-date="2027-01-25">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Durban Manufacturing &amp; Export Excellence Conference" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Mon, 25 Jan 2027 · 08:30</div>
         <h3 class="event-title">Durban Manufacturing &amp; Export Excellence Conference</h3>
@@ -997,8 +2691,34 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/venture-capital-africa-investor-breakfast-the-marc-sandton-6787796f-8642-4a94-887c-ac89d6963ce7">
-      <img class="event-img" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Venture Capital Africa Investor Breakfast" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-sunrisers-eastern-cape-supersport-park-6e09bb1c-2139-4cb4-bc9d-c032c4bf7077" data-title="sa20: pretoria capitals v sunrisers eastern cape" data-venue="supersport park" data-city="centurion" data-date="2027-01-26">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Pretoria Capitals v Sunrisers Eastern Cape" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 26 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Pretoria Capitals v Sunrisers Eastern Cape</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-durban-s-super-giants-v-paarl-royals-kingsmead-durban-852a1203-4ae3-4dfa-b43e-833c702e6bc0" data-title="sa20: durban's super giants v paarl royals" data-venue="kingsmead" data-city="durban" data-date="2027-01-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Durban's Super Giants v Paarl Royals" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Wed, 27 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Durban's Super Giants v Paarl Royals</h3>
+        <p class="event-venue">Kingsmead · Durban</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/venture-capital-africa-investor-breakfast-the-marc-sandton-6787796f-8642-4a94-887c-ac89d6963ce7" data-title="venture capital africa investor breakfast" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-01-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Venture Capital Africa Investor Breakfast" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 27 Jan 2027 · 08:00</div>
         <h3 class="event-title">Venture Capital Africa Investor Breakfast</h3>
@@ -1010,8 +2730,151 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9">
-      <img class="event-img" src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="FinTech Africa Payments &amp; Cross-Border Remittances" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-joburg-super-kings-st-george-s-park-b360184c-fcd7-452a-beb1-530878885b39" data-title="sa20: sunrisers eastern cape v joburg super kings" data-venue="st george's park" data-city="gqeberha" data-date="2027-01-28">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Sunrisers Eastern Cape v Joburg Super Kings" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 28 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Sunrisers Eastern Cape v Joburg Super Kings</h3>
+        <p class="event-venue">St George's Park · Gqeberha</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-paarl-royals-v-pretoria-capitals-boland-park-paarl-4bcff4bc-1c90-42f9-9059-67791c47c665" data-title="sa20: paarl royals v pretoria capitals" data-venue="boland park" data-city="paarl" data-date="2027-01-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Paarl Royals v Pretoria Capitals" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 29 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Paarl Royals v Pretoria Capitals</h3>
+        <p class="event-venue">Boland Park · Paarl</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/ekurhuleni-manufacturing-and-industrial-sme-hub-emperors-palace-1f2a625c-4899-4242-ae92-4b1d1d2750e2" data-title="ekurhuleni manufacturing &amp; industrial sme hub" data-venue="emperors palace convention centre" data-city="ekurhuleni" data-date="2027-01-29">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Ekurhuleni Manufacturing &amp; Industrial SME Hub" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 29 Jan 2027 · 10:00</div>
+        <h3 class="event-title">Ekurhuleni Manufacturing &amp; Industrial SME Hub</h3>
+        <p class="event-venue">Emperors Palace Convention Centre · Ekurhuleni</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-joburg-super-kings-v-durban-s-super-giants-dp-world-wanderers-be0b7c89-73d2-4ba3-b50d-502d6c946b79" data-title="sa20: joburg super kings v durban's super giants" data-venue="dp world wanderers stadium" data-city="johannesburg" data-date="2027-01-30">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Joburg Super Kings v Durban's Super Giants" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 30 Jan 2027 · 17:30</div>
+        <h3 class="event-title">SA20: Joburg Super Kings v Durban's Super Giants</h3>
+        <p class="event-venue">DP World Wanderers Stadium · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-sunrisers-eastern-cape-v-mi-cape-town-st-george-s-park-gqeberha-529f26af-d861-4ee5-8b14-8174799eb84e" data-title="sa20: sunrisers eastern cape v mi cape town" data-venue="st george's park" data-city="gqeberha" data-date="2027-01-30">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Sunrisers Eastern Cape v MI Cape Town" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 30 Jan 2027 · 13:00</div>
+        <h3 class="event-title">SA20: Sunrisers Eastern Cape v MI Cape Town</h3>
+        <p class="event-venue">St George's Park · Gqeberha</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sa20-pretoria-capitals-v-paarl-royals-supersport-park-centurion-f8c05c66-60f0-41d7-8e8a-6a89fde69732" data-title="sa20: pretoria capitals v paarl royals" data-venue="supersport park" data-city="centurion" data-date="2027-01-31">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SA20: Pretoria Capitals v Paarl Royals" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 31 Jan 2027 · 15:30</div>
+        <h3 class="event-title">SA20: Pretoria Capitals v Paarl Royals</h3>
+        <p class="event-venue">SuperSport Park · Centurion</p>
+        <div class="event-footer">
+          <span class="event-price">Paid</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/who-will-win-the-league-halfway-gardens-ext-3-midrand-midrand-849743d7-89bd-42d7-9fda-eacf0327d59e" data-title="who will win the league" data-venue="halfway gardens ext 3, midrand" data-city="midrand" data-date="2027-02-01">
+      <img class="event-img" src="https://cdn-az.allevents.in/events10/banners/c071089c5012b067b8ac9a507a7ad28e6694efd0b613017eef6405db8b0f150b-rimg-w959-h1198-dc080808-gmir?v=1792822151" alt="who will win the league" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 01 Feb 2027 · 02:00</div>
+        <h3 class="event-title">who will win the league</h3>
+        <p class="event-venue">Halfway Gardens Ext 3, Midrand · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/bafana-bafana-moroka-gauteng-south-africa-soweto-a3e42cd2-c92d-4793-9f20-9cafd0815768" data-title="bafana bafana" data-venue="moroka, gauteng, south africa" data-city="soweto" data-date="2027-02-01">
+      <img class="event-img" src="https://cdn-az.allevents.in/events3/banners/e4fc77df74f017e40f2ddd154b2fd3377dca69a99678a8e9274587529808d424-rimg-w1200-h1504-dc287808-gmir?v=1794989355" alt="Bafana Bafana" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 01 Feb 2027 · 12:00</div>
+        <h3 class="event-title">Bafana Bafana</h3>
+        <p class="event-venue">Moroka, Gauteng, South Africa · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/ai-product-founders-and-llm-builders-workshop-tshimologong-digital-9cef81a6-bf83-468e-a634-6d4ea6f89ea4" data-title="ai product founders &amp; llm builders workshop" data-venue="tshimologong digital innovation precinct" data-city="johannesburg" data-date="2027-02-06">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="AI Product Founders &amp; LLM Builders Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sat, 06 Feb 2027 · 10:00</div>
+        <h3 class="event-title">AI Product Founders &amp; LLM Builders Workshop</h3>
+        <p class="event-venue">Tshimologong Digital Innovation Precinct · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/joburg-super-kings-vs-pretoria-capitals-wanderers-stadium-johannesburg-ba3bfbbd-24d9-4841-901d-1937ab7aa051" data-title="joburg super kings vs pretoria capitals" data-venue="wanderers stadium" data-city="johannesburg" data-date="2027-02-07">
+      <img class="event-img" src="https://cdn-az.allevents.in/events1/banners/c0f95e8c2ec6df61d8cd33e491d37b0c23ca4e241e9d90bb3da8aa608ba86a0b-rimg-w1200-h628-dcf8d808-gmir?v=1795432387" alt="Joburg Super Kings vs Pretoria Capitals" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Sun, 07 Feb 2027 · 17:30</div>
+        <h3 class="event-title">Joburg Super Kings vs Pretoria Capitals</h3>
+        <p class="event-venue">Wanderers Stadium · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Free Entry</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-clean-mobility-and-ev-fleet-summit-kyalami-grand-prix-circuit-f7da67af-af2f-4ed5-a316-ddbc918dd79f" data-title="kyalami clean mobility &amp; ev fleet summit" data-venue="kyalami grand prix circuit conference centre" data-city="midrand" data-date="2027-02-15">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Clean Mobility &amp; EV Fleet Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Mon, 15 Feb 2027 · 09:00</div>
+        <h3 class="event-title">Kyalami Clean Mobility &amp; EV Fleet Summit</h3>
+        <p class="event-venue">Kyalami Grand Prix Circuit Conference Centre · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/fintech-africa-payments-and-cross-border-remittances-sandton-c86f2057-23b0-44e0-aaf9-22b932179cb9" data-title="fintech africa payments &amp; cross-border remittances" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-02-16">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="FinTech Africa Payments &amp; Cross-Border Remittances" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 16 Feb 2027 · 09:00</div>
         <h3 class="event-title">FinTech Africa Payments &amp; Cross-Border Remittances</h3>
@@ -1023,8 +2886,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-port-supply-chain-and-maritime-tech-forum-durban-icc-durban-a5ca2a52-f8ce-47d9-abc8-0d2fc5059ce0">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Supply Chain &amp; Maritime Tech Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-port-supply-chain-and-maritime-tech-forum-durban-icc-durban-a5ca2a52-f8ce-47d9-abc8-0d2fc5059ce0" data-title="durban port supply chain &amp; maritime tech forum" data-venue="durban icc" data-city="durban" data-date="2027-02-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Durban Port Supply Chain &amp; Maritime Tech Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 18 Feb 2027 · 08:30</div>
         <h3 class="event-title">Durban Port Supply Chain &amp; Maritime Tech Forum</h3>
@@ -1036,8 +2899,60 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-ocean-economy-and-maritime-trade-summit-durban-icc-durban-fbc77e61-f8ec-4e13-8307-0a957812427d">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Ocean Economy &amp; Maritime Trade Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/cross-border-african-trade-and-afcfta-masterclass-riversands-i-hub-334562e4-f240-4fb7-b073-8edce1bfbbdf" data-title="cross-border african trade &amp; afcfta masterclass" data-venue="riversands i-hub" data-city="midrand" data-date="2027-02-18">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Cross-Border African Trade &amp; AfCFTA Masterclass" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 18 Feb 2027 · 09:30</div>
+        <h3 class="event-title">Cross-Border African Trade &amp; AfCFTA Masterclass</h3>
+        <p class="event-venue">Riversands I-Hub · Midrand</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/sandton-corporate-venture-capital-and-m-and-a-forum-the-marc-sandton-5011f0e9-0cb1-42a7-b61f-b7a34ede61eb" data-title="sandton corporate venture capital &amp; m&amp;a forum" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-02-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Sandton Corporate Venture Capital &amp; M&amp;A Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Tue, 23 Feb 2027 · 09:00</div>
+        <h3 class="event-title">Sandton Corporate Venture Capital &amp; M&amp;A Forum</h3>
+        <p class="event-venue">The Marc Sandton · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/soweto-artisan-trades-and-construction-guild-launch-soweto-theatre-dfac7de0-5fc1-4d69-802c-7a1590349413" data-title="soweto artisan trades &amp; construction guild launch" data-venue="soweto theatre business &amp; cultural centre" data-city="soweto" data-date="2027-02-25">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Soweto Artisan Trades &amp; Construction Guild Launch" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Thu, 25 Feb 2027 · 10:00</div>
+        <h3 class="event-title">Soweto Artisan Trades &amp; Construction Guild Launch</h3>
+        <p class="event-venue">Soweto Theatre Business &amp; Cultural Centre · Soweto</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/founders-mental-resilience-and-high-performance-retreat-radisson-blu-8ebd31c8-7fe0-45fa-b05f-f11e934e72b0" data-title="founders mental resilience &amp; high-performance retreat" data-venue="radisson blu gautrain hotel sandton" data-city="johannesburg" data-date="2027-02-26">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Founders Mental Resilience &amp; High-Performance Retreat" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
+      <div class="event-body">
+        <div class="event-date">Fri, 26 Feb 2027 · 09:00</div>
+        <h3 class="event-title">Founders Mental Resilience &amp; High-Performance Retreat</h3>
+        <p class="event-venue">Radisson Blu Gautrain Hotel Sandton · Johannesburg</p>
+        <div class="event-footer">
+          <span class="event-price">Tickets Available</span>
+          <span class="btn-view">Get Tickets →</span>
+        </div>
+      </div>
+    </a>
+  
+    <a class="event-card" href="https://thegruvs.com/events/durban-ocean-economy-and-maritime-trade-summit-durban-icc-durban-fbc77e61-f8ec-4e13-8307-0a957812427d" data-title="durban ocean economy &amp; maritime trade summit" data-venue="durban icc" data-city="durban" data-date="2027-03-23">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Durban Ocean Economy &amp; Maritime Trade Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 23 Mar 2027 · 08:30</div>
         <h3 class="event-title">Durban Ocean Economy &amp; Maritime Trade Summit</h3>
@@ -1049,8 +2964,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/sme-exporting-and-global-e-commerce-workshop-the-marc-sandton-1ec2fa0e-6704-450b-9edc-162b16d42de8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="SME Exporting &amp; Global E-Commerce Workshop" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/sme-exporting-and-global-e-commerce-workshop-the-marc-sandton-1ec2fa0e-6704-450b-9edc-162b16d42de8" data-title="sme exporting &amp; global e-commerce workshop" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-03-24">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="SME Exporting &amp; Global E-Commerce Workshop" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 24 Mar 2027 · 09:30</div>
         <h3 class="event-title">SME Exporting &amp; Global E-Commerce Workshop</h3>
@@ -1062,8 +2977,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/clean-energy-and-green-hydrogen-southern-africa-sandton-convention-014c8514-cb47-40f5-813b-7396c999ef4c">
-      <img class="event-img" src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Clean Energy &amp; Green Hydrogen Southern Africa" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/clean-energy-and-green-hydrogen-southern-africa-sandton-convention-014c8514-cb47-40f5-813b-7396c999ef4c" data-title="clean energy &amp; green hydrogen southern africa" data-venue="sandton convention centre" data-city="johannesburg" data-date="2027-03-30">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Clean Energy &amp; Green Hydrogen Southern Africa" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 30 Mar 2027 · 08:30</div>
         <h3 class="event-title">Clean Energy &amp; Green Hydrogen Southern Africa</h3>
@@ -1075,8 +2990,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-sustainability-esg-and-carbon-markets-forum-the-marc-sandton-9b88bc5f-6ee1-4a39-9f8f-042521e5fa4e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Sustainability, ESG &amp; Carbon Markets Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-sustainability-esg-and-carbon-markets-forum-the-marc-sandton-9b88bc5f-6ee1-4a39-9f8f-042521e5fa4e" data-title="africa sustainability, esg &amp; carbon markets forum" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-04-08">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa Sustainability, ESG &amp; Carbon Markets Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 08 Apr 2027 · 08:30</div>
         <h3 class="event-title">Africa Sustainability, ESG &amp; Carbon Markets Forum</h3>
@@ -1088,8 +3003,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/western-cape-wine-export-and-trade-conference-spier-wine-farm-609df65a-5d12-497b-9fae-4f11f1e64af8">
-      <img class="event-img" src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Western Cape Wine Export &amp; Trade Conference" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/western-cape-wine-export-and-trade-conference-spier-wine-farm-609df65a-5d12-497b-9fae-4f11f1e64af8" data-title="western cape wine export &amp; trade conference" data-venue="spier wine farm" data-city="stellenbosch" data-date="2027-04-13">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Western Cape Wine Export &amp; Trade Conference" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 13 Apr 2027 · 09:00</div>
         <h3 class="event-title">Western Cape Wine Export &amp; Trade Conference</h3>
@@ -1101,8 +3016,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/durban-port-logistics-and-rail-freight-conclave-durban-icc-durban-4bad0dfb-95ab-44d0-8c43-c6b968d7f9d1">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Durban Port Logistics &amp; Rail Freight Conclave" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/durban-port-logistics-and-rail-freight-conclave-durban-icc-durban-4bad0dfb-95ab-44d0-8c43-c6b968d7f9d1" data-title="durban port logistics &amp; rail freight conclave" data-venue="durban icc" data-city="durban" data-date="2027-04-21">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Durban Port Logistics &amp; Rail Freight Conclave" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 21 Apr 2027 · 08:30</div>
         <h3 class="event-title">Durban Port Logistics &amp; Rail Freight Conclave</h3>
@@ -1114,8 +3029,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria GovTech &amp; Smart Public Services Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-govtech-and-smart-public-services-summit-menlyn-maine-3547ba89-32a3-4199-8d96-70a7e4ca07ad" data-title="pretoria govtech &amp; smart public services summit" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-04-22">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria GovTech &amp; Smart Public Services Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 22 Apr 2027 · 09:00</div>
         <h3 class="event-title">Pretoria GovTech &amp; Smart Public Services Summit</h3>
@@ -1127,8 +3042,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/freedom-day-beach-festival-durban-moses-mabhida-stadium-peoples-park-578b02c6-5bc5-4f70-a45f-56824b354694">
-      <img class="event-img" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Freedom Day Beach Festival Durban" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/freedom-day-beach-festival-durban-moses-mabhida-stadium-peoples-park-578b02c6-5bc5-4f70-a45f-56824b354694" data-title="freedom day beach festival durban" data-venue="moses mabhida stadium peoples park" data-city="durban" data-date="2027-04-27">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Freedom Day Beach Festival Durban" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Tue, 27 Apr 2027 · 11:00</div>
         <h3 class="event-title">Freedom Day Beach Festival Durban</h3>
@@ -1140,8 +3055,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-afcfta-implementation-forum-durban-icc-durban-918a5b41-1620-4add-b69f-3141a149a4fb">
-      <img class="event-img" src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Africa Trade &amp; AfCFTA Implementation Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/africa-trade-and-afcfta-implementation-forum-durban-icc-durban-918a5b41-1620-4add-b69f-3141a149a4fb" data-title="africa trade &amp; afcfta implementation forum" data-venue="durban icc" data-city="durban" data-date="2027-05-06">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Africa Trade &amp; AfCFTA Implementation Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 06 May 2027 · 09:00</div>
         <h3 class="event-title">Africa Trade &amp; AfCFTA Implementation Forum</h3>
@@ -1153,8 +3068,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/commercial-real-estate-logistics-and-warehousing-summit-the-marc-40756299-78b6-48be-b5c3-3fdd4740c68e">
-      <img class="event-img" src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Commercial Real Estate Logistics &amp; Warehousing Summit" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/commercial-real-estate-logistics-and-warehousing-summit-the-marc-40756299-78b6-48be-b5c3-3fdd4740c68e" data-title="commercial real estate logistics &amp; warehousing summit" data-venue="the marc sandton" data-city="johannesburg" data-date="2027-05-19">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Commercial Real Estate Logistics &amp; Warehousing Summit" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Wed, 19 May 2027 · 09:00</div>
         <h3 class="event-title">Commercial Real Estate Logistics &amp; Warehousing Summit</h3>
@@ -1166,8 +3081,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db">
-      <img class="event-img" src="https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Pretoria Clean Energy &amp; EV Infrastructure Forum" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/pretoria-clean-energy-and-ev-infrastructure-forum-menlyn-maine-0b7e1989-641b-4259-b6ad-cee2b50c33db" data-title="pretoria clean energy &amp; ev infrastructure forum" data-venue="menlyn maine central square" data-city="pretoria" data-date="2027-05-20">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Pretoria Clean Energy &amp; EV Infrastructure Forum" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Thu, 20 May 2027 · 09:00</div>
         <h3 class="event-title">Pretoria Clean Energy &amp; EV Infrastructure Forum</h3>
@@ -1179,8 +3094,8 @@
       </div>
     </a>
   
-    <a class="event-card" href="https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec">
-      <img class="event-img" src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&amp;auto=format&amp;fit=crop&amp;q=80" alt="Kyalami Winter Endurance Fest" loading="lazy" />
+    <a class="event-card" href="https://thegruvs.com/events/kyalami-winter-endurance-fest-kyalami-grand-prix-circuit-midrand-6ff0a609-5660-4ae0-9eda-83db1fcc1eec" data-title="kyalami winter endurance fest" data-venue="kyalami grand prix circuit" data-city="midrand" data-date="2027-05-21">
+      <img class="event-img" src="https://thegruvs.com/og-default.jpg" alt="Kyalami Winter Endurance Fest" loading="lazy" decoding="async" width="600" height="338" style="aspect-ratio:16/9; object-fit:cover;" />
       <div class="event-body">
         <div class="event-date">Fri, 21 May 2027 · 12:00</div>
         <h3 class="event-title">Kyalami Winter Endurance Fest</h3>

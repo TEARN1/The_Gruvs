@@ -20,6 +20,7 @@ export const PARTNER_CAMPAIGNS = [
     cta_url: 'https://theresidentcrew.com',
     icon: 'home',
     color: '#f59e0b', // Gold / Amber
+    image_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80',
     tags: ['accommodation', 'stays', 'community', 'housing'],
   },
   {
@@ -29,10 +30,11 @@ export const PARTNER_CAMPAIGNS = [
     tagline: "TEARN's Excellence",
     headline: 'Engineering & Creative Distinction',
     subline: 'Groundbreaking software architecture, high-performance systems, and creative technology.',
-    cta: 'View Repository',
+    cta: 'View Innovation Lab',
     cta_url: 'https://github.com/TEARN1/TEARNs-Excellence',
     icon: 'cpu',
     color: '#00f2ff', // Electric Cyan
+    image_url: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80',
     tags: ['tech', 'engineering', 'open-source', 'innovation'],
   },
 ];

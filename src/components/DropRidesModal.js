@@ -277,6 +277,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     borderWidth: 1,
     borderBottomWidth: 0,
+    // Real height: the flex:1 ScrollView inside resolves to 0 in a
+    // content-sized parent on Android, so the sheet opened empty.
+    height: '90%',
     maxHeight: '90%',
     width: '100%',
     maxWidth: 680,

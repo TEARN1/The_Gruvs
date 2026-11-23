@@ -168,7 +168,7 @@ const PollCard = ({ poll, primary, textColor, muted, userId, onVote }) => {
             <TouchableOpacity
               key={idx}
               style={[pc.optBtn, { borderColor: voted ? primary : `${primary}25` }]}
-              onPress={() => onVote(poll.id, opt, poll.votes)}
+              onPress={() => onVote?.(poll.id, opt, poll.votes)}
               activeOpacity={0.75}
             >
               <View style={[pc.optFill, { width: `${pct}%`, backgroundColor: voted ? `${primary}35` : `${primary}12` }]} />

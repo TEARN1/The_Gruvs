@@ -36,8 +36,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Ke Dezemba Amapiano Explosive Launch' AND event_date = '2026-12-04'::date AND deleted_at IS NULL
@@ -71,8 +71,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Shimmy Sunset White & Gold Rave' AND event_date = '2026-12-05'::date AND deleted_at IS NULL
@@ -106,8 +106,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Altitude Beach Dezemba Fest' AND event_date = '2026-12-06'::date AND deleted_at IS NULL
@@ -141,8 +141,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Konka Summer Anthem Weekend' AND event_date = '2026-12-11'::date AND deleted_at IS NULL
@@ -176,8 +176,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Durban All-White Beach Extravaganza' AND event_date = '2026-12-12'::date AND deleted_at IS NULL
@@ -211,8 +211,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'SunBet Arena Afro-Tech Symphony' AND event_date = '2026-12-13'::date AND deleted_at IS NULL
@@ -246,8 +246,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kirstenbosch Summer Sunset: Soul & Afro-Jazz' AND event_date = '2026-12-13'::date AND deleted_at IS NULL
@@ -281,8 +281,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Soweto Street Food & Craft Beer Festival' AND event_date = '2026-12-16'::date AND deleted_at IS NULL
@@ -316,8 +316,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Beach Sunset Electronic Odyssey' AND event_date = '2026-12-18'::date AND deleted_at IS NULL
@@ -351,8 +351,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Eyadini December Shisanyama Spectacular' AND event_date = '2026-12-19'::date AND deleted_at IS NULL
@@ -386,8 +386,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'The Station Parkhurst Rooftop Summer Jam' AND event_date = '2026-12-19'::date AND deleted_at IS NULL
@@ -421,8 +421,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Spier Secret Vineyard Sunset Soiree' AND event_date = '2026-12-20'::date AND deleted_at IS NULL
@@ -456,8 +456,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'FNB Stadium Ke Dezemba SuperFest' AND event_date = '2026-12-23'::date AND deleted_at IS NULL
@@ -491,8 +491,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Christmas Eve Waterfront Moonlight Ball' AND event_date = '2026-12-24'::date AND deleted_at IS NULL
@@ -526,8 +526,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Christmas Day Family Garden Feast' AND event_date = '2026-12-25'::date AND deleted_at IS NULL
@@ -561,8 +561,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Boxing Day Pool & Beats Extravaganza' AND event_date = '2026-12-26'::date AND deleted_at IS NULL
@@ -596,8 +596,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Gqeberha Coastal Summer Sunset Festival' AND event_date = '2026-12-27'::date AND deleted_at IS NULL
@@ -631,8 +631,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Max''s Lifestyle Festive Sunday Shisanyama' AND event_date = '2026-12-27'::date AND deleted_at IS NULL
@@ -666,8 +666,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Beach Club NYE White & Silver Gala' AND event_date = '2026-12-31'::date AND deleted_at IS NULL
@@ -701,8 +701,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Konka Soweto 2027 Midnight Countdown' AND event_date = '2026-12-31'::date AND deleted_at IS NULL
@@ -736,8 +736,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Southern Africa Year-End Business & Tech Gala' AND event_date = '2026-12-02'::date AND deleted_at IS NULL
@@ -771,8 +771,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Township Economy & Retail Entrepreneurship Expo' AND event_date = '2026-12-03'::date AND deleted_at IS NULL
@@ -806,8 +806,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Gauteng Commercial Real Estate & Investment Summit' AND event_date = '2026-12-08'::date AND deleted_at IS NULL
@@ -841,8 +841,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Western Cape Tech & Venture Showcase' AND event_date = '2026-12-09'::date AND deleted_at IS NULL
@@ -876,8 +876,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa Trade & Port Logistics Round-Table' AND event_date = '2026-12-10'::date AND deleted_at IS NULL
@@ -911,8 +911,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Midrand SME Cloud & Digital Mastery Workshop' AND event_date = '2026-12-14'::date AND deleted_at IS NULL
@@ -946,8 +946,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Pretoria Public-Private Infrastructure Forum' AND event_date = '2026-12-15'::date AND deleted_at IS NULL
@@ -981,8 +981,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Women in African Tech & Leadership Breakfast' AND event_date = '2026-12-17'::date AND deleted_at IS NULL
@@ -1016,8 +1016,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa Hospitality & Tourism Leaders Forum' AND event_date = '2026-12-18'::date AND deleted_at IS NULL
@@ -1051,8 +1051,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'FinTech Africa 2027 Strategy & Regulatory Briefing' AND event_date = '2026-12-22'::date AND deleted_at IS NULL
@@ -1090,8 +1090,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'New Year''s Day Sunrise Beach Rave' AND event_date = '2027-01-01'::date AND deleted_at IS NULL
@@ -1125,8 +1125,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Soweto New Year Kickoff Celebration' AND event_date = '2027-01-01'::date AND deleted_at IS NULL
@@ -1160,8 +1160,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Summer Sessions: Deep Oceanic' AND event_date = '2027-01-02'::date AND deleted_at IS NULL
@@ -1195,8 +1195,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Durban Summer Beach Jam' AND event_date = '2027-01-03'::date AND deleted_at IS NULL
@@ -1230,8 +1230,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Altitude January Sun-Drenched Sessions' AND event_date = '2027-01-08'::date AND deleted_at IS NULL
@@ -1265,8 +1265,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kirstenbosch Summer Sunset: Indie & Folk Harmony' AND event_date = '2027-01-10'::date AND deleted_at IS NULL
@@ -1300,8 +1300,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Rosebank Street Culture & Sneaker Festival' AND event_date = '2027-01-15'::date AND deleted_at IS NULL
@@ -1335,8 +1335,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Pretoria House Music Odyssey' AND event_date = '2027-01-16'::date AND deleted_at IS NULL
@@ -1370,8 +1370,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Stellenbosch Summer Wine & Acoustic Chill' AND event_date = '2027-01-16'::date AND deleted_at IS NULL
@@ -1405,8 +1405,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Parkhurst Summer Sunset Social' AND event_date = '2027-01-17'::date AND deleted_at IS NULL
@@ -1440,8 +1440,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Konka January Elite Soiree' AND event_date = '2027-01-22'::date AND deleted_at IS NULL
@@ -1475,8 +1475,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Shimmy Electronic Summer Wave' AND event_date = '2027-01-23'::date AND deleted_at IS NULL
@@ -1510,8 +1510,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Umlazi Summer Beats & Shisanyama' AND event_date = '2027-01-23'::date AND deleted_at IS NULL
@@ -1545,8 +1545,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kirstenbosch Summer Sunset: Cape Reggae Fest' AND event_date = '2027-01-24'::date AND deleted_at IS NULL
@@ -1580,8 +1580,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Waterfall City Beats & Bites Carnival' AND event_date = '2027-01-29'::date AND deleted_at IS NULL
@@ -1615,8 +1615,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kyalami Trackside Summer Music Fest' AND event_date = '2027-01-30'::date AND deleted_at IS NULL
@@ -1650,8 +1650,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Beach Club Sunset Sessions' AND event_date = '2027-01-30'::date AND deleted_at IS NULL
@@ -1685,8 +1685,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Max''s Lifestyle Sunday Soul Experience' AND event_date = '2027-01-31'::date AND deleted_at IS NULL
@@ -1720,8 +1720,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Gqeberha Beachfront Sunday Vibes' AND event_date = '2027-01-31'::date AND deleted_at IS NULL
@@ -1755,8 +1755,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Braamfontein Rooftop Summer Jam' AND event_date = '2027-01-31'::date AND deleted_at IS NULL
@@ -1790,8 +1790,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Southern Africa 2027 Economic & Tech Outlook' AND event_date = '2027-01-12'::date AND deleted_at IS NULL
@@ -1825,8 +1825,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'AI & Enterprise Automation Summit 2027' AND event_date = '2027-01-14'::date AND deleted_at IS NULL
@@ -1860,8 +1860,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Silicon Cape Startup Kickoff & Angel Day' AND event_date = '2027-01-18'::date AND deleted_at IS NULL
@@ -1895,8 +1895,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Renewable Energy & Battery Storage Summit' AND event_date = '2027-01-20'::date AND deleted_at IS NULL
@@ -1930,8 +1930,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'eCommerce Africa Logistics & Payments Forum' AND event_date = '2027-01-21'::date AND deleted_at IS NULL
@@ -1965,8 +1965,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Durban Manufacturing & Export Excellence Conference' AND event_date = '2027-01-25'::date AND deleted_at IS NULL
@@ -2000,8 +2000,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'SME Tax & Compliance Masterclass 2027' AND event_date = '2027-01-26'::date AND deleted_at IS NULL
@@ -2035,8 +2035,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Venture Capital Africa Investor Breakfast' AND event_date = '2027-01-27'::date AND deleted_at IS NULL
@@ -2070,8 +2070,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Healthcare Innovation & MedTech Expo' AND event_date = '2027-01-28'::date AND deleted_at IS NULL
@@ -2105,8 +2105,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cybersecurity & Cloud Resilience Congress' AND event_date = '2027-01-29'::date AND deleted_at IS NULL
@@ -2144,8 +2144,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Ultra Summer Warmup Rooftop Fiesta' AND event_date = '2027-02-05'::date AND deleted_at IS NULL
@@ -2179,8 +2179,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Beach Club Sunset Afro-Tech' AND event_date = '2027-02-06'::date AND deleted_at IS NULL
@@ -2214,8 +2214,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'SunBet Arena Symphony of Amapiano' AND event_date = '2027-02-06'::date AND deleted_at IS NULL
@@ -2249,8 +2249,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kirstenbosch Summer Sunset: Afro-Soul Romance' AND event_date = '2027-02-07'::date AND deleted_at IS NULL
@@ -2284,8 +2284,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Altitude Beach Pre-Valentine Pool Party' AND event_date = '2027-02-12'::date AND deleted_at IS NULL
@@ -2319,8 +2319,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Shimmy Valentine Sunset Cruise & Rave' AND event_date = '2027-02-13'::date AND deleted_at IS NULL
@@ -2354,8 +2354,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Konka Valentine Red & Black Night' AND event_date = '2027-02-13'::date AND deleted_at IS NULL
@@ -2389,8 +2389,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Valentine Candlelit Beach Dinner & Acoustic Night' AND event_date = '2027-02-14'::date AND deleted_at IS NULL
@@ -2424,8 +2424,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Spier Valentine Wine & Chocolate Soiree' AND event_date = '2027-02-14'::date AND deleted_at IS NULL
@@ -2459,8 +2459,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Zone 6 Lovers & Friends Amapiano Jam' AND event_date = '2027-02-19'::date AND deleted_at IS NULL
@@ -2494,8 +2494,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Eyadini Valentine Coast Weekend' AND event_date = '2027-02-20'::date AND deleted_at IS NULL
@@ -2529,8 +2529,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kyalami Night Track Festival & Drifting' AND event_date = '2027-02-20'::date AND deleted_at IS NULL
@@ -2564,8 +2564,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kirstenbosch Summer Sunset: Jazz in the Park' AND event_date = '2027-02-21'::date AND deleted_at IS NULL
@@ -2599,8 +2599,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Rosebank Streetwear & Hip Hop Showcase' AND event_date = '2027-02-26'::date AND deleted_at IS NULL
@@ -2634,8 +2634,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Beach Club Sunset Melodic Grooves' AND event_date = '2027-02-27'::date AND deleted_at IS NULL
@@ -2669,8 +2669,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Pretoria Craft Gin & Food Truck Carnival' AND event_date = '2027-02-27'::date AND deleted_at IS NULL
@@ -2704,8 +2704,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Altitude Beach February Finale Pool Fest' AND event_date = '2027-02-27'::date AND deleted_at IS NULL
@@ -2739,8 +2739,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Max''s Lifestyle Sunday Vibe Session' AND event_date = '2027-02-28'::date AND deleted_at IS NULL
@@ -2774,8 +2774,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Gqeberha Boardwalk Sunset Social' AND event_date = '2027-02-28'::date AND deleted_at IS NULL
@@ -2809,8 +2809,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Braamfontein Sunset Electronic Session' AND event_date = '2027-02-28'::date AND deleted_at IS NULL
@@ -2844,8 +2844,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'African Mining & Energy Leaders Executive Indaba' AND event_date = '2027-02-02'::date AND deleted_at IS NULL
@@ -2879,8 +2879,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'African Venture Capital & Private Equity Summit' AND event_date = '2027-02-04'::date AND deleted_at IS NULL
@@ -2914,8 +2914,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'SME Funding & Growth Capital Expo 2027' AND event_date = '2027-02-09'::date AND deleted_at IS NULL
@@ -2949,8 +2949,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Commercial Property & Green Building Conference' AND event_date = '2027-02-11'::date AND deleted_at IS NULL
@@ -2984,8 +2984,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'FinTech Africa Payments & Cross-Border Remittances' AND event_date = '2027-02-16'::date AND deleted_at IS NULL
@@ -3019,8 +3019,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Durban Port Supply Chain & Maritime Tech Forum' AND event_date = '2027-02-18'::date AND deleted_at IS NULL
@@ -3054,8 +3054,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Southern Africa Agri-Tech & Food Security Expo' AND event_date = '2027-02-23'::date AND deleted_at IS NULL
@@ -3089,8 +3089,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Women in Corporate Governance & Board Leadership' AND event_date = '2027-02-24'::date AND deleted_at IS NULL
@@ -3124,8 +3124,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Pretoria Automotive & Manufacturing Summit' AND event_date = '2027-02-25'::date AND deleted_at IS NULL
@@ -3159,8 +3159,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Digital Marketing & Social Commerce Conclave 2027' AND event_date = '2027-02-26'::date AND deleted_at IS NULL
@@ -3198,8 +3198,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Autumn Beats Outdoor Festival' AND event_date = '2027-03-05'::date AND deleted_at IS NULL
@@ -3233,8 +3233,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Beach Club Sunset House Groove' AND event_date = '2027-03-06'::date AND deleted_at IS NULL
@@ -3268,8 +3268,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'SunBet Arena Afro-Tech Masters' AND event_date = '2027-03-06'::date AND deleted_at IS NULL
@@ -3303,8 +3303,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kirstenbosch Summer Sunset: Cape Town Philharmonic Pop Classics' AND event_date = '2027-03-07'::date AND deleted_at IS NULL
@@ -3338,8 +3338,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Altitude Beach Autumn Sunset Bash' AND event_date = '2027-03-12'::date AND deleted_at IS NULL
@@ -3373,8 +3373,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Shimmy Electronic Horizon Festival' AND event_date = '2027-03-13'::date AND deleted_at IS NULL
@@ -3408,8 +3408,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Konka Autumn High-Energy Soiree' AND event_date = '2027-03-13'::date AND deleted_at IS NULL
@@ -3443,8 +3443,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Eyadini Shisanyama & Gqom Sunday' AND event_date = '2027-03-14'::date AND deleted_at IS NULL
@@ -3478,8 +3478,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Soweto Human Rights Weekend Cultural Fiesta' AND event_date = '2027-03-19'::date AND deleted_at IS NULL
@@ -3513,8 +3513,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Constitution Hill Human Rights Festival & Concert' AND event_date = '2027-03-20'::date AND deleted_at IS NULL
@@ -3548,8 +3548,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kyalami Autumn Supercar Parade & Track Fest' AND event_date = '2027-03-20'::date AND deleted_at IS NULL
@@ -3583,8 +3583,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Human Rights Day Sunset Concert Kirstenbosch' AND event_date = '2027-03-21'::date AND deleted_at IS NULL
@@ -3618,8 +3618,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Grand Africa Café Autumn Beach Party' AND event_date = '2027-03-21'::date AND deleted_at IS NULL
@@ -3653,8 +3653,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Spier Autumn Harvest & Jazz Picnic' AND event_date = '2027-03-22'::date AND deleted_at IS NULL
@@ -3688,8 +3688,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Parkhurst Autumn Craft Beer & Gin Fest' AND event_date = '2027-03-26'::date AND deleted_at IS NULL
@@ -3723,8 +3723,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Beach Club Sunset Finale' AND event_date = '2027-03-27'::date AND deleted_at IS NULL
@@ -3758,8 +3758,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Menlyn Maine Autumn Fashion & Music Night' AND event_date = '2027-03-27'::date AND deleted_at IS NULL
@@ -3793,8 +3793,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Max''s Lifestyle Autumn Shisanyama Sunday' AND event_date = '2027-03-28'::date AND deleted_at IS NULL
@@ -3828,8 +3828,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Gqeberha Oceanfront Autumn Breeze Fest' AND event_date = '2027-03-28'::date AND deleted_at IS NULL
@@ -3863,8 +3863,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Rosebank Art & Vinyl Evening Market' AND event_date = '2027-03-31'::date AND deleted_at IS NULL
@@ -3898,8 +3898,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa FinTech & Digital Banking Summit 2027' AND event_date = '2027-03-03'::date AND deleted_at IS NULL
@@ -3933,8 +3933,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'AI in Healthcare & Life Sciences Congress' AND event_date = '2027-03-09'::date AND deleted_at IS NULL
@@ -3968,8 +3968,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Gauteng Infrastructure & Municipal Bond Summit' AND event_date = '2027-03-11'::date AND deleted_at IS NULL
@@ -4003,8 +4003,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Silicon Cape Investor Demo Day 2027' AND event_date = '2027-03-16'::date AND deleted_at IS NULL
@@ -4038,8 +4038,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa Retail & Supply Chain Expo' AND event_date = '2027-03-18'::date AND deleted_at IS NULL
@@ -4073,8 +4073,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Durban Ocean Economy & Maritime Trade Summit' AND event_date = '2027-03-23'::date AND deleted_at IS NULL
@@ -4108,8 +4108,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'SME Exporting & Global E-Commerce Workshop' AND event_date = '2027-03-24'::date AND deleted_at IS NULL
@@ -4143,8 +4143,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Pretoria Cyber Defense & Government Tech Forum' AND event_date = '2027-03-25'::date AND deleted_at IS NULL
@@ -4178,8 +4178,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Clean Energy & Green Hydrogen Southern Africa' AND event_date = '2027-03-30'::date AND deleted_at IS NULL
@@ -4213,8 +4213,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Women in Private Equity & Angel Investing Masterclass' AND event_date = '2027-03-31'::date AND deleted_at IS NULL
@@ -4252,8 +4252,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Easter Weekend Amapiano Super Jam' AND event_date = '2027-04-02'::date AND deleted_at IS NULL
@@ -4287,8 +4287,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Shimmy Easter Sunset Ocean Rave' AND event_date = '2027-04-03'::date AND deleted_at IS NULL
@@ -4322,8 +4322,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Altitude Beach Easter Saturday Pool Gala' AND event_date = '2027-04-03'::date AND deleted_at IS NULL
@@ -4357,8 +4357,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Easter Sunday Family Picnic & Jazz' AND event_date = '2027-04-04'::date AND deleted_at IS NULL
@@ -4392,8 +4392,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Easter Monday Sunset Chill at Grand Africa' AND event_date = '2027-04-05'::date AND deleted_at IS NULL
@@ -4427,8 +4427,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Konka April Saturday Extravaganza' AND event_date = '2027-04-10'::date AND deleted_at IS NULL
@@ -4462,8 +4462,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Beach Sunset Electronic Odyssey' AND event_date = '2027-04-10'::date AND deleted_at IS NULL
@@ -4497,8 +4497,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Eyadini Coastal Sunday Shisanyama' AND event_date = '2027-04-11'::date AND deleted_at IS NULL
@@ -4532,8 +4532,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'SunBet Arena Afro-Soul & RnB Night' AND event_date = '2027-04-16'::date AND deleted_at IS NULL
@@ -4567,8 +4567,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kyalami Autumn Track Days & DJ Festival' AND event_date = '2027-04-17'::date AND deleted_at IS NULL
@@ -4602,8 +4602,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Waterfall City Street Food & Craft Gin Fest' AND event_date = '2027-04-17'::date AND deleted_at IS NULL
@@ -4637,8 +4637,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kirstenbosch Autumn Sunset: Contemporary Folk' AND event_date = '2027-04-18'::date AND deleted_at IS NULL
@@ -4672,8 +4672,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Rosebank Street Art & Sneaker Clash' AND event_date = '2027-04-23'::date AND deleted_at IS NULL
@@ -4707,8 +4707,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'The Station Parkhurst Autumn Rooftop Beats' AND event_date = '2027-04-24'::date AND deleted_at IS NULL
@@ -4742,8 +4742,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Beach Club Sunset Sessions' AND event_date = '2027-04-24'::date AND deleted_at IS NULL
@@ -4777,8 +4777,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Freedom Day Eve All-Star Amapiano Festival' AND event_date = '2027-04-26'::date AND deleted_at IS NULL
@@ -4812,8 +4812,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Freedom Day Freedom Songs & Heritage Concert' AND event_date = '2027-04-27'::date AND deleted_at IS NULL
@@ -4847,8 +4847,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Freedom Day Beach Festival Durban' AND event_date = '2027-04-27'::date AND deleted_at IS NULL
@@ -4882,8 +4882,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Gqeberha Boardwalk Freedom Sunset Fest' AND event_date = '2027-04-27'::date AND deleted_at IS NULL
@@ -4917,8 +4917,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Max''s Lifestyle Freedom Celebration Shisanyama' AND event_date = '2027-04-27'::date AND deleted_at IS NULL
@@ -4952,8 +4952,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'South African Property Buyers & Investment Expo' AND event_date = '2027-04-06'::date AND deleted_at IS NULL
@@ -4987,8 +4987,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa Sustainability, ESG & Carbon Markets Forum' AND event_date = '2027-04-08'::date AND deleted_at IS NULL
@@ -5022,8 +5022,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Western Cape Wine Export & Trade Conference' AND event_date = '2027-04-13'::date AND deleted_at IS NULL
@@ -5057,8 +5057,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'SME Cybersecurity & Data Compliance Workshop' AND event_date = '2027-04-15'::date AND deleted_at IS NULL
@@ -5092,8 +5092,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa Venture Capital LP-GP Symposium 2027' AND event_date = '2027-04-20'::date AND deleted_at IS NULL
@@ -5127,8 +5127,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Durban Port Logistics & Rail Freight Conclave' AND event_date = '2027-04-21'::date AND deleted_at IS NULL
@@ -5162,8 +5162,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Pretoria GovTech & Smart Public Services Summit' AND event_date = '2027-04-22'::date AND deleted_at IS NULL
@@ -5197,8 +5197,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Franchising & Business Expansion Expo 2027' AND event_date = '2027-04-28'::date AND deleted_at IS NULL
@@ -5232,8 +5232,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Digital Health & HealthTech Southern Africa' AND event_date = '2027-04-29'::date AND deleted_at IS NULL
@@ -5267,8 +5267,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Southern Africa Media, Advertising & AdTech Summit' AND event_date = '2027-04-30'::date AND deleted_at IS NULL
@@ -5306,8 +5306,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'May Day Workers Celebration Music Concert' AND event_date = '2027-05-01'::date AND deleted_at IS NULL
@@ -5341,8 +5341,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Shimmy Autumn Sunset Session' AND event_date = '2027-05-02'::date AND deleted_at IS NULL
@@ -5376,8 +5376,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Altitude Beach Autumn Warmup Party' AND event_date = '2027-05-07'::date AND deleted_at IS NULL
@@ -5411,8 +5411,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'SunBet Arena Winter Awakening Rave' AND event_date = '2027-05-08'::date AND deleted_at IS NULL
@@ -5446,8 +5446,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516873240891-4bf014598ab4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Stellenbosch Autumn Red Wine Festival' AND event_date = '2027-05-08'::date AND deleted_at IS NULL
@@ -5481,8 +5481,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Mother''s Day Sunset Botanical Concert' AND event_date = '2027-05-09'::date AND deleted_at IS NULL
@@ -5516,8 +5516,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Konka May Luxury Saturday' AND event_date = '2027-05-14'::date AND deleted_at IS NULL
@@ -5551,8 +5551,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Cabo Beach Club Sunset Beats' AND event_date = '2027-05-15'::date AND deleted_at IS NULL
@@ -5586,8 +5586,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Eyadini Shisanyama & Afro-House Jam' AND event_date = '2027-05-15'::date AND deleted_at IS NULL
@@ -5621,8 +5621,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'The Station Parkhurst Cozy Winter Rooftop' AND event_date = '2027-05-16'::date AND deleted_at IS NULL
@@ -5656,8 +5656,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Kyalami Winter Endurance Fest' AND event_date = '2027-05-21'::date AND deleted_at IS NULL
@@ -5691,8 +5691,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Rosebank Winter Street Food & Craft Market' AND event_date = '2027-05-22'::date AND deleted_at IS NULL
@@ -5726,8 +5726,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Grand Africa Café Cozy Beach Sunset' AND event_date = '2027-05-22'::date AND deleted_at IS NULL
@@ -5761,8 +5761,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Max''s Lifestyle Sunday Soul & Shisanyama' AND event_date = '2027-05-23'::date AND deleted_at IS NULL
@@ -5796,8 +5796,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa Day Eve Unity Fest Soweto' AND event_date = '2027-05-24'::date AND deleted_at IS NULL
@@ -5831,8 +5831,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa Day Grand Cultural Carnival' AND event_date = '2027-05-25'::date AND deleted_at IS NULL
@@ -5866,8 +5866,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa Day Coastal Jam Durban' AND event_date = '2027-05-25'::date AND deleted_at IS NULL
@@ -5901,8 +5901,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Gqeberha Boardwalk Africa Day Showcase' AND event_date = '2027-05-25'::date AND deleted_at IS NULL
@@ -5936,8 +5936,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Menlyn Maine Winter Wine & Dine Gala' AND event_date = '2027-05-28'::date AND deleted_at IS NULL
@@ -5971,8 +5971,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Altitude Beach May Finale Night Swim' AND event_date = '2027-05-29'::date AND deleted_at IS NULL
@@ -6006,8 +6006,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'African Enterprise Technology & Cloud Summit 2027' AND event_date = '2027-05-04'::date AND deleted_at IS NULL
@@ -6041,8 +6041,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa Trade & AfCFTA Implementation Forum' AND event_date = '2027-05-06'::date AND deleted_at IS NULL
@@ -6076,8 +6076,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'SME Accounting, Cash Flow & Payroll Masterclass' AND event_date = '2027-05-11'::date AND deleted_at IS NULL
@@ -6111,8 +6111,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Southern Africa Industrial Robotics & Automation Expo' AND event_date = '2027-05-13'::date AND deleted_at IS NULL
@@ -6146,8 +6146,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Silicon Cape FinTech & WealthTech Showcase' AND event_date = '2027-05-18'::date AND deleted_at IS NULL
@@ -6181,8 +6181,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Commercial Real Estate Logistics & Warehousing Summit' AND event_date = '2027-05-19'::date AND deleted_at IS NULL
@@ -6216,8 +6216,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1559223607-a43c990c692c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Pretoria Clean Energy & EV Infrastructure Forum' AND event_date = '2027-05-20'::date AND deleted_at IS NULL
@@ -6251,8 +6251,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Africa Day Young Business Leaders & Innovators Dialogue' AND event_date = '2027-05-25'::date AND deleted_at IS NULL
@@ -6286,8 +6286,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Women in Science, Engineering & Mining Forum' AND event_date = '2027-05-26'::date AND deleted_at IS NULL
@@ -6321,8 +6321,8 @@ SELECT
   true,
   'published',
   false,
-  'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80',
-  ARRAY['https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80']
+  NULL,
+  NULL
 WHERE NOT EXISTS (
   SELECT 1 FROM public.events
   WHERE title = 'Digital Trust, AI Ethics & POPIA Governance Conclave' AND event_date = '2027-05-27'::date AND deleted_at IS NULL

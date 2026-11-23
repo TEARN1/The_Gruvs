@@ -50,8 +50,8 @@ const ReactionPill = ({ reaction, count, active, onPress, primary, muted, index 
 
   const handlePress = () => {
     Animated.sequence([
-      Animated.timing(scale, { toValue: 1.35, duration: 100, useNativeDriver: true }),
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200, friction: 8 }),
+      Animated.timing(scale, { toValue: 1.35, duration: 100, useNativeDriver: !IS_WEB }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: !IS_WEB, tension: 200, friction: 8 }),
     ]).start();
     setGlitterTrigger(Date.now());
     onPress();
@@ -85,7 +85,7 @@ const ReactionPill = ({ reaction, count, active, onPress, primary, muted, index 
   );
 };
 
-export const EventReactions = ({ eventId, primary, muted }) => {
+export const EventReactions = ({ eventId, primary, muted, initialReaction }) => {
   const { user } = useAuth();
   const toast = useToast();
   const [counts, setCounts] = useState({});   // { fire: 12, gem: 3, ... }
@@ -93,6 +93,7 @@ export const EventReactions = ({ eventId, primary, muted }) => {
   const [ready, setReady] = useState(false);
   const [fx, setFx] = useState({ key: null, trigger: 0 }); // signature reaction burst
   const inFlightRef = useRef(false);
+  const initialTriggered = useRef(false);
 
   const fetchReactions = useCallback(async () => {
     if (!eventId) return;
@@ -174,6 +175,20 @@ export const EventReactions = ({ eventId, primary, muted }) => {
       inFlightRef.current = false;
     }
   };
+
+  // Auto-trigger reaction when opened via email reaction deep link
+  useEffect(() => {
+    if (ready && initialReaction && !initialTriggered.current) {
+      initialTriggered.current = true;
+      if (user) {
+        if (!myReactions.has(initialReaction)) {
+          handleReaction(initialReaction);
+        }
+      } else {
+        toast.show(`Sign in to react ${initialReaction} to this event`, 'info');
+      }
+    }
+  }, [ready, initialReaction, user, myReactions]);
 
   if (!ready) return null;
 

@@ -137,7 +137,7 @@ function ServiceCard({ provider, onBook, primary, muted, textColor, bg }) {
         </Text>
         <TouchableOpacity
           style={[styles.bookBtn, { backgroundColor: primary }]}
-          onPress={() => onBook(provider)}
+          onPress={() => onBook?.(provider)}
           activeOpacity={0.8}
         >
           <Text style={styles.bookBtnText}>Book</Text>
