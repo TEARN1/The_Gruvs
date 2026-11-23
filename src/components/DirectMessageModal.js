@@ -157,11 +157,11 @@ const DateSep = ({ label, muted }) => (
 const ReactionPicker = ({ onSelect, onClose, primary }) => (
   <View style={[rp.wrap, { borderColor: `${primary}20` }]}>
     {EMOJI_REACTIONS.map(emoji => (
-      <TouchableOpacity key={emoji} style={rp.btn} onPress={() => onSelect(emoji)}>
+      <TouchableOpacity key={emoji} style={rp.btn} onPress={() => onSelect?.(emoji)}>
         <Text style={{ fontSize: 22 }}>{emoji}</Text>
       </TouchableOpacity>
     ))}
-    <TouchableOpacity style={rp.btn} onPress={onClose}>
+    <TouchableOpacity style={rp.btn} onPress={() => onClose?.()}>
       <Feather name="x" size={18} color="rgba(255,255,255,0.5)" />
     </TouchableOpacity>
   </View>

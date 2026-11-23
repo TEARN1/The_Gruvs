@@ -18,7 +18,7 @@ const RATING_CATEGORIES = [
 const StarRow = ({ value, onChange, color }) => (
   <View style={styles.starRow}>
     {[1, 2, 3, 4, 5].map(n => (
-      <TouchableOpacity key={n} onPress={() => onChange(n)}>
+      <TouchableOpacity key={n} onPress={() => onChange?.(n)}>
         <Text style={[styles.star, { color: n <= value ? color : 'rgba(255,255,255,0.2)' }]}>★</Text>
       </TouchableOpacity>
     ))}

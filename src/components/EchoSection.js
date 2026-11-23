@@ -106,7 +106,7 @@ const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, 
         </View>
         <Text style={[styles.echoContent, { color: textColor }]}>{transform(echo.body, echo.profiles?.writing_style)}</Text>
         <View style={styles.echoActions}>
-          <TouchableOpacity onPress={() => onLike(echo.id)} style={[styles.likeBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+          <TouchableOpacity onPress={() => onLike?.(echo.id)} style={[styles.likeBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
             <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
               <Feather name="heart" size={13} color={isLiked ? "#ef4444" : muted} />
               <GlitterBurst trigger={likeFx} size={84} />
@@ -115,7 +115,7 @@ const EchoRow = memo(({ echo, rank, isLiked, primary, textColor, muted, onLike, 
               {echo.likes || 0}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => onReply({ id: echo.id, username: name })}>
+          <TouchableOpacity onPress={() => onReply?.({ id: echo.id, username: name })}>
             <Text style={[styles.replyBtn, { color: muted }]}>Reply</Text>
           </TouchableOpacity>
         </View>

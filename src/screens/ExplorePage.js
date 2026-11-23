@@ -74,7 +74,7 @@ const SportFilterRow = ({ activeSport, onSelect, primary }) => (
   >
     <TouchableOpacity
       style={[sf.chip, { backgroundColor: !activeSport ? primary : `${primary}20`, borderColor: primary }]}
-      onPress={() => onSelect(null)}
+      onPress={() => onSelect?.(null)}
     >
       <Text style={[sf.label, { color: !activeSport ? '#000' : primary }]}>All Sports</Text>
     </TouchableOpacity>
@@ -84,7 +84,7 @@ const SportFilterRow = ({ activeSport, onSelect, primary }) => (
         <TouchableOpacity
           key={s.key}
           style={[sf.chip, { backgroundColor: active ? primary : `${primary}15`, borderColor: active ? primary : `${primary}30` }]}
-          onPress={() => onSelect(active ? null : s.key)}
+          onPress={() => onSelect?.(active ? null : s.key)}
           accessibilityLabel={s.label}
         >
           <Feather name={s.icon} size={12} color={active ? '#000' : primary} />
@@ -303,7 +303,7 @@ const MoodRow = ({ activeMoods, onSelect, primary }) => (
               },
               Platform.OS === 'web' && { transition: 'transform 180ms cubic-bezier(0.34,1.56,0.64,1), background-color 150ms ease' },
             ]}
-            onPress={() => onSelect(m.key)}
+            onPress={() => onSelect?.(m.key)}
             accessibilityRole="radio"
             accessibilityState={{ checked: isActive }}
             accessibilityLabel={m.label}
@@ -340,7 +340,7 @@ const CategoryGrid = ({ onSelect, primary, textColor, muted, categoryCounts }) =
               { backgroundColor: `${cfg.color}12`, borderColor: `${cfg.color}25` },
               Platform.OS === 'web' && { cursor: 'pointer', transition: 'transform 150ms ease, box-shadow 150ms ease' },
             ]}
-            onPress={() => onSelect(key)}
+            onPress={() => onSelect?.(key)}
             accessibilityRole="button"
             accessibilityLabel={`${cfg.label} category${count > 0 ? ', ' + count + ' events' : ''}`}
             {...(Platform.OS === 'web' ? { className: 'category-cell' } : {})}
@@ -372,7 +372,7 @@ const NearbyVibers = ({ vibers, primary, textColor, onPress }) => {
           <TouchableOpacity 
             key={v.profile_id || v.id} 
             style={nv.wrap} 
-            onPress={() => onPress(v)}
+            onPress={() => onPress?.(v)}
             activeOpacity={0.75}
           >
             <View style={[nv.ring, { borderColor: `${primary}30` }]}>
@@ -545,7 +545,7 @@ const SectionHeader = ({ title, actionLabel, onAction, textColor, primary }) => 
     <Text style={[sh.title, { color: textColor }]}>{title}</Text>
     {actionLabel && (
       <TouchableOpacity
-        onPress={onAction}
+        onPress={() => onAction?.()}
         accessibilityRole="button"
         accessibilityLabel={`${actionLabel} — ${title}`}
       >

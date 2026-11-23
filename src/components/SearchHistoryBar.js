@@ -83,7 +83,7 @@ export const SearchHistoryBar = ({ onSelect, currentQuery }) => {
           >
             <Feather name="clock" size={12} color={primary} style={styles.chipIcon} />
             <TouchableOpacity
-              onPress={() => onSelect(query)}
+              onPress={() => onSelect?.(query)}
               activeOpacity={0.7}
               style={styles.chipTextTouchable}
             >

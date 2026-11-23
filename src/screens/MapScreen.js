@@ -1269,18 +1269,18 @@ const ReportDetail = ({ report, onClose, onVerify, primary, bg, textColor, muted
             </Text>
           </View>
         </View>
-        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity onPress={() => onClose?.()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Feather name="x" size={20} color={muted} />
         </TouchableOpacity>
       </View>
       {report.note ? <Text style={{ color: muted, fontSize: 13, lineHeight: 18 }}>{report.note}</Text> : null}
       <Text style={{ color: muted, fontSize: 11, marginTop: 2 }}>Is this still accurate?</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <TouchableOpacity onPress={() => onVerify('confirm')} style={[cs.verifyBtn, { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+        <TouchableOpacity onPress={() => onVerify?.('confirm')} style={[cs.verifyBtn, { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
           <Feather name="check" size={14} color="#10b981" />
           <Text style={{ color: '#10b981', fontWeight: '800', fontSize: 13 }}>Still true{report.confirm_count ? ` · ${report.confirm_count}` : ''}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onVerify('dispute')} style={[cs.verifyBtn, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }]}>
+        <TouchableOpacity onPress={() => onVerify?.('dispute')} style={[cs.verifyBtn, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }]}>
           <Feather name="x" size={14} color="#ef4444" />
           <Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 13 }}>Gone{report.dispute_count ? ` · ${report.dispute_count}` : ''}</Text>
         </TouchableOpacity>
@@ -1536,18 +1536,18 @@ const ZoneDetail = ({ zone, onClose, onVerify, onOpenEvent, primary, bg, textCol
       {/* Truth Protocol */}
       <Text style={{ color: muted, fontSize: 11, marginTop: 4 }}>Is this still accurate?</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <TouchableOpacity onPress={() => onVerify('confirm')} style={[cs.verifyBtn, { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+        <TouchableOpacity onPress={() => onVerify?.('confirm')} style={[cs.verifyBtn, { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)' }]}>
           <Feather name="check" size={14} color="#10b981" />
           <Text style={{ color: '#10b981', fontWeight: '800', fontSize: 13 }}>Still closed</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onVerify('dispute')} style={[cs.verifyBtn, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }]}>
+        <TouchableOpacity onPress={() => onVerify?.('dispute')} style={[cs.verifyBtn, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }]}>
           <Feather name="rotate-ccw" size={14} color="#ef4444" />
           <Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 13 }}>Reopened</Text>
         </TouchableOpacity>
       </View>
 
       {zone.event_id ? (
-        <TouchableOpacity onPress={() => onOpenEvent(zone.event_id)} style={cs.eventLink}>
+        <TouchableOpacity onPress={() => onOpenEvent?.(zone.event_id)} style={cs.eventLink}>
           <Feather name="calendar" size={13} color={primary} />
           <Text style={{ color: primary, fontWeight: '800', fontSize: 12 }}>See the event</Text>
         </TouchableOpacity>

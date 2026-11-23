@@ -400,7 +400,7 @@ const CampaignRow = ({ campaign, primary, textColor, muted, onEdit, onToggle }) 
           )}
         </View>
         <TouchableOpacity
-          onPress={() => onToggle(campaign.id, campaign.status === 'active' ? 'paused' : 'active')}
+          onPress={() => onToggle?.(campaign.id, campaign.status === 'active' ? 'paused' : 'active')}
           style={[sc.toggleBtn, { borderColor: campaign.status === 'active' ? "#f59e0b" : "#10b981" }]}
         >
           <Feather name={campaign.status === 'active' ? 'pause' : 'play'} size={12} color={campaign.status === 'active' ? "#f59e0b" : "#10b981"} />

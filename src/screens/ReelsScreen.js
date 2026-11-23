@@ -1104,7 +1104,7 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
                   <TouchableOpacity
                     key={speed}
                     style={[as.chip, preferences.speed === speed && { backgroundColor: primary, borderColor: primary }]}
-                    onPress={() => onUpdate('speed', speed)}
+                    onPress={() => onUpdate?.('speed', speed)}
                   >
                     <Text style={[as.chipText, { color: preferences.speed === speed ? '#000' : textColor }]}>{speed}x</Text>
                   </TouchableOpacity>
@@ -1121,9 +1121,9 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
                     key={ratio}
                     style={[as.chip, preferences.aspectRatio === ratio && { backgroundColor: primary, borderColor: primary }]}
                     onPress={() => {
-                      onUpdate('aspectRatio', ratio);
+                      onUpdate?.('aspectRatio', ratio);
                       if (ratio === 'zoom') {
-                        onUpdate('zoomLevel', 1.4);
+                        onUpdate?.('zoomLevel', 1.4);
                       }
                     }}
                   >
@@ -1136,10 +1136,10 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
               {preferences.aspectRatio === 'zoom' && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
                   <Text style={{ color: textColor, fontSize: 11 }}>Zoom Level: {preferences.zoomLevel.toFixed(1)}x</Text>
-                  <TouchableOpacity onPress={() => onUpdate('zoomLevel', Math.max(1, preferences.zoomLevel - 0.2))} style={as.zoomBtn}>
+                  <TouchableOpacity onPress={() => onUpdate?.('zoomLevel', Math.max(1, preferences.zoomLevel - 0.2))} style={as.zoomBtn}>
                     <Text style={{ color: primary, fontWeight: '900' }}>-</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => onUpdate('zoomLevel', Math.min(3, preferences.zoomLevel + 0.2))} style={as.zoomBtn}>
+                  <TouchableOpacity onPress={() => onUpdate?.('zoomLevel', Math.min(3, preferences.zoomLevel + 0.2))} style={as.zoomBtn}>
                     <Text style={{ color: primary, fontWeight: '900' }}>+</Text>
                   </TouchableOpacity>
                 </View>
@@ -1154,7 +1154,7 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
                   <TouchableOpacity
                     key={filter.id}
                     style={[as.chip, preferences.visualFilter === filter.id && { backgroundColor: primary, borderColor: primary }]}
-                    onPress={() => onUpdate('visualFilter', filter.id)}
+                    onPress={() => onUpdate?.('visualFilter', filter.id)}
                   >
                     <Text style={[as.chipText, { color: preferences.visualFilter === filter.id ? '#000' : textColor }]}>
                       {filter.label}
@@ -1171,7 +1171,7 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
               {/* Auto play next */}
               <TouchableOpacity
                 style={as.toggleRow}
-                onPress={() => onUpdate('autoAdvance', !preferences.autoAdvance)}
+                onPress={() => onUpdate?.('autoAdvance', !preferences.autoAdvance)}
               >
                 <Text style={{ color: textColor, fontSize: 13, fontWeight: '700' }}>Auto-Advance to Next Reel</Text>
                 <Feather name={preferences.autoAdvance ? 'check-square' : 'square'} size={18} color={primary} />
@@ -1180,7 +1180,7 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
               {/* Clean screen mode */}
               <TouchableOpacity
                 style={as.toggleRow}
-                onPress={() => onUpdate('cleanView', !preferences.cleanView)}
+                onPress={() => onUpdate?.('cleanView', !preferences.cleanView)}
               >
                 <Text style={{ color: textColor, fontSize: 13, fontWeight: '700' }}>Immersive Clean Screen Mode</Text>
                 <Feather name={preferences.cleanView ? 'check-square' : 'square'} size={18} color={primary} />
@@ -1189,7 +1189,7 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
               {/* Background play — audio keeps going when you leave the app */}
               <TouchableOpacity
                 style={as.toggleRow}
-                onPress={() => onUpdate('backgroundPlay', !preferences.backgroundPlay)}
+                onPress={() => onUpdate?.('backgroundPlay', !preferences.backgroundPlay)}
               >
                 <View style={{ flex: 1, paddingRight: 12 }}>
                   <Text style={{ color: textColor, fontSize: 13, fontWeight: '700' }}>Background Play</Text>
@@ -1207,7 +1207,7 @@ const ReelsAdvancedSettingsSheet = ({ visible, onClose, preferences, onUpdate, p
                   <TouchableOpacity
                     key={sz}
                     style={[as.chip, preferences.captionScale === sz && { backgroundColor: primary, borderColor: primary }]}
-                    onPress={() => onUpdate('captionScale', sz)}
+                    onPress={() => onUpdate?.('captionScale', sz)}
                   >
                     <Text style={[as.chipText, { color: preferences.captionScale === sz ? '#000' : textColor }]}>
                       {sz.toUpperCase()}

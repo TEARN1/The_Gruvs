@@ -76,7 +76,7 @@ const NotificationRow = React.memo(({ item, primary, textColor, muted, onPress, 
   return (
     <TouchableOpacity
       {...fx('rise', Math.min(index, 8))}
-      onPress={() => onPress(item)}
+      onPress={() => onPress?.(item)}
       activeOpacity={isActionable ? 0.75 : 1}
     >
       <View

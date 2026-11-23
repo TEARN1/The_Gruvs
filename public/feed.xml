@@ -5,45 +5,9 @@
   <link>https://thegruvs.com/</link>
   <description>Live upcoming nightlife, festivals, music, and cultural events across South Africa.</description>
   <language>en-za</language>
-  <lastBuildDate>Sun, 22 Nov 2026 09:19:13 GMT</lastBuildDate>
+  <lastBuildDate>Mon, 23 Nov 2026 07:39:04 GMT</lastBuildDate>
   <atom:link href="https://thegruvs.com/feed.xml" rel="self" type="application/rss+xml" />
   
-    <item>
-      <title><![CDATA[Parkview Christmas Market]]></title>
-      <link>https://thegruvs.com/events/parkview-christmas-market-george-hay-park-johannesburg-59cedb3a-9191-49dd-8021-43518738a514</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/parkview-christmas-market-george-hay-park-johannesburg-59cedb3a-9191-49dd-8021-43518738a514</guid>
-      <pubDate>Sat, 15 Aug 2026 11:03:12 GMT</pubDate>
-      <description><![CDATA[Family Christmas market at George Hay Park, Parkview. Sourced from joburg.co.za's 2026 Christmas market guide.]]></description>
-      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
-      <category>market</category>
-    </item>
-    <item>
-      <title><![CDATA[Christmas Village at Emperors Palace]]></title>
-      <link>https://thegruvs.com/events/christmas-village-at-emperors-palace-emperors-palace-kempton-park-8f13255e-8ccb-461b-bf71-e4dfe73ff7b6</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/christmas-village-at-emperors-palace-emperors-palace-kempton-park-8f13255e-8ccb-461b-bf71-e4dfe73ff7b6</guid>
-      <pubDate>Sat, 15 Aug 2026 11:03:12 GMT</pubDate>
-      <description><![CDATA[Festive family market and light displays at Emperors Palace. Sourced from joburg.co.za's 2026 Christmas market guide.]]></description>
-      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
-      <category>family</category>
-    </item>
-    <item>
-      <title><![CDATA[Ride Joburg]]></title>
-      <link>https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/ride-joburg-kyalami-grand-prix-circuit-johannesburg-2b451f9c-3e0b-4c18-8b32-738e7df14a5e</guid>
-      <pubDate>Mon, 09 Nov 2026 08:14:33 GMT</pubDate>
-      <description><![CDATA[Major cycling road race at Kyalami Grand Prix Circuit.]]></description>
-      <enclosure url="https://cdn-az.allevents.in/events2/banners/5ecf4d6d902069aa24b471a7dd608196db4a26a20a7d5840d7c6e62743cb0681-rimg-w1200-h800-dc786858-gmir?v=1787577998" type="image/jpeg" />
-      <category>sport</category>
-    </item>
-    <item>
-      <title><![CDATA[Afrikaans is Groot 2026: Konsert 4]]></title>
-      <link>https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/afrikaans-is-groot-2026-konsert-4-time-square-south-africa-pretoria-d735ae8a-269a-46e8-a08a-c2c2b24d3c23</guid>
-      <pubDate>Sun, 27 Sep 2026 02:28:48 GMT</pubDate>
-      <description><![CDATA[Afrikaans music festival concert at Time Square.]]></description>
-      <enclosure url="https://cdn-az.allevents.in/events6/banners/bd6fcd91ade0a2a6ded84dea4a92acfb9b188126d386d4e7c0518b08ae90bab4-rimg-w1200-h566-dc083848-gmir?v=1788206751" type="image/jpeg" />
-      <category>music</category>
-    </item>
     <item>
       <title><![CDATA[Proteas v Bangladesh — 2nd Test]]></title>
       <link>https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8</link>
@@ -457,6 +421,42 @@
       <description><![CDATA[South Africa v Bangladesh, second T20I. Start time to be confirmed.]]></description>
       <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>sport</category>
+    </item>
+    <item>
+      <title><![CDATA[Fatboy Slim - Johannesburg 2026]]></title>
+      <link>https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/fatboy-slim-johannesburg-2026-james-and-ethel-gray-park-johannesburg-da7223eb-7fc7-4b1d-b69e-d040478a10a3</guid>
+      <pubDate>Sun, 27 Sep 2026 02:29:03 GMT</pubDate>
+      <description><![CDATA[Fatboy Slim live at James & Ethel Gray Park, Sandton.]]></description>
+      <enclosure url="https://cdn2.allevents.in/thumbs/thumb6a33b7d965639.jpg" type="image/jpeg" />
+      <category>music</category>
+    </item>
+    <item>
+      <title><![CDATA[Challenge Cup: Sharks v Scarlets]]></title>
+      <link>https://thegruvs.com/events/challenge-cup-sharks-v-scarlets-hollywoodbets-kings-park-durban-ce984bd0-2a68-47c6-b82a-73412506416e</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/challenge-cup-sharks-v-scarlets-hollywoodbets-kings-park-durban-ce984bd0-2a68-47c6-b82a-73412506416e</guid>
+      <pubDate>Fri, 09 Oct 2026 03:01:55 GMT</pubDate>
+      <description><![CDATA[EPCR Challenge Cup pool match at Kings Park.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
+    </item>
+    <item>
+      <title><![CDATA[J. Cole: The Fall-Off Tour]]></title>
+      <link>https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/j-cole-the-fall-off-tour-fnb-stadium-johannesburg-1e808dca-b6b8-4154-b7bd-930d00c34659</guid>
+      <pubDate>Sun, 27 Sep 2026 02:28:48 GMT</pubDate>
+      <description><![CDATA[J. Cole's first South African show in 10 years — grand finale of the global Fall-Off Tour, supporting his album The Fall Off. FNB Stadium, Johannesburg.]]></description>
+      <enclosure url="https://dynamicmedia.livenationinternational.com/k/e/f/9ebb3824-8a75-4b04-a2e6-e4d83e013bb9.png" type="image/jpeg" />
+      <category>music</category>
+    </item>
+    <item>
+      <title><![CDATA[+LIVE+ at Time Square (Night 2)]]></title>
+      <link>https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/live-at-time-square-night-2-time-square-south-africa-pretoria-f70c2b14-633a-445e-9304-b527958a1843</guid>
+      <pubDate>Sun, 27 Sep 2026 02:28:48 GMT</pubDate>
+      <description><![CDATA[+LIVE+ live at Time Square, Menlyn.]]></description>
+      <enclosure url="https://cdn-az.allevents.in/events8/banners/5b3d737ce6b4d8f4992daffd174918e1e6481eeb941d7b5c4b2f659f183ab7c8-rimg-w1200-h790-dc080808-gmir?v=1789427589" type="image/jpeg" />
+      <category>music</category>
     </item>
 </channel>
 </rss>

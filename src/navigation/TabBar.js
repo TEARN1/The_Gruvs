@@ -122,7 +122,7 @@ export const TabBar = ({
             <TouchableOpacity
               key={tab.key}
               style={styles.tab}
-              onPress={() => onTabChange(tab.key)}
+              onPress={() => onTabChange?.(tab.key)}
               activeOpacity={0.75}
               accessibilityRole="tab"
               accessibilityLabel={tab.label}

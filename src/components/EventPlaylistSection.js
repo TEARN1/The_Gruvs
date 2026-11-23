@@ -211,7 +211,7 @@ const TrackRow = memo(({ track, rank, voted, onVote, onRemove, canRemove, canMod
       {/* DJ/host: mark played (tap again to undo) */}
       {canModerate && (
         <TouchableOpacity
-          onPress={() => onMarkPlayed(track.id, played ? 'requested' : 'played')}
+          onPress={() => onMarkPlayed?.(track.id, played ? 'requested' : 'played')}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityLabel={played ? 'Mark as not played' : 'Mark as played'}
           style={[tr.playedBtn, { borderColor: played ? '#10b981' : `${muted}40`, backgroundColor: played ? 'rgba(16,185,129,0.15)' : 'transparent' }]}
@@ -243,7 +243,7 @@ const TrackRow = memo(({ track, rank, voted, onVote, onRemove, canRemove, canMod
 
       {/* Remove (own track or moderator) */}
       {canRemove && (
-        <TouchableOpacity onPress={() => onRemove(track.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity onPress={() => onRemove?.(track.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Feather name="x" size={14} color="#ef4444" />
         </TouchableOpacity>
       )}

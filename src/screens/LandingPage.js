@@ -430,12 +430,12 @@ const EventCard = React.memo(({
             },
             isWeb && { cursor: 'pointer' },
           ]}
-          accessibilityRole="button"
+          accessibilityRole="article"
           accessibilityLabel={`${title}${cardDate ? ', ' + cardDate : ''}${event.venue_name ? ', at ' + event.venue_name : ''}`}
           {...(isWeb ? {
             className: 'event-card',
             tabIndex: 0,
-            onKeyPress: (e) => e.nativeEvent?.key === 'Enter' && onSelectEvent(event),
+            onKeyPress: (e) => e.nativeEvent?.key === 'Enter' && onSelectEvent?.(event),
           } : {})}
         >
           {/* Sweeping kinetic hairline tracer for live/highlighted cards */}
@@ -470,10 +470,10 @@ const EventCard = React.memo(({
           {/* Media — double-tap to vibe, long-press for quick actions */}
           <TouchableOpacity
             activeOpacity={1}
-            onPress={() => onImageTap(event)}
-            onPressIn={() => onCardPressIn(id)}
-            onPressOut={() => onCardPressOut(id)}
-            onLongPress={(e) => onImageLongPress(event, e?.nativeEvent)}
+            onPress={() => onImageTap?.(event)}
+            onPressIn={() => onCardPressIn?.(id)}
+            onPressOut={() => onCardPressOut?.(id)}
+            onLongPress={(e) => onImageLongPress?.(event, e?.nativeEvent)}
             delayLongPress={400}
           >
           {matchCard ? (
@@ -492,7 +492,7 @@ const EventCard = React.memo(({
               )}
               <TouchableOpacity
                 style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
-                onPress={(e) => { e.stopPropagation?.(); onBookmark(id); }}
+                onPress={(e) => { e?.stopPropagation?.(); onBookmark?.(id); }}
                 accessibilityRole="button"
                 accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -573,7 +573,7 @@ const EventCard = React.memo(({
             {/* Bookmark — separate touch target, stops propagation to image tap */}
             <TouchableOpacity
               style={[styles.bookmarkBtn, { backgroundColor: isSaved ? `${primary}40` : 'rgba(0,0,0,0.5)' }]}
-              onPress={(e) => { e.stopPropagation?.(); onBookmark(id); }}
+              onPress={(e) => { e?.stopPropagation?.(); onBookmark?.(id); }}
               accessibilityRole="button"
               accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -588,7 +588,7 @@ const EventCard = React.memo(({
           <View style={styles.cardBody}>
             {/* User row */}
             <View style={styles.userRow}>
-              <TouchableOpacity onPress={() => onOpenViberProfile(event.profiles)}>
+              <TouchableOpacity onPress={() => onOpenViberProfile?.(event.profiles)}>
                 <View style={styles.avatarWrap}>
                   {event.profiles?.avatar_url
                     ? <SmartImage source={thumb.avatar(event.profiles.avatar_url)} style={[styles.avatar, { borderColor: primary }]} />
@@ -622,7 +622,7 @@ const EventCard = React.memo(({
               </View>
               {user && event.profiles?.id && event.profiles.id !== user.id && (
                 <TouchableOpacity
-                  onPress={() => onFollow(event.profiles.id)}
+                  onPress={() => onFollow?.(event.profiles.id)}
                   style={[styles.feedFollowBtn, isFollowing && { backgroundColor: 'transparent', borderColor: muted }]}
                 >
                   <Text style={[styles.feedFollowText, isFollowing && { color: muted }]}>
@@ -704,7 +704,7 @@ const EventCard = React.memo(({
               <TouchableOpacity
                 style={{ flex: 1, minWidth: 0 }}
                 activeOpacity={0.8}
-                onPress={() => onSelectEvent(event)}
+                onPress={() => onSelectEvent?.(event)}
                 accessibilityHint="Double-tap to open event details"
               >
                 <Text style={[styles.eventTitle, { color: textColor }]}>{title}</Text>
@@ -753,7 +753,7 @@ const EventCard = React.memo(({
             {(event.venue_name || event.address) ? (
               <TouchableOpacity
                 style={[styles.venueRow, { borderColor: `${primary}22`, backgroundColor: `${primary}08` }]}
-                onPress={() => onSelectEvent(event)}
+                onPress={() => onSelectEvent?.(event)}
                 accessibilityRole="button"
                 accessibilityLabel={`View ${event.venue_name || event.address} details`}
               >
@@ -839,7 +839,7 @@ const EventCard = React.memo(({
           {event.schedule?.length > 0 && (
             <TouchableOpacity
               style={[styles.schedulePreview, { backgroundColor: `${primary}0d`, borderTopColor: `${primary}20` }]}
-              onPress={() => onSelectEvent(event)}
+              onPress={() => onSelectEvent?.(event)}
               activeOpacity={0.8}
             >
               <Feather name="calendar" size={13} color={primary} />
@@ -855,7 +855,7 @@ const EventCard = React.memo(({
           {event.reaction_count > 0 ? (
             <TouchableOpacity
               style={[styles.reactionSummary, { borderTopColor: `${primary}12`, borderBottomColor: `${primary}12` }]}
-              onPress={() => onSetReactorsEvent(id)}
+              onPress={() => onSetReactorsEvent?.(id)}
               activeOpacity={0.8}
             >
               <Text style={styles.reactionEmojis}>
@@ -879,7 +879,7 @@ const EventCard = React.memo(({
                   onPress={() => {
                     const canVibe = !!user && (isVibed || event.author_id !== user.id);
                     if (canVibe) setLikeFx(f => ({ n: f.n + 1, kind: isVibed ? 'unlike' : 'like', burst: isVibed ? f.burst : Date.now() }));
-                    onVibe(id);
+                    onVibe?.(id);
                   }}
                   accessibilityRole="button"
                   accessibilityLabel={`${isVibed ? 'Remove vibe' : 'Vibe this event'}. ${vibeCounts[id] || 0} vibes`}
@@ -896,7 +896,7 @@ const EventCard = React.memo(({
                 {/* React */}
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => onToggleSection(id, 'react')}
+                  onPress={() => onToggleSection?.(id, 'react')}
                   accessibilityRole="button"
                   accessibilityLabel="React to this event"
                 >
@@ -912,7 +912,7 @@ const EventCard = React.memo(({
                 {/* Echo (Comments) */}
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => onToggleSection(id, 'echo')}
+                  onPress={() => onToggleSection?.(id, 'echo')}
                   accessibilityRole="button"
                   accessibilityLabel={`Open comments. ${event.echo_count || 0} comments`}
                 >
@@ -923,7 +923,7 @@ const EventCard = React.memo(({
                 {/* Share */}
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => onShare(event)}
+                  onPress={() => onShare?.(event)}
                   accessibilityRole="button"
                   accessibilityLabel={`Share event: ${title}`}
                 >
@@ -933,7 +933,7 @@ const EventCard = React.memo(({
                 {/* More Tools Toggle */}
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => onToggleSection(id, 'more')}
+                  onPress={() => onToggleSection?.(id, 'more')}
                   accessibilityRole="button"
                   accessibilityLabel="More event tools"
                 >
@@ -944,7 +944,7 @@ const EventCard = React.memo(({
               {/* Bookmark Button */}
               <TouchableOpacity
                 style={styles.actionBtn}
-                onPress={() => onBookmark(id)}
+                onPress={() => onBookmark?.(id)}
                 accessibilityRole="button"
                 accessibilityLabel={isSaved ? `Remove bookmark: ${title}` : `Bookmark event: ${title}`}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -961,7 +961,7 @@ const EventCard = React.memo(({
               <View style={[styles.moreToolsTray, { borderTopColor: `${primary}15` }]}>
                 <TouchableOpacity
                   style={[styles.moreToolPill, { borderColor: isRoute ? primary : 'rgba(255,255,255,0.12)', backgroundColor: isRoute ? `${primary}15` : 'transparent' }]}
-                  onPress={() => onToggleRoute(event)}
+                  onPress={() => onToggleRoute?.(event)}
                 >
                   <Feather name={isRoute ? "map-pin" : "plus-circle"} size={13} color={isRoute ? primary : muted} />
                   <Text style={[styles.moreToolText, { color: isRoute ? primary : textColor }]}>{isRoute ? 'In Journey' : 'Journey'}</Text>
@@ -969,7 +969,7 @@ const EventCard = React.memo(({
 
                 <TouchableOpacity
                   style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
-                  onPress={() => onToggleSection(id, 'gallery')}
+                  onPress={() => onToggleSection?.(id, 'gallery')}
                 >
                   <Feather name="camera" size={13} color={muted} />
                   <Text style={[styles.moreToolText, { color: textColor }]}>Gallery</Text>
@@ -977,7 +977,7 @@ const EventCard = React.memo(({
 
                 <TouchableOpacity
                   style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
-                  onPress={() => onToggleSection(id, 'pulse')}
+                  onPress={() => onToggleSection?.(id, 'pulse')}
                 >
                   <Feather name="activity" size={13} color={muted} />
                   <Text style={[styles.moreToolText, { color: textColor }]}>Pulse</Text>
@@ -985,7 +985,7 @@ const EventCard = React.memo(({
 
                 <TouchableOpacity
                   style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
-                  onPress={() => onToggleSection(id, 'rate')}
+                  onPress={() => onToggleSection?.(id, 'rate')}
                 >
                   <Feather name="star" size={13} color={muted} />
                   <Text style={[styles.moreToolText, { color: textColor }]}>Rate</Text>
@@ -993,7 +993,7 @@ const EventCard = React.memo(({
 
                 <TouchableOpacity
                   style={[styles.moreToolPill, { borderColor: 'rgba(255,255,255,0.12)' }]}
-                  onPress={() => onReportTarget({ id, type: 'event' })}
+                  onPress={() => onReportTarget?.({ id, type: 'event' })}
                 >
                   <Feather name="flag" size={13} color={muted} />
                   <Text style={[styles.moreToolText, { color: muted }]}>Report</Text>
@@ -1002,7 +1002,7 @@ const EventCard = React.memo(({
                 {isOwner && (
                   <TouchableOpacity
                     style={[styles.moreToolPill, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}
-                    onPress={() => onEditEvent(event)}
+                    onPress={() => onEditEvent?.(event)}
                   >
                     <Feather name="edit-2" size={13} color={primary} />
                     <Text style={[styles.moreToolText, { color: primary }]}>Edit</Text>
@@ -1012,7 +1012,7 @@ const EventCard = React.memo(({
                 {isOwner && (
                   <TouchableOpacity
                     style={[styles.moreToolPill, { borderColor: `${primary}40`, backgroundColor: `${primary}12` }]}
-                    onPress={() => onAdminEvent(event)}
+                    onPress={() => onAdminEvent?.(event)}
                   >
                     <Feather name="bar-chart-2" size={13} color={primary} />
                     <Text style={[styles.moreToolText, { color: primary }]}>Admin</Text>
