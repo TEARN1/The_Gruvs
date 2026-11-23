@@ -7,10 +7,16 @@ name: Security
 # gitleaks CLI directly (MIT-licensed) — no marketplace action, no licence key.
 
 on:
+  # Free minutes are limited: branches are checked by their pull request, main on push.
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
     branches: [main]
+
+# A newer push to the same branch cancels the older run (saves free minutes).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   secret-scan:

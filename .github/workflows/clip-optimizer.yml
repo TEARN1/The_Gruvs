@@ -14,7 +14,7 @@ name: Clip optimizer
 
 on:
   schedule:
-    - cron: '7,22,37,52 * * * *'   # every 15 min, off the hour
+    - cron: '7 */6 * * *'   # every 6 hours (was every 15 min: ~2,900 runs a month on free minutes)
   workflow_dispatch:
     inputs:
       dry_run:

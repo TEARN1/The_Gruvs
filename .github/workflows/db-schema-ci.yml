@@ -19,7 +19,7 @@ name: DB Schema CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
     paths:
       - "supabase/queries/**"
       - "supabase/migrations/**"
