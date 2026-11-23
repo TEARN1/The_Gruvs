@@ -50,8 +50,8 @@ const ReactionPill = ({ reaction, count, active, onPress, primary, muted, index 
 
   const handlePress = () => {
     Animated.sequence([
-      Animated.timing(scale, { toValue: 1.35, duration: 100, useNativeDriver: true }),
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200, friction: 8 }),
+      Animated.timing(scale, { toValue: 1.35, duration: 100, useNativeDriver: !IS_WEB }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: !IS_WEB, tension: 200, friction: 8 }),
     ]).start();
     setGlitterTrigger(Date.now());
     onPress();

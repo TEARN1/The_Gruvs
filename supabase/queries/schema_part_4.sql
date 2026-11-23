@@ -1883,12 +1883,16 @@ ALTER TABLE public.app_updates ADD COLUMN IF NOT EXISTS released_at TIMESTAMPTZ 
 INSERT INTO public.app_updates (title, type, description, version, released_at)
 SELECT v.title, v.type, v.description, v.version, v.released_at::timestamptz
 FROM (VALUES
+  ('Dynamic Theme Engine & Resident Safety Suite','feature','Header quick-access theme toggle with 24 vibrant curated palettes and instant Light/Dark mode switching. Plus The Resident Crew 4-pillar emergency safety suite (SOS Guard, Walk-to-Car escorts, Safe Ride-shares, and verified Crash Pads).','2.4.0','2026-11-23'),
+  ('Social Flyers & TikTok Creator Studio','feature','Direct high-resolution flyer builder (1080x1920 Story, Square, Landscape) and multi-slide TikTok carousel generator with high-contrast legibility and brand logo integration.','2.3.8','2026-11-18'),
+  ('Cloudflare WebP & Edge Speed Overhaul','improvement','Automated on-the-fly WebP image compression, instant lazy preview thumbnail caching, sub-millisecond feed hydration, and zero-bundle TDZ integrity.','2.3.5','2026-11-10'),
+  ('Sensory HUD & Nightlife Operations','feature','Real-time sensory monitoring with decibel noise radar, 3AM Survival guide, verified bouncer beacon, and live crowd vibe telemetry.','2.3.0','2026-10-15'),
   ('Tighter Privacy & Security','security','Locked down your personal info so only you and the people you choose can see it. Closed a gap that could expose data to logged-out users.','2.2.0','2026-06-22'),
   ('Drop a Gruv in Seconds','improvement','Posting an event is now faster - just a name, place and time (or drop your flyer). No more long forms.','2.2.0','2026-06-22'),
   ('Crossed Paths','feature','See the Vibers you keep Touching Down alongside, ranked from most to least - your real-world crowd. Open it from the Touch Down button.','2.2.0','2026-06-22'),
   ('Cleaner, Faster Home','fix','Tidied up the app and fixed a display glitch on event cards for a smoother feed.','2.2.0','2026-06-22')
 ) AS v(title,type,description,version,released_at)
-WHERE NOT EXISTS (SELECT 1 FROM public.app_updates WHERE version = '2.2.0');
+WHERE NOT EXISTS (SELECT 1 FROM public.app_updates WHERE version = '2.4.0');
 
 
 -- ── 33: TIERED GIFT SYSTEM (ad reach via virtual gift) — folded from ad_gifts.sql ──

@@ -44,6 +44,7 @@ import { MealDetailModal } from '../components/MealDetailModal';
 import { MealService } from '../services/mealService';
 import { appInstallService } from '../services/appInstallService';
 import { fx } from '../styles/webFx';
+import { APP_CHANGELOG } from '../constants/changelog';
 
 // Module-level StyleSheets below (hero, cg, et) size from the window at load.
 // The component itself reads live dimensions through useWindowDimensions.
@@ -832,37 +833,25 @@ export const ExplorePage = ({ onAuthRequired, onNavigateToEvent }) => {
 
   // App Upgrades — real feature changelog (updated with each release)
   useEffect(() => {
-    const CHANGELOG = [
-      { id: '21', type: 'PERF', version: '2.1.0', released_at: '2026-06-02', title: 'Performance Optimization & Caching Overhaul', description: 'Centralized database pre-parsing of JSON/array columns inside dataFlow.js eliminates render-loop overhead. Throttled sequential Nominatim geocoding with persistent AsyncStorage caching prevents OSM rate limiting and makes map loads instantaneous. ViberProfile and DMModal static import cycle resolved to enable production bundles.' },
-      { id: '20', type: 'FEAT', version: '2.0.5', released_at: '2026-05-29', title: 'Event Management Platform', description: 'Full organizer control panel — lineup builder, stage manager, session schedule, vendor map, live updates for 47+ event types. Sport events get dedicated teams, fixtures, live scoring & league table.' },
-      { id: '19', type: 'FIX', version: '2.0.4', released_at: '2026-05-29', title: 'Filter Engine Overhaul', description: 'Category & date filters now correctly match all 1000+ subcategories. Cache invalidation fixed. Scout and Explore now use deep subcategory tree matching.' },
-      { id: '18', type: 'FEAT', version: '2.0.4', released_at: '2026-05-28', title: 'Journey Map Persistence', description: 'Pinned events in your Journey now survive app restarts. No more losing your night plan. Unlimited journey pins.' },
-      { id: '17', type: 'FIX', version: '2.0.3', released_at: '2026-05-28', title: 'Web Bundle Fixes', description: 'Fixed "module unavailable" errors for Vibe Planner, Tickets, and Wallet on web. QR codes now show a text fallback on web builds.' },
-      { id: '16', type: 'FEAT', version: '2.0.2', released_at: '2026-05-26', title: 'Tutorial Center Expanded', description: 'New tutorials: Build Your Journey, Manage Your Event (5-step organizer guide), Event Management category added.' },
-      { id: '15', type: 'FEAT', version: '2.0.1', released_at: '2026-05-25', title: 'Universal Sports Platform', description: 'Live scoreboard, match log, league table, player stats, photo/video gallery, commentary for 17 sport types.' },
-      { id: '14', type: 'FEAT', version: '2.0.0', released_at: '2026-05-24', title: 'Royal Vibe Events + AI Personalisation', description: 'Recurring Royal Vibe events engine. 12-signal personalisation — your Drop now learns from check-ins, searches, dwell time and crew activity.' },
-      { id: '13', type: 'FEAT', version: '1.9.8', released_at: '2026-05-23', title: 'Comprehensive Mobile UX', description: 'Gesture navigation, FAB quick actions, swipe-to-dismiss modals, pull-to-refresh haptics across all screens.' },
-      { id: '12', type: 'FEAT', version: '1.9.5', released_at: '2026-05-20', title: 'Social Media & Reels', description: 'Short-form video Reels feed, For You / Following tabs, create & link Reels to events.' },
-      { id: '11', type: 'FEAT', version: '1.9.0', released_at: '2026-05-15', title: 'Biz Hub + Store Builder', description: 'Business dashboard, drag-and-drop store builder, campaign/mission system with 3000+ targeting signals.' },
-      { id: '10', type: 'FEAT', version: '1.8.5', released_at: '2026-05-10', title: 'Event Chat & Polls', description: 'Live event chat room, host-only announcements, attendee polls, and collaborative playlist.' },
-      { id: '9',  type: 'FEAT', version: '1.8.0', released_at: '2026-05-05', title: 'VIP Tier System', description: 'Multi-tier ticket pricing (General, VIP, VVIP), waitlist management, QR ticket generation.' },
-      { id: '8',  type: 'FEAT', version: '1.7.5', released_at: '2026-04-28', title: 'Royal Routes', description: 'Community travel groups — squad up with Vibers heading to the same event, split transport costs.' },
-      { id: '7',  type: 'FEAT', version: '1.7.0', released_at: '2026-04-20', title: 'Path Map & Crossings', description: 'Digital Footprint visualiser — see everywhere you\'ve been, where paths cross with other Vibers.' },
-      { id: '6',  type: 'FEAT', version: '1.6.0', released_at: '2026-04-10', title: 'Scout Map', description: 'Full city event map, radius filter, crew toggle, real-time pins for events near you.' },
-    ];
-    setAppUpdates(CHANGELOG);
+    setAppUpdates(APP_CHANGELOG);
 
-    // Also try to load any additional updates from DB (non-blocking)
+    // Also load any remote database updates and merge, sorting newest first
     supabase.from('app_updates')
       .select('id, title, description, version, released_at, type')
       .order('released_at', { ascending: false })
-      .limit(5)
+      .limit(10)
       .then(({ data }) => {
         if (data?.length) {
           setAppUpdates(prev => {
-            const existing = new Set(prev.map(u => u.id));
-            const newOnes = data.filter(u => !existing.has(String(u.id)));
-            return [...newOnes, ...prev].slice(0, 20);
+            const map = new Map();
+            (prev || []).forEach(u => map.set(u.version ? `v-${u.version}-${u.title}` : (u.id || u.title), u));
+            data.forEach(u => {
+              const key = u.version ? `v-${u.version}-${u.title}` : (u.id || u.title);
+              map.set(key, { ...map.get(key), ...u });
+            });
+            return Array.from(map.values())
+              .sort((a, b) => new Date(b.released_at || 0) - new Date(a.released_at || 0))
+              .slice(0, 25);
           });
         }
       })

@@ -48,6 +48,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SafeSection } from '../components/SafeSection';
 import { useIdentity } from '../context/IdentityContext';
 import { RoyalGovernance } from '../services/royalGovernance';
+import { APP_CHANGELOG } from '../constants/changelog';
 import { BiometricAuth, RichHaptics } from '../services/smartphoneFeatures';
 import { useTutorial } from '../context/TutorialContext';
 import { uploadToStorage } from '../services/storageService';
@@ -2236,15 +2237,30 @@ const UPDATE_TYPE_COLOR = { feature: "#00f2ff", fix: "#10b981", improvement: "#8
 const UPDATE_TYPE_ICON  = { feature: 'star', fix: 'tool', improvement: 'trending-up', security: 'shield' };
 
 const AppUpdatesSection = ({ primary, muted, textColor, surface }) => {
-  const [updates, setUpdates] = React.useState([]);
+  const [updates, setUpdates] = React.useState(APP_CHANGELOG.slice(0, 5));
 
   React.useEffect(() => {
     supabase
       .from('app_updates')
       .select('*')
       .order('released_at', { ascending: false })
-      .limit(5)
-      .then(({ data }) => setUpdates(data || []));
+      .limit(10)
+      .then(({ data }) => {
+        if (data?.length) {
+          setUpdates(prev => {
+            const map = new Map();
+            (prev || []).forEach(u => map.set(u.version ? `v-${u.version}-${u.title}` : (u.id || u.title), u));
+            data.forEach(u => {
+              const key = u.version ? `v-${u.version}-${u.title}` : (u.id || u.title);
+              map.set(key, { ...map.get(key), ...u });
+            });
+            return Array.from(map.values())
+              .sort((a, b) => new Date(b.released_at || 0) - new Date(a.released_at || 0))
+              .slice(0, 5);
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   if (!updates.length) return null;

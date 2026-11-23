@@ -31,8 +31,13 @@ const SIGNATURE_LIST = SIGNATURE_KEYS
 const WebReactionOrb = ({ reaction, index, isActive, count, primary, onPress, idle = true }) => {
   const accent = themeForReaction(reaction.key).ring;
   const flipRef = useRef(null);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
   const [glitterTrigger, setGlitterTrigger] = useState(0);
   const handlePress = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 1.28, duration: 90, useNativeDriver: !IS_WEB }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 6, tension: 220, useNativeDriver: !IS_WEB }),
+    ]).start();
     replay(flipRef.current, 'flip');
     setGlitterTrigger(Date.now());
     onPress(reaction.key);
@@ -42,28 +47,30 @@ const WebReactionOrb = ({ reaction, index, isActive, count, primary, onPress, id
     <View dataSet={{ fx: 'orb', fxI: i, active: isActive ? 'true' : 'false' }}>
       <View dataSet={idle === false || reducedMotion() ? undefined : { fx: 'float', fxI: i }}>
         <View ref={flipRef}>
-          <TouchableOpacity
-            onPress={handlePress}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={reaction.label}
-            accessibilityState={{ selected: isActive }}
-            style={[
-              styles.orb,
-              isActive && styles.orbActive,
-              {
-                borderColor: isActive ? accent : `${primary}22`,
-                backgroundColor: isActive ? `${accent}26` : 'rgba(255,255,255,0.05)',
-                position: 'relative',
-              },
-            ]}
-          >
-            <MaterialCommunityIcons name={reaction.icon || 'star'} size={18} color={isActive ? accent : 'rgba(255,255,255,0.55)'} />
-            {isActive && (
-              <Text style={[styles.count, { color: accent }]}>{count != null ? count : 1}</Text>
-            )}
-            <ControlledGlitterBurst trigger={glitterTrigger} count={10} radius={24} colors={[accent, primary, '#fff']} />
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <TouchableOpacity
+              onPress={handlePress}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={reaction.label}
+              accessibilityState={{ selected: isActive }}
+              style={[
+                styles.orb,
+                isActive && styles.orbActive,
+                {
+                  borderColor: isActive ? accent : `${primary}22`,
+                  backgroundColor: isActive ? `${accent}26` : 'rgba(255,255,255,0.05)',
+                  position: 'relative',
+                },
+              ]}
+            >
+              <MaterialCommunityIcons name={reaction.icon || 'star'} size={18} color={isActive ? accent : 'rgba(255,255,255,0.55)'} />
+              {isActive && (
+                <Text style={[styles.count, { color: accent }]}>{count != null ? count : 1}</Text>
+              )}
+              <ControlledGlitterBurst trigger={glitterTrigger} count={10} radius={26} colors={[accent, primary, '#fff']} />
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       </View>
     </View>
