@@ -583,35 +583,11 @@ export const ScoreEngine = {
       await supabase.rpc('apply_vibe_decay');
       await VibeEconomyEngine.getGlobalEconomicHealth(); // Check economic health
 
-      const [posts, vibes, rsvps, checkins, follows, bookings] = await Promise.all([
-        supabase.from('events').select('id', { count: 'estimated', head: true }).eq('author_id', userId),
-        supabase.from('event_vibes').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
-        supabase.from('event_rsvps').select('event_id', { count: 'estimated', head: true }).eq('user_id', userId),
-        supabase.from('live_checkins').select('id', { count: 'estimated', head: true }).eq('user_id', userId),
-        supabase.from('follows').select('follower_id', { count: 'estimated', head: true }).eq('following_id', userId),
-        supabase.from('service_bookings').select('id', { count: 'estimated', head: true }).eq('provider_id', userId).eq('status', 'completed'),
-      ]);
-
-      // Decay-weighted contribution scoring.
-      // Each action type has a base value scaled by a logarithmic volume diminisher
-      // so that 1000 vibes is not 1000x better than 1 vibe — compresses outliers.
-      const p = posts.count || 0;
-      const vi = vibes.count || 0;
-      const r = rsvps.count || 0;
-      const c = checkins.count || 0;
-      const f = follows.count || 0;
-      const b = bookings.count || 0;
-
-      const score = Math.round(
-        logCompress(p, 12) * 15 +    // Creating Gruvs — high authorship value
-        logCompress(vi, 10) * 2 +    // Giving vibes — social engagement
-        logCompress(r, 10) * 5 +     // Commitment — intent signal
-        logCompress(c, 12) * 25 +    // Physical presence — highest trust signal
-        logCompress(f, 14) * 20 +    // Community influence — reach multiplier
-        logCompress(b, 16) * 50      // Economic utility — sovereign-tier signal
-      );
-
-      await supabase.from('profiles').update({ vibe_score: score }).eq('id', userId);
+      // The database works the score out from the user's real records
+      // (recompute_vibe_score, migration 20261124200500): the same weights as
+      // before, but no app can write its own number any more.
+      const { data: score, error: scoreErr } = await supabase.rpc('recompute_vibe_score', { p_user: userId });
+      if (scoreErr) throw scoreErr;
 
       // Check for Sovereign Milestones
       await RewardEngine.checkMilestones(userId);
@@ -3640,11 +3616,12 @@ export const LevelManager = {
   async addXP(userId, action) {
     const amount = this.XP_MAP[action] || 10;
     try {
+      // XP is given by the database when the real thing happens (a completed
+      // booking: reward_booking_completed trigger). The app only reads it, so
+      // nobody can award themselves XP by calling this.
       const { data: prof } = await supabase.from('profiles').select('xp').eq('id', userId).single();
-      const newXP = (prof?.xp || 0) + amount;
-      await supabase.from('profiles').update({ xp: newXP }).eq('id', userId);
-
-      const oldLevel = this.calculateLevel(prof?.xp || 0);
+      const newXP = prof?.xp || 0;
+      const oldLevel = this.calculateLevel(Math.max(0, newXP - amount));
       const newLevel = this.calculateLevel(newXP);
 
       if (newLevel > oldLevel) {
@@ -3688,28 +3665,10 @@ export const RetentionManager = {
       const now = new Date();
       const today = now.toISOString().split('T')[0];
 
-      const { data: prof } = await supabase.from('profiles').select('last_seen, current_streak').eq('id', userId).single();
-      if (prof) {
-        const last = prof.last_seen ? new Date(prof.last_seen).toISOString().split('T')[0] : null;
-        let newStreak = prof.current_streak || 0;
-
-        if (last !== today) {
-          const yesterday = new Date(now);
-          yesterday.setDate(now.getDate() - 1);
-          const yestStr = yesterday.toISOString().split('T')[0];
-
-          if (last === yestStr) newStreak += 1;
-          else newStreak = 1;
-
-          await supabase.from('profiles').update({
-            last_seen: now.toISOString(),
-            current_streak: newStreak
-          }).eq('id', userId);
-
-          // Check badges on login
-          RewardEngine.checkMilestones(userId).catch(() => { });
-        }
-      }
+      // The streak is kept by the database (touch_my_streak): once a day,
+      // +1 after yesterday, back to 1 after a gap.
+      const { error } = await supabase.rpc('touch_my_streak');
+      if (!error) RewardEngine.checkMilestones(userId).catch(() => { });
     } catch (e) { logError('Retention.streak', e, { userId }); }
   },
 
@@ -3743,21 +3702,11 @@ export const RewardEngine = {
 
   async checkMilestones(userId) {
     try {
-      const { data: prof } = await supabase.from('profiles').select('id, badges, current_streak, social_integrity_score, vibe_score').eq('id', userId).single();
-      if (!prof) return [];
-
-      const earned = prof.badges || [];
-      const newBadges = [];
-
-      if (!earned.includes('loyal_viber') && (prof.current_streak || 0) >= 7) newBadges.push('loyal_viber');
-      if (!earned.includes('social_elite') && (prof.social_integrity_score || 0) >= 100) newBadges.push('social_elite');
-
-      if (newBadges.length > 0) {
-        const updated = [...earned, ...newBadges];
-        await supabase.from('profiles').update({ badges: updated }).eq('id', userId);
-        return newBadges;
-      }
-      return [];
+      // Badges are decided by the database from real records
+      // (recompute_badges): it returns only the newly earned ones.
+      const { data, error } = await supabase.rpc('recompute_badges', { p_user: userId });
+      if (error) throw error;
+      return Array.isArray(data) ? data : [];
     } catch { return []; }
   }
 };
@@ -4252,13 +4201,10 @@ export const GamificationEngine = {
     const rates = { rsvp: 10, checkin: 30, gallery_post: 50, pulse_post: 20 };
     const amount = rates[actionType] || 0;
     if (amount === 0) return 0;
-    try {
-      const { data: p } = await supabase.from('profiles').select('vibe_coins').eq('id', userId).single();
-      const newCoins = (p?.vibe_coins || 0) + amount;
-      const newStatus = this.getReputationStatus(newCoins);
-      await supabase.from('profiles').update({ vibe_coins: newCoins, reputation_status: newStatus }).eq('id', userId);
-      return newCoins;
-    } catch { return 0; }
+    // Coins are given by the database when the gallery photo is saved
+    // (reward_on_insert trigger, at most 300 a day), so the app cannot award
+    // itself any. Nothing to write here; 0 means "no coins awarded by the app".
+    return 0;
   },
 
   getReputationStatus(coins) {

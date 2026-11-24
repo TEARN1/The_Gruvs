@@ -69,11 +69,16 @@ jobs:
         env:
           KEY: ${{ secrets.DROPLET_SSH_KEY }}
           HOST: ${{ secrets.DROPLET_HOST }}
+          KNOWN_HOSTS: ${{ secrets.DROPLET_KNOWN_HOSTS }}
         run: |
           [ -n "$KEY" ] || { echo "::error::This needs the DROPLET_SSH_KEY secret."; exit 1; }
           mkdir -p ~/.ssh
           printf '%s\n' "$KEY" > ~/.ssh/id_root && chmod 600 ~/.ssh/id_root
-          ssh-keyscan -H "${HOST:-144.126.236.75}" >> ~/.ssh/known_hosts 2>/dev/null
+          # Trust only the server's stored key when DROPLET_KNOWN_HOSTS is set
+          # (ssh-keyscan -H <host>, checked once by hand); otherwise the first
+          # key seen is trusted, which a network attacker could swap.
+          if [ -n "$KNOWN_HOSTS" ]; then printf '%s\n' "$KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          else echo "::warning::Set the DROPLET_KNOWN_HOSTS secret so deploys check the server's key."; ssh-keyscan -H "${HOST:-144.126.236.75}" >> ~/.ssh/known_hosts 2>/dev/null; fi
           printf 'Host droplet\n  HostName %s\n  User root\n  IdentityFile ~/.ssh/id_root\n  IdentitiesOnly yes\n  ServerAliveInterval 15\n' \
             "${HOST:-144.126.236.75}" > ~/.ssh/config
           ssh droplet true

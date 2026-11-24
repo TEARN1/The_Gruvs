@@ -165,17 +165,21 @@ describe('DataFlow Integration Test', () => {
   });
 
   describe('XP / Level Up Flow', () => {
-    it('increments XP and triggers level up notification when crossing threshold', async () => {
-      // Mock profile with 30 XP (Level 1 on the canonical curve)
-      __setResult('profiles', 'single', { data: { xp: 30 }, error: null });
+    it('reads the XP the database gave and announces a level up when it crossed a threshold', async () => {
+      // XP is given by the database when the real action is saved
+      // (rewards_server_side migration); the app no longer adds it itself.
+      // The profile already holds 80 XP after a CHECK_IN (+50) from 30:
+      // Level 2 on the ONE canonical curve (getXpLevel: floor(sqrt(80/50)) + 1
+      // = 2 — F3), up from Level 1 at 30.
+      __setResult('profiles', 'single', { data: { xp: 80 }, error: null });
 
-      // Action CHECK_IN adds 50 XP (total 80 XP -> Level 2 on the ONE canonical
-      // curve, getXpLevel: floor(sqrt(80/50)) + 1 = 2 — F3)
       const result = await LevelManager.addXP('user-123', 'CHECK_IN');
 
       expect(result.xp).toBe(80);
       expect(result.level).toBe(2);
       expect(result.leveledUp).toBe(true);
+      // ...and wrote no XP of its own.
+      expect(__mock.captured.profiles?.update).toBeUndefined();
 
       // Verify level up notification is sent
       expect(__mock.captured.notifications.insert).toEqual(

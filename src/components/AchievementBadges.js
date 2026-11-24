@@ -131,10 +131,10 @@ const checkBadges = async (userId) => {
 
 const saveEarnedBadges = async (userId, earnedIds) => {
   try {
-    await supabase
-      .from('profiles')
-      .update({ badges: earnedIds })
-      .eq('id', userId);
+    // The database decides which badges are earned (recompute_badges, the
+    // same rules as checkBadges above); the app no longer writes them.
+    void earnedIds;
+    await supabase.rpc('recompute_badges', { p_user: userId });
   } catch {}
 };
 

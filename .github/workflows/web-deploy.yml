@@ -127,7 +127,14 @@ jobs:
           VGRUVS_SSH_KEY: ${{ secrets.VGRUVS_SSH_KEY }}
           HOST: ${{ secrets.DROPLET_HOST }}
           RELEASE: ${{ needs.gate.outputs.release }}
+          KNOWN_HOSTS: ${{ secrets.DROPLET_KNOWN_HOSTS }}
         run: |
+          mkdir -p ~/.ssh
+          # Trust only the server's stored key when DROPLET_KNOWN_HOSTS is set
+          # (ssh-keyscan -H <host>, checked once by hand); otherwise the first
+          # key seen is trusted, which a network attacker could swap.
+          if [ -n "$KNOWN_HOSTS" ]; then printf '%s\n' "$KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          else echo "::warning::Set the DROPLET_KNOWN_HOSTS secret so deploys check the server's key."; fi
           VGRUVS_HOST="deploy@${HOST:-144.126.236.75}" \
             bash infra/vgruvs/client/vgruvs-deploy.sh thegruvs --from dist --release "$RELEASE"
 
@@ -136,11 +143,16 @@ jobs:
         env:
           KEY: ${{ secrets.DROPLET_SSH_KEY }}
           HOST: ${{ secrets.DROPLET_HOST }}
+          KNOWN_HOSTS: ${{ secrets.DROPLET_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${HOST:-144.126.236.75}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          # Trust only the server's stored key when DROPLET_KNOWN_HOSTS is set
+          # (ssh-keyscan -H <host>, checked once by hand); otherwise the first
+          # key seen is trusted, which a network attacker could swap.
+          if [ -n "$KNOWN_HOSTS" ]; then printf '%s\n' "$KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          else echo "::warning::Set the DROPLET_KNOWN_HOSTS secret so deploys check the server's key."; ssh-keyscan -H "${HOST:-144.126.236.75}" >> ~/.ssh/known_hosts 2>/dev/null || true; fi
 
       # Root key: V-Gruvs when the droplet has it (after bootstrap, nginx serves
       # /srv/vgruvs, so writing /var/www would change nothing); otherwise the
