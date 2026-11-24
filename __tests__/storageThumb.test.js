@@ -7,7 +7,7 @@ const SUPABASE_URL = 'https://abc123.supabase.co';
 const { storageThumb, adaptiveThumb, thumb } = require('../src/utils/storageThumb');
 
 const STORAGE_URL = `${SUPABASE_URL}/storage/v1/object/public/media/photo.jpg`;
-const EXTERNAL_URL = 'https://images.unsplash.com/photo-123?w=400';
+const EXTERNAL_URL = 'https://example.com/photo-123.jpg?w=400';
 const PRAVATAR_URL  = 'https://i.pravatar.cc/150?img=3';
 
 describe('storageThumb', () => {

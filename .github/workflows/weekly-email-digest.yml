@@ -1,9 +1,11 @@
 name: Weekly Email Digest
 
 on:
-  schedule:
-    # Every Monday at 07:00 UTC (09:00 South African Standard Time)
-    - cron: '0 7 * * 1'
+  # The weekly schedule is off until the site's /unsubscribe page works and
+  # get_weekly_digest_recipients is applied (supabase/queries/weekly_email_digest.sql).
+  # Then restore it and set DIGEST_UNSUBSCRIBE_READY below:
+  # schedule:
+  #   - cron: '0 7 * * 4' # Thursdays 09:00 SAST
   workflow_dispatch:
     inputs:
       mode:
@@ -19,6 +21,10 @@ on:
         description: 'Test recipient email (only used if mode is test-email)'
         required: false
         default: ''
+
+# The workflow token can only read the code (supply-chain review, Nov 2026).
+permissions:
+  contents: read
 
 jobs:
   dispatch-digest:
@@ -46,13 +52,17 @@ jobs:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM || 'The Gruvs <vibes@thegruvs.com>' }}
           EXPO_PUBLIC_APP_URL: ${{ secrets.APP_URL || 'https://thegruvs.com' }}
+          DIGEST_UNSUBSCRIBE_READY: ${{ vars.DIGEST_UNSUBSCRIBE_READY || 'false' }}
+          # Inputs reach the shell as variables, never pasted into the script.
+          RUN_MODE: ${{ github.event.inputs.mode }}
+          TEST_RECIPIENT: ${{ github.event.inputs.test_recipient }}
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.mode }}" = "live-send" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ] || [ "$RUN_MODE" = "live-send" ]; then
             echo "🚀 Executing live weekly email dispatch..."
             node scripts/send-weekly-digest.mjs --send
-          elif [ "${{ github.event.inputs.mode }}" = "test-email" ]; then
-            echo "✉️ Sending test email to ${{ github.event.inputs.test_recipient }}..."
-            node scripts/send-weekly-digest.mjs --test-email "${{ github.event.inputs.test_recipient }}"
+          elif [ "$RUN_MODE" = "test-email" ]; then
+            echo "Sending a test email..."
+            node scripts/send-weekly-digest.mjs --test-email "$TEST_RECIPIENT"
           else
             echo "🔍 Running dry-run verification..."
             node scripts/send-weekly-digest.mjs --dry-run

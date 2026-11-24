@@ -9,6 +9,10 @@ jest.mock('../src/context/AuthContext', () => ({ useAuth: () => ({ user: null, p
 jest.mock('../src/services/mediaLikes', () => ({
   getMediaLikes: jest.fn(async () => ({})),
   toggleMediaLike: jest.fn(async () => false),
+  subscribeMediaLike: jest.fn(() => () => {}),
+  subscribeMediaDownload: jest.fn(() => () => {}),
+  notifyMediaDownload: jest.fn(),
+  broadcastMediaLike: jest.fn(),
 }));
 
 import { MediaViewer } from '../src/components/MediaViewer';

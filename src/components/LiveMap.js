@@ -47,6 +47,10 @@ const VIEWPORT_DEBOUNCE_MS = 400;
 // map looks and would need a CSP style-src change, so this keeps parity.
 const MAPLIBRE_VERSION = '4.7.1';
 const MAPLIBRE_CDN = `https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
+// The file's exact contents (sha384 of node_modules/maplibre-gl/dist/maplibre-gl.js):
+// if the CDN ever served anything else, the browser refuses to run it.
+// __tests__/maplibreIntegrity.test.js fails when the version changes without this.
+const MAPLIBRE_INTEGRITY = 'sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj';
 
 let maplibregl = null;
 let maplibreLoad = null;
@@ -76,6 +80,7 @@ function loadMapLibre() {
         script.src = MAPLIBRE_CDN;
         script.async = true;
         script.crossOrigin = 'anonymous';
+        script.integrity = MAPLIBRE_INTEGRITY;
         script.setAttribute('data-maplibre', MAPLIBRE_VERSION);
         document.head.appendChild(script);
       }

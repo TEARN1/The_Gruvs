@@ -16,14 +16,14 @@ name: Guardian
 
 on:
   schedule:
-    - cron: '17 */6 * * *'   # every 6h (offset so it isn't on the hour with everyone else)
+    - cron: '17 4 * * *'   # daily (was every 6h; free minutes are limited)
   pull_request:
     branches: [main]
   # Work here lands as direct pushes, not PRs, so the pull_request trigger above
   # never fired for most changes — drift reached main and was only discovered by
   # the 6-hourly schedule, up to 6 hours later. Catch it at the push instead.
   push:
-    branches: ["**"]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

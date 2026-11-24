@@ -4,10 +4,20 @@ on:
   # Every branch, not just main/dev. Work sits on a feature branch for days
   # before it merges; gating tests on main only means the branch is unverified
   # right up until the moment it BECOMES production.
+  # Free minutes are limited: branches are checked by their pull request, main on push.
   push:
-    branches: [ "**" ]
+    branches: [ main ]
   pull_request:
     branches: [ main, master, dev ]
+
+# A newer push to the same branch cancels the older run (saves free minutes).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# The workflow token can only read the code (supply-chain review, Nov 2026).
+permissions:
+  contents: read
 
 jobs:
   # ── Unit / integration + memory check (fast, no browser) ────────────────────

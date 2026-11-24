@@ -19,7 +19,7 @@ name: DB Schema CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
     paths:
       - "supabase/queries/**"
       - "supabase/migrations/**"
@@ -33,6 +33,10 @@ on:
       - "supabase/migrations/**"
       - "supabase/test/**"
       - "supabase/functions/**"
+
+# The workflow token can only read the code (supply-chain review, Nov 2026).
+permissions:
+  contents: read
 
 jobs:
   build-schema:

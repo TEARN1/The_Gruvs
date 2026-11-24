@@ -1,6 +1,6 @@
 /**
  * Returns a resized Supabase Storage URL using the built-in image transform API.
- * Passes through non-Supabase URLs (pravatar, unsplash, etc.) unchanged.
+ * Passes through non-Supabase URLs (pravatar etc.) unchanged; Unsplash gets its own size parameters.
  *
  * Usage:
  *   <Image source={{ uri: storageThumb(avatarUrl, 80, 80) }} />
