@@ -15,6 +15,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# The workflow token can only read the code (supply-chain review, Nov 2026).
+permissions:
+  contents: read
+
 jobs:
   # ── Unit / integration + memory check (fast, no browser) ────────────────────
   unit:

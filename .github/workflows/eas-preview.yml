@@ -19,6 +19,10 @@ on:
   #   branches: [main, "feature/**", "fix/**", "release/**"]
   #   paths: ["app.json", "app.config.js", "eas.json", "package.json", "package-lock.json", "android/**", "ios/**", "plugins/**"]
 
+# The workflow token can only read the code (supply-chain review, Nov 2026).
+permissions:
+  contents: read
+
 jobs:
   build:
     name: EAS Preview (Android APK)

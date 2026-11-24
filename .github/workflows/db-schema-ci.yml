@@ -34,6 +34,10 @@ on:
       - "supabase/test/**"
       - "supabase/functions/**"
 
+# The workflow token can only read the code (supply-chain review, Nov 2026).
+permissions:
+  contents: read
+
 jobs:
   build-schema:
     name: Build schema on throwaway Postgres

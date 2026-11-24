@@ -6,6 +6,10 @@ on:
   # account". Re-enable `push: branches: [main]` once EXPO_TOKEN is set.
   workflow_dispatch:
 
+# The workflow token can only read the code (supply-chain review, Nov 2026).
+permissions:
+  contents: read
+
 jobs:
   ci-gate:
     name: 🔒 CI Quality & Security Gate

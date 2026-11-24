@@ -55,6 +55,10 @@ concurrency:
   group: web-deploy-production
   cancel-in-progress: false
 
+# The workflow token can only read the code (supply-chain review, Nov 2026).
+permissions:
+  contents: read
+
 jobs:
   droplet:
     name: ${{ inputs.action == 'connect a site' && format('connect {0}', inputs.app) || inputs.action == 'publish the console' && format('publish the console at {0}', inputs.console_domain) || inputs.action }}

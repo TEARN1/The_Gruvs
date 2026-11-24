@@ -27,6 +27,10 @@ on:
     branches: [main]
   workflow_dispatch:   # deploy on demand (e.g. after rotating a secret)
 
+# The workflow token can only read the code (supply-chain review, Nov 2026).
+permissions:
+  contents: read
+
 jobs:
   # ── Build + validate the web bundle (runs on push AND PR) ─────────────────
   build:

@@ -13,6 +13,10 @@ on:
   # `push: branches: [main]` once EXPO_TOKEN is set in repo secrets.
   workflow_dispatch:
 
+# The workflow token can only read the code (supply-chain review, Nov 2026).
+permissions:
+  contents: read
+
 jobs:
   # ── Gate: Metro bundle must build cleanly ────────────────────────────────
   check:
@@ -44,6 +48,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: check           # ← GATE: skipped entirely if check fails
 
+    env:
+      # Through the environment, never pasted into the script: a commit
+      # message like $(curl ...) would otherwise run with the secrets.
+      COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'manual update' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -65,7 +73,7 @@ jobs:
         run: |
           eas update \
             --branch production \
-            --message "${{ github.event.head_commit.message }}" \
+            --message "$COMMIT_MESSAGE" \
             --non-interactive \
             --json 2>&1 | tee ota-out.txt
         env:
@@ -80,4 +88,4 @@ jobs:
           echo "## OTA Update" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: production" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Message**: ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Message**: $COMMIT_MESSAGE" >> $GITHUB_STEP_SUMMARY
