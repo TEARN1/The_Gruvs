@@ -91,11 +91,12 @@ export const EventContextualAds = ({ event, onNavigate, slot = 'eventDetail' }) 
       let viewer = {};
       if (user?.id) {
         try {
-          const { data: vp } = await supabase
-            .from('profiles')
-            .select('city, gender, interests, birth_year, age')
-            .eq('id', user.id).maybeSingle();
-          viewer = vp || {};
+          // Own row through get_my_profile(): birth_year and age are not
+          // readable from profiles (birthday_privacy migration).
+          const { data: vp } = await supabase.rpc('get_my_profile').maybeSingle();
+          viewer = vp && vp.id === user.id
+            ? { city: vp.city, gender: vp.gender, interests: vp.interests, birth_year: vp.birth_year, age: vp.age }
+            : {};
         } catch { /* unknown viewer → only known-mismatches get filtered */ }
       }
       const matched = (data || [])

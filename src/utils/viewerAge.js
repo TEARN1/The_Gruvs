@@ -7,8 +7,8 @@
  * Fail-safe: unknown age → null. The age filter treats null as "general only",
  * so mature content stays hidden until a real birthday is known.
  */
-import { supabase } from '../services/supabase';
 import { profileAge } from './ageGate';
+import { ownBirthDetails } from '../services/ownBirthDetails';
 
 let _cache = { userId: null, age: undefined };
 
@@ -17,12 +17,9 @@ export async function loadViewerAge(userId) {
   if (!userId) { _cache = { userId: null, age: null }; return null; }
   if (_cache.userId === userId && _cache.age !== undefined) return _cache.age;
   try {
-    // Select the DOB fields separately + tolerantly — any may be absent.
-    const { data } = await supabase
-      .from('profiles')
-      .select('birth_date, age, birth_year')
-      .eq('id', userId)
-      .maybeSingle();
+    // Own row only, through get_my_profile(): the DOB columns are not
+    // readable from profiles (birthday_privacy migration).
+    const data = await ownBirthDetails(userId);
     _cache = { userId, age: profileAge(data) };
   } catch {
     _cache = { userId, age: null };

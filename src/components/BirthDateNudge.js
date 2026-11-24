@@ -21,6 +21,7 @@ import Feather from '@expo/vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { ownBirthDetails } from '../services/ownBirthDetails';
 import { profileAge } from '../utils/ageGate';
 import { resetViewerAge, loadViewerAge } from '../utils/viewerAge';
 import { CalendarPicker } from './DateTimePickers';
@@ -56,9 +57,7 @@ export const BirthDateNudge = ({
 
         // The profile in context may not carry the DOB columns, so ask directly
         // rather than concluding "missing" from an absent field.
-        const { data } = await supabase
-          .from('profiles').select('birth_date, age, birth_year')
-          .eq('id', user.id).maybeSingle();
+        const data = await ownBirthDetails(user.id);
         if (alive) setShow(profileAge(data) == null);
       } catch { /* stay hidden on any error — never nag on a failed lookup */ }
     })();

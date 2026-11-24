@@ -438,11 +438,13 @@ const FindMePage = ({ primary, muted, textColor, bg, user, profile, toast, onSho
         data = rpc.data;
         setClanName(data.clan_name || ''); setBirthDate(data.birth_date || '');
       } else {
-        const sel = await supabase.from('profiles').select('id, username, display_name, avatar_url, bio, location, interests, career_title, career_description, looks_description, profile_gallery, vibe_score, is_verified, share_events, show_online, identity_mode, is_discoverable, is_beacon_active, push_token, first_name, surname, email, age, siblings, emergency_contacts').eq('id', user.id).single();
+        const sel = await supabase.from('profiles').select('id, username, display_name, avatar_url, bio, location, interests, career_title, career_description, looks_description, profile_gallery, vibe_score, is_verified, share_events, show_online, identity_mode, is_discoverable, is_beacon_active, push_token, first_name, surname, email, siblings, emergency_contacts').eq('id', user.id).single();
         data = sel.data;
-        // clan_name / birth_date fetched separately so an un-migrated DB doesn't break the whole load.
-        supabase.from('profiles').select('clan_name, birth_date').eq('id', user.id).maybeSingle()
-          .then(({ data: extra }) => { if (extra) { setClanName(extra.clan_name || ''); setBirthDate(extra.birth_date || ''); } }, () => {});
+        // clan_name fetched separately so an un-migrated DB doesn't break the whole
+        // load. birth_date/age are not readable from profiles (birthday_privacy):
+        // only get_my_profile() returns them.
+        supabase.from('profiles').select('clan_name').eq('id', user.id).maybeSingle()
+          .then(({ data: extra }) => { if (extra) setClanName(extra.clan_name || ''); }, () => {});
       }
       // home_village / community_tags / languages — targeting self-tags, also fetched separately.
       supabase.from('profiles').select('home_village, community_tags, languages').eq('id', user.id).maybeSingle()
