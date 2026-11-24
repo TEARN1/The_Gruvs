@@ -71,12 +71,9 @@ export const useStreak = () => {
         }
       }
 
-      await supabase
-        .from('profiles')
-        .update({ current_streak: newStreak, last_active: todayStr })
-        .eq('id', user.id);
-
-      setStreak(newStreak);
+      // The database keeps the streak (touch_my_streak); its answer wins.
+      const { data: kept } = await supabase.rpc('touch_my_streak');
+      setStreak(typeof kept === 'number' ? kept : newStreak);
       if (refreshProfile) refreshProfile();
     } catch (e) {
     }
