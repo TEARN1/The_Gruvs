@@ -1,50 +1,12 @@
 # The Gruvs — robots.txt
-# Optimized for Googlebot, Bingbot, Applebot, and Social Preview Crawlers
-
+# One group for every crawler: a crawler with its own group would ignore the
+# rules below. Sign-in links and one-time codes stay out of search.
 User-agent: *
 Allow: /
-Allow: /founder
-Allow: /press
-Allow: /events/
-Allow: /venues/
-Allow: /services/
-Allow: /profile/
-Allow: /feed.xml
-Allow: /sitemap.xml
-Allow: /image-sitemap.xml
-Allow: /sitemap-index.xml
-Disallow: /*?token=*
-Disallow: /*?session=*
-Disallow: /*?code=*
+Disallow: /*?token=
+Disallow: /*?session=
+Disallow: /*?code=
 
-User-agent: Googlebot
-Allow: /
-Allow: /founder
-Allow: /press
-Allow: /events/
-Allow: /venues/
-Allow: /services/
-Allow: /profile/
-Allow: /*.js$
-Allow: /*.css$
-
-User-agent: Googlebot-Image
-Allow: /
-Allow: /images/
-Allow: /*.png$
-Allow: /*.jpg$
-Allow: /*.jpeg$
-Allow: /*.webp$
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: WhatsApp
-Allow: /
-
+Sitemap: https://thegruvs.com/sitemap-index.xml
 Sitemap: https://thegruvs.com/sitemap.xml
 Sitemap: https://thegruvs.com/image-sitemap.xml
-Sitemap: https://thegruvs.com/sitemap-index.xml

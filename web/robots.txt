@@ -1,48 +1,12 @@
 # The Gruvs — robots.txt
-# https://thegruvs.com
-
+# One group for every crawler: a crawler with its own group would ignore the
+# rules below. Sign-in links and one-time codes stay out of search.
 User-agent: *
 Allow: /
-Allow: /profile/
-Allow: /sitemap-index.xml
+Disallow: /*?token=
+Disallow: /*?session=
+Disallow: /*?code=
 
-# Allow all major crawlers full access
-User-agent: Googlebot
-Allow: /
-
-User-agent: Googlebot-Image
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Slurp
-Allow: /
-
-User-agent: DuckDuckBot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: LinkedInBot
-Allow: /
-
-User-agent: WhatsApp
-Allow: /
-
-# Disallow private/internal paths
-Disallow: /api/
-Disallow: /admin/
-Disallow: /private/
-Disallow: /_/
-Disallow: /auth/callback
-
-# Sitemaps
 Sitemap: https://thegruvs.com/sitemap-index.xml
 Sitemap: https://thegruvs.com/sitemap.xml
 Sitemap: https://thegruvs.com/image-sitemap.xml
-Sitemap: https://thegruvs.com/sitemap-events.xml
