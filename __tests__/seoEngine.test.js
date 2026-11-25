@@ -266,7 +266,7 @@ describe('SEO Engine — Schema.org & Meta Tags', () => {
   test('setPressSeo generates corporate Newsroom AboutPage Schema.org JSON-LD', () => {
     setPressSeo();
 
-    expect(global.document.title).toContain('Press & Media Kit');
+    expect(global.document.title).toContain('Press Kit');
 
     const canonical = global.document.querySelector('link[rel="canonical"]');
     expect(canonical).not.toBeNull();

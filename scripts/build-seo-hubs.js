@@ -589,9 +589,31 @@ function emptyHubNote(what) {
   return `<p class="hero-lead">No ${escapeHtml(what)} are listed on The Gruvs yet. <a href="${SITE}/">See everything that's on</a>, or post one yourself.</p>`;
 }
 
+// An event page from an earlier build stays in public/events after the event
+// is over. Remove it, so search engines and the sitemap only see what is still
+// to come. Only per-event pages (named with the event's id) are touched.
+const EVENT_PAGE_DIR = /-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+function pruneEndedEventPages(eventsDir, today) {
+  if (!fs.existsSync(eventsDir)) return 0;
+  let removed = 0;
+  for (const name of fs.readdirSync(eventsDir)) {
+    if (!EVENT_PAGE_DIR.test(name)) continue;
+    const file = path.join(eventsDir, name, 'index.html');
+    if (!fs.existsSync(file)) continue;
+    const start = (fs.readFileSync(file, 'utf8').match(/"startDate":\s*"(\d{4}-\d{2}-\d{2})/) || [])[1];
+    if (start && start < today) {
+      fs.rmSync(path.join(eventsDir, name), { recursive: true, force: true });
+      removed += 1;
+    }
+  }
+  if (removed) console.log(`[build-seo-hubs] Removed ${removed} pages for events that are over.`);
+  return removed;
+}
+module.exports = { pruneEndedEventPages };
+
 // ─── Main Generator ────────────────────────────────────────────────────────────
 
-(async () => {
+if (require.main === module) (async () => {
   const publicDir = path.join(__dirname, '..', 'public');
   const distDir = path.join(__dirname, '..', 'dist');
   const now = new Date();
@@ -666,7 +688,7 @@ function emptyHubNote(what) {
     { slug: 'lifestyle', name: 'Lifestyle & Culture', desc: 'Fashion pop-ups, pool clubs, art showcases, and creative community gatherings.' },
     { slug: 'gqom-and-kwaito', name: 'Gqom & Kwaito', desc: 'Durban raw drum basslines, township heritage street sounds, and high-octane dances.' },
     { slug: 'live-jazz', name: 'Live Jazz & Soul', desc: 'Intimate jazz cafes, acoustic soul sessions, and heritage brass orchestra performances.' },
-    { slug: 'comedy', name: 'Stand-up Comedy', desc: 'South Africa’s premier comedy clubs, vernacular laughs, and theater specials.' },
+    { slug: 'comedy', name: 'Stand-up Comedy', desc: 'Comedy clubs, stand-up nights, vernacular comedy and theatre specials.' },
     { slug: 'rooftop-sundowners', name: 'Rooftop Sundowners', desc: 'Golden hour panoramic cocktails, deep house selections, and skybar weekends.' },
     { slug: 'shisanyama', name: 'Shisanyama & Braai Sundays', desc: 'Butchery grill feasts, cooler box lawn picnics, and authentic township Sunday sessions.' },
     { slug: 'sports-derbies', name: 'Sports Derbies & Stadium Vibe', desc: 'Soweto Derby fan parks, rugby test tailgates, and stadium screening parties.' },
@@ -760,7 +782,7 @@ function emptyHubNote(what) {
     ];
 
     const hasCityMonths = ['johannesburg', 'cape-town', 'durban', 'pretoria', 'sandton', 'soweto', 'midrand', 'stellenbosch'].includes(c.slug);
-    const guideCopy = CITY_GUIDES[c.slug] || `Explore verified concerts, nightlife, business conferences, and cultural festivals in ${c.name}. Check live venue coordinates, ticket prices in ZAR, and RSVP directly on The Gruvs.`;
+    const guideCopy = CITY_GUIDES[c.slug] || `Explore concerts, nightlife, business conferences, and cultural festivals in ${c.name}. Check live venue coordinates, ticket prices in ZAR, and RSVP directly on The Gruvs.`;
 
     const body = `
       <div class="breadcrumbs">
@@ -812,7 +834,7 @@ function emptyHubNote(what) {
           'name': `What events are happening in ${c.name}?`,
           'acceptedAnswer': {
             '@type': 'Answer',
-            'text': `The Gruvs lists verified upcoming concerts, nightlife, Amapiano sets, food markets, and lifestyle events in ${c.name} with dates, venues, and tickets.`,
+            'text': `The Gruvs lists upcoming concerts, nightlife, Amapiano sets, food markets, and lifestyle events in ${c.name} with dates, venues, and tickets.`,
           },
         },
         {
@@ -833,7 +855,7 @@ function emptyHubNote(what) {
       jsonLd: activeList.length ? [itemListJsonLd, cityFaqJsonLd] : [cityFaqJsonLd],
       bodyContent: body,
       breadcrumbs,
-      noindex: false,
+      noindex: activeList.length === 0,
     });
 
     writePage(`events/${c.slug}/index.html`, html);
@@ -937,7 +959,7 @@ function emptyHubNote(what) {
           'name': `Where can I find upcoming ${g.name} events in South Africa?`,
           'acceptedAnswer': {
             '@type': 'Answer',
-            'text': `Browse verified ${g.name} concerts, DJ lineups, festivals, and weekend experiences across Johannesburg, Pretoria, Cape Town, and Durban on The Gruvs.`,
+            'text': `Browse ${g.name} concerts, DJ lineups, festivals, and weekend experiences across Johannesburg, Pretoria, Cape Town, and Durban on The Gruvs.`,
           },
         },
         {
@@ -958,7 +980,7 @@ function emptyHubNote(what) {
       jsonLd: activeList.length ? [itemListJsonLd, genreFaqJsonLd] : [genreFaqJsonLd],
       bodyContent: body,
       breadcrumbs,
-      noindex: false,
+      noindex: activeList.length === 0,
     });
 
     writePage(`events/${g.slug}/index.html`, html);
@@ -1000,7 +1022,7 @@ function emptyHubNote(what) {
     </div>
 
     <h1 class="hero-title">Ke Dezemba <span class="brand-accent">2026</span> Mega-Lineup</h1>
-    <p class="hero-lead">Gauteng’s official festive season calendar. From Altitude Beach summer splash to Vilakazi Street New Year crossovers and Tembisa homecoming picnics.</p>
+    <p class="hero-lead">December events in Gauteng that people have posted on The Gruvs.</p>
 
     <div class="resident-banner">
       <div class="resident-banner-text">
@@ -1021,7 +1043,7 @@ function emptyHubNote(what) {
     canonicalUrl: `${SITE}/events/ke-dezemba`,
     jsonLd: keDezembaList.length ? [keDezembaJsonLd] : [],
     bodyContent: keDezembaBody,
-    noindex: false,
+    noindex: keDezembaList.length === 0,
     breadcrumbs: [
       { name: 'Home', url: `${SITE}/` },
       { name: 'Ke Dezemba 2026', url: `${SITE}/events/ke-dezemba` },
@@ -1077,7 +1099,7 @@ function emptyHubNote(what) {
       })),
     }],
     bodyContent: weekendBody,
-    noindex: false,
+    noindex: activeWeekend.length === 0,
     breadcrumbs: [{ name: 'Home', url: `${SITE}/` }, { name: 'This Weekend', url: `${SITE}/events/this-weekend` }],
   });
   writePage('events/this-weekend/index.html', weekendHtml);
@@ -1118,7 +1140,7 @@ function emptyHubNote(what) {
       })),
     }],
     bodyContent: nyeBody,
-    noindex: false,
+    noindex: activeNye.length === 0,
     breadcrumbs: [{ name: 'Home', url: `${SITE}/` }, { name: "New Year's Eve 2027", url: `${SITE}/events/nye-2027` }],
   });
   writePage('events/nye-2027/index.html', nyeHtml);
@@ -1192,7 +1214,7 @@ function emptyHubNote(what) {
         })),
       }],
       bodyContent: body,
-      noindex: false,
+      noindex: activeList.length === 0,
       breadcrumbs: [
         { name: 'Home', url: `${SITE}/` },
         { name: s.name, url: `${SITE}/events/${s.slug}` },
@@ -1222,7 +1244,7 @@ function emptyHubNote(what) {
         <span style="color:#fff;">${escapeHtml(m.name)}</span>
       </div>
       <h1 class="hero-title">Events in <span class="brand-accent">${escapeHtml(m.name)}</span></h1>
-      <p class="hero-lead">${escapeHtml(m.desc)} Browse all verified upcoming concerts, festivals, conferences, and weekend experiences.</p>
+      <p class="hero-lead">${escapeHtml(m.desc)} Browse upcoming concerts, festivals, conferences, and weekend experiences.</p>
       ${activeList.length ? `<div class="event-grid">
         ${activeList.map(renderEventCard).join('')}
       </div>` : emptyHubNote(`events in ${m.name}`)}
@@ -1249,7 +1271,7 @@ function emptyHubNote(what) {
         })),
       }],
       bodyContent: body,
-      noindex: false,
+      noindex: activeList.length === 0,
       breadcrumbs: [
         { name: 'Home', url: `${SITE}/` },
         { name: m.name, url: `${SITE}/events/${m.slug}` },
@@ -1263,7 +1285,7 @@ function emptyHubNote(what) {
   // ── High-Intent Localized City × Category Intersection Hubs ───────────────
   const INTERSECTION_HUBS = [
     { city: 'sandton', cat: 'business', title: 'Business Conferences & Summits in Sandton — The Gruvs', desc: 'Upcoming executive conferences, finance summits, and corporate expos in Sandton Convention Centre and The Marc.', filter: e => (e.city || '').toLowerCase().includes('sandton') || (e.venue_name || '').toLowerCase().includes('sandton') },
-    { city: 'sandton', cat: 'tech', title: 'Tech, AI & Cloud Summits in Sandton — The Gruvs', desc: 'Leading enterprise AI, cybersecurity, and cloud conferences taking place in Sandton.', filter: e => ((e.city || '').toLowerCase().includes('sandton') || (e.venue_name || '').toLowerCase().includes('sandton')) && ((e.title || '').toLowerCase().includes('tech') || (e.title || '').toLowerCase().includes('ai') || (e.title || '').toLowerCase().includes('cloud') || (e.title || '').toLowerCase().includes('fintech')) },
+    { city: 'sandton', cat: 'tech', title: 'Tech, AI & Cloud Summits in Sandton — The Gruvs', desc: 'Enterprise AI, cybersecurity, and cloud conferences taking place in Sandton.', filter: e => ((e.city || '').toLowerCase().includes('sandton') || (e.venue_name || '').toLowerCase().includes('sandton')) && ((e.title || '').toLowerCase().includes('tech') || (e.title || '').toLowerCase().includes('ai') || (e.title || '').toLowerCase().includes('cloud') || (e.title || '').toLowerCase().includes('fintech')) },
     { city: 'johannesburg', cat: 'business', title: 'Business Summits & Expos in Johannesburg — The Gruvs', desc: 'Executive symposiums, property expos, and commercial trade gatherings in Johannesburg.', filter: e => (e.city || '').toLowerCase().includes('johannesburg') && (e.category === 'biz' || (e.title || '').toLowerCase().includes('business')) },
     { city: 'johannesburg', cat: 'nightlife', title: 'Nightlife, Clubs & Parties in Johannesburg — The Gruvs', desc: 'Top rooftop sundowners, club raves, and weekend nightlife in Johannesburg.', filter: e => (e.city || '').toLowerCase().includes('johannesburg') && (e.category === 'music' || e.category === 'party') },
     { city: 'cape-town', cat: 'tech', title: 'Tech & Startup Summits in Cape Town — The Gruvs', desc: 'Silicon Cape demo days, venture capital forums, and innovation congresses at CTICC.', filter: e => (e.city || '').toLowerCase().includes('cape town') && ((e.title || '').toLowerCase().includes('tech') || (e.title || '').toLowerCase().includes('startup') || (e.title || '').toLowerCase().includes('venture')) },
@@ -1316,7 +1338,7 @@ function emptyHubNote(what) {
         })),
       }],
       bodyContent: body,
-      noindex: false,
+      noindex: activeList.length === 0,
       breadcrumbs: [
         { name: 'Home', url: `${SITE}/` },
         { name: ih.city.toUpperCase(), url: `${SITE}/events/${ih.city}` },
@@ -1346,7 +1368,7 @@ function emptyHubNote(what) {
       const activeList = events.filter(e => mc.match(e) && (e.event_date || '').startsWith(mh.ym));
       const shortMonth = mh.name.split(' (')[0];
       const title = `Events in ${mc.name} — ${shortMonth} | The Gruvs`;
-      const desc = `Discover all ${activeList.length} verified events, concerts, nightlife, and business summits in ${mc.name} for ${shortMonth}.`;
+      const desc = `Discover all ${activeList.length} events, concerts, nightlife, and business summits in ${mc.name} for ${shortMonth}.`;
       const body = `
         <div class="breadcrumbs">
           <a href="${SITE}/">Home</a> <span>›</span>
@@ -1409,7 +1431,7 @@ function emptyHubNote(what) {
       <span style="color:#fff;">Free Events</span>
     </div>
     <h1 class="hero-title"><span class="brand-accent">Free Events</span> & RSVPs in South Africa</h1>
-    <p class="hero-lead">Browse verified free-entry festivals, heritage concerts, startup expos, and community markets across South Africa.</p>
+    <p class="hero-lead">Free-entry festivals, concerts, expos and community markets that people have posted on The Gruvs.</p>
     ${renderHubFilterBar(freeNational.length)}
     ${freeNational.length ? `<div class="event-grid">
       ${freeNational.map(renderEventCard).join('')}
@@ -1540,7 +1562,7 @@ function emptyHubNote(what) {
 
     // Safety, Media & Sports
     { slug: 'bouncers-security', name: 'Bouncers & Crowd Security Marshals', cluster: 'Safety, Media & Sports', desc: 'PSIRA-registered event security, entrance search marshals, and VIP protection.', rate: 'From R650 / guard / shift', keywords: ['event security', 'bouncers hire', 'crowd marshals', 'psira security'] },
-    { slug: 'paramedics-first-aid', name: 'Certified Medics & Event First Aid', cluster: 'Safety, Media & Sports', desc: 'Event medical officers, mobile first-aid station, and standby ambulance support.', rate: 'From R2,200 / event', keywords: ['event medics', 'first aid standby', 'private ambulance', 'paramedic'] },
+    { slug: 'paramedics-first-aid', name: 'Medics & Event First Aid', cluster: 'Safety, Media & Sports', desc: 'Event medical officers, mobile first-aid station, and standby ambulance support.', rate: 'From R2,200 / event', keywords: ['event medics', 'first aid standby', 'private ambulance', 'paramedic'] },
     { slug: 'photographers-360', name: '360 Spinners & Event Photographers', cluster: 'Safety, Media & Sports', desc: '360 video booth platform, DSLR roamers, photo backdrops, and instant digital drops.', rate: 'From R2,500 / 3 hours', keywords: ['360 photo booth', 'event photographer', 'video booth hire'] },
     { slug: 'drone-videography', name: 'Drone Videographers & Media Crews', cluster: 'Safety, Media & Sports', desc: 'FPV and 4K aerial drone operators, recap after-movie production, and live multi-cam.', rate: 'From R3,000 / recap video', keywords: ['drone video', 'event videographer', 'aftermovie', 'fpv drone'] },
   ];
@@ -1552,7 +1574,7 @@ function emptyHubNote(what) {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     'name': 'Event Business & Hustler Services Directory South Africa',
-    'description': 'Browse verified event service providers: caterers, sound system rentals, trucks, stage rigging, fashion designers, security, and photographers.',
+    'description': 'Event service providers: caterers, sound system rentals, trucks, stage rigging, fashion designers, security, and photographers.',
     'itemListElement': SERVICES.map((s, idx) => ({
       '@type': 'ListItem',
       'position': idx + 1,
@@ -1568,7 +1590,7 @@ function emptyHubNote(what) {
     </div>
 
     <h1 class="hero-title">Event Services & <span class="brand-accent">Hustler Marketplace</span></h1>
-    <p class="hero-lead">Connect with certified local service providers for your upcoming festival, concert, wedding, or bash. From spit braai catering and stage sound hire to bakkie logistics and fashion styling — protected with PayFast escrow.</p>
+    <p class="hero-lead">Find local service providers for your festival, concert, wedding or party, from spit braai catering and sound hire to transport and styling. Providers list themselves and set their own prices.</p>
 
     <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 48px;">
       ${SERVICES.map(s => `
@@ -1577,7 +1599,7 @@ function emptyHubNote(what) {
           <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 8px;">${escapeHtml(s.name)}</h3>
           <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5;">${escapeHtml(s.desc)}</p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; margin-top: auto;">
-            <span style="font-weight: 800; color: #fff; font-size: 13px;">${escapeHtml(s.rate)}</span>
+            <span style="font-weight: 800; color: #fff; font-size: 13px;">Prices set by each provider</span>
             <span class="btn-view">Browse Providers →</span>
           </div>
         </a>
@@ -1593,9 +1615,12 @@ function emptyHubNote(what) {
     </div>
   `;
 
+  // Service pages are not indexed yet: they describe kinds of providers but
+  // list none from the database. Index them once they show real providers.
   const masterServicesHtml = renderHtmlShell({
     title: 'Event Services & Equipment Hire Directory South Africa — The Gruvs',
-    description: 'Find, compare, and book event caterers, sound systems, stage rigging, bakkie haulers, fashion designers, and DJs in South Africa. PayFast escrow protected.',
+    description: 'Find event caterers, sound, staging, transport, styling and DJs in South Africa. Providers list themselves on The Gruvs and set their own prices.',
+    noindex: true,
     canonicalUrl: `${SITE}/services`,
     jsonLd: [masterServicesJsonLd],
     bodyContent: masterServicesBody,
@@ -1612,28 +1637,11 @@ function emptyHubNote(what) {
       'name': s.name,
       'description': s.desc,
       'serviceType': s.name,
-      'provider': {
-        '@type': 'LocalBusiness',
-        'name': `${s.name} Network on The Gruvs`,
-        'image': `${SITE}/og-default.jpg`,
-        'priceRange': s.rate,
-        'address': {
-          '@type': 'PostalAddress',
-          'addressLocality': 'Johannesburg',
-          'addressCountry': 'ZA',
-        },
-      },
       'areaServed': {
         '@type': 'Country',
         'name': 'South Africa',
       },
-      'offers': {
-        '@type': 'Offer',
-        'price': s.rate.replace(/[^0-9]/g, '') || '500',
-        'priceCurrency': 'ZAR',
-        'availability': 'https://schema.org/InStock',
-        'url': `${SITE}/services/${s.slug}`,
-      },
+      'url': `${SITE}/services/${s.slug}`,
     };
 
     const serviceFaqJsonLd = {
@@ -1645,15 +1653,15 @@ function emptyHubNote(what) {
           'name': `How do I book ${s.name.toLowerCase()} on The Gruvs?`,
           'acceptedAnswer': {
             '@type': 'Answer',
-            'text': `Browse verified local providers on The Gruvs app, review their past event ratings, and book with PayFast escrow protection. Payment is only released to the provider after service completion.`,
+            'text': `Open The Gruvs app, search for ${s.name.toLowerCase()}, and contact a provider about your date, place and budget. You and the provider agree the price and how it is paid; The Gruvs does not take or hold payment for bookings.`,
           },
         },
         {
           '@type': 'Question',
-          'name': `What are the average rates for ${s.name.toLowerCase()}?`,
+          'name': `How much do ${s.name.toLowerCase()} cost?`,
           'acceptedAnswer': {
             '@type': 'Answer',
-            'text': `Rates typically start ${s.rate.toLowerCase()}, depending on duration, crowd size, and distance. Quotes can be requested directly in-app.`,
+            'text': `Each provider sets their own price, depending on the date, how long, how many people and how far. Ask the provider for a quote.`,
           },
         },
         {
@@ -1661,7 +1669,7 @@ function emptyHubNote(what) {
           'name': `Can I list my own ${s.name.toLowerCase()} business?`,
           'acceptedAnswer': {
             '@type': 'Answer',
-            'text': `Yes! Event service providers, gear owners, and freelancers can register their profile for free on The Gruvs to receive automated leads for events scheduled 30–90 days ahead.`,
+            'text': `Yes. Event service providers, gear owners and freelancers can create a profile on The Gruvs so organisers can find them.`,
           },
         },
       ],
@@ -1681,10 +1689,7 @@ function emptyHubNote(what) {
         
         <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
           <div style="background: rgba(255,255,255,0.06); padding: 8px 16px; border-radius: 10px; font-size: 14px; font-weight: 800;">
-            💰 Standard Pricing: <span style="color: var(--primary);">${escapeHtml(s.rate)}</span>
-          </div>
-          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; color: #10b981;">
-            🔒 PayFast Escrow Protected
+            Prices are set by each provider
           </div>
         </div>
       </div>
@@ -1693,9 +1698,9 @@ function emptyHubNote(what) {
         <div style="background: var(--surface); border: 1px solid var(--surface-border); border-radius: 16px; padding: 24px;">
           <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 12px; color: #fff;">Need ${escapeHtml(s.name)} for Your Event?</h2>
           <p style="font-size: 14px; color: var(--muted); margin-bottom: 20px; line-height: 1.6;">
-            Event organizers can browse vetted service providers, check social integrity ratings, and submit booking requests with instant quotes. Funds are locked securely in PayFast escrow until you verify delivery at the venue.
+            Organisers can find providers in the app and contact them about a date, a place and a budget. You and the provider agree the price and how it is paid.
           </p>
-          <a href="${SITE}/?search_service=${s.slug}" class="nav-cta" style="display: block; text-align: center;">Book Verified Providers in App →</a>
+          <a href="${SITE}/?search_service=${s.slug}" class="nav-cta" style="display: block; text-align: center;">Find providers in the app →</a>
         </div>
 
         <div style="background: var(--surface); border: 1px solid var(--surface-border); border-radius: 16px; padding: 24px;">
@@ -1710,12 +1715,12 @@ function emptyHubNote(what) {
       <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--surface-border); border-radius: 16px; padding: 24px; margin-bottom: 40px;">
         <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">Frequently Asked Questions</h3>
         <div style="margin-bottom: 16px;">
-          <strong style="color: #fff; font-size: 15px; display: block; margin-bottom: 4px;">How does escrow payment work?</strong>
-          <p style="color: var(--muted); font-size: 14px; line-height: 1.5;">When an organizer books you, the money is safely captured and held by PayFast. Once the event concludes and service delivery is confirmed, funds are automatically transferred to your verified South African bank account.</p>
+          <strong style="color: #fff; font-size: 15px; display: block; margin-bottom: 4px;">How is a booking paid?</strong>
+          <p style="color: var(--muted); font-size: 14px; line-height: 1.5;">The Gruvs does not take or hold payment for bookings. You and the organiser agree the price and how you are paid.</p>
         </div>
         <div style="margin-bottom: 16px;">
           <strong style="color: #fff; font-size: 15px; display: block; margin-bottom: 4px;">What areas are covered?</strong>
-          <p style="color: var(--muted); font-size: 14px; line-height: 1.5;">The Gruvs services directory operates nationwide across Johannesburg, Pretoria, Midrand, Soweto, Tembisa, Cape Town, Durban, Bloemfontein, and surrounding townships.</p>
+          <p style="color: var(--muted); font-size: 14px; line-height: 1.5;">Providers say where they work on their own profiles; organisers anywhere in South Africa can search them.</p>
         </div>
       </div>
 
@@ -1730,7 +1735,8 @@ function emptyHubNote(what) {
 
     const serviceHtml = renderHtmlShell({
       title: `${s.name} for Events & Festivals in South Africa | The Gruvs`,
-      description: `Hire certified ${s.name.toLowerCase()} for upcoming concerts, weddings, and parties across South Africa. ${s.rate}. PayFast escrow guaranteed.`,
+      description: `Find ${s.name.toLowerCase()} for concerts, weddings and parties in South Africa. Providers list themselves on The Gruvs and set their own prices.`,
+      noindex: true,
       canonicalUrl: `${SITE}/services/${s.slug}`,
       jsonLd: [serviceJsonLd, serviceFaqJsonLd],
       bodyContent: serviceBody,
@@ -1953,7 +1959,7 @@ function emptyHubNote(what) {
           'name': `Is there accommodation near ${e.venue_name || 'the venue'}?`,
           'acceptedAnswer': {
             '@type': 'Answer',
-            'text': `Yes, verified local guest houses, apartments, and rooms near ${venue} can be booked through The Resident Crew partner network.`,
+            'text': `Rooms near ${venue} may be listed on The Resident Crew, where landlords post places to stay.`,
           },
         },
       ],
@@ -2111,6 +2117,7 @@ function emptyHubNote(what) {
   writePage('feed.xml', rssXml);
   console.log('[build-seo-hubs] Generated public/feed.xml with 50 live events.');
 
+  pruneEndedEventPages(path.join(publicDir, 'events'), today);
   console.log(`[build-seo-hubs] Successfully generated ${generatedPages.length} programmatic SEO pages.`);
   console.log(`  - ${CITIES.length} City Hubs (Johannesburg, Cape Town, Durban, Pretoria, Sandton, Soweto, etc.)`);
   console.log(`  - ${GENRES.length} Category & Vertical Hubs (Music, Nightlife, Tech, FinTech, Mining, VC, Real Estate)`);

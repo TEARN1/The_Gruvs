@@ -106,7 +106,7 @@ const endIso = (event, startMs) => {
 };
 
 /**
- * Maps event status string to official Schema.org EventStatusType
+ * Maps event status string to a Schema.org EventStatusType
  */
 const getEventStatus = (status) => {
   const s = String(status || '').toLowerCase();
@@ -490,7 +490,7 @@ export function setFounderSeo(customBio = null) {
   if (!canDom()) return;
   try {
     const title = 'Asemahle Nkwali — Founder & CEO | The Gruvs Ecosystem';
-    const desc = customBio || 'Official executive profile of Asemahle Nkwali, Founder & CEO of The Gruvs, The Resident Crew, and Excellency Academy. Building high-authority event technology, verified co-living, and engineering craftsmanship across South Africa.';
+    const desc = customBio || 'Profile of Asemahle Nkwali, founder of The Gruvs, The Resident Crew and Excellency Academy: event discovery, student accommodation and job-skills practice in South Africa.';
     const url = `${SITE}/founder`;
     const image = `${SITE}/images/asemahle-nkwali-ceo-the-gruvs.jpg`;
 
@@ -577,8 +577,8 @@ export function setFounderSeo(customBio = null) {
 export function setPressSeo() {
   if (!canDom()) return;
   try {
-    const title = 'Press & Media Kit — The Gruvs | Official Corporate Newsroom';
-    const desc = 'Official Press & Media Kit for The Gruvs, founded by Asemahle "TEARN" Nkwali. Download official brand assets, logos, founder portraits, and access third-person corporate boilerplates.';
+    const title = 'Press Kit — The Gruvs';
+    const desc = 'Press kit for The Gruvs, founded by Asemahle "TEARN" Nkwali: brand assets, logos, founder portraits and boilerplate text.';
     const url = `${SITE}/press`;
     const image = `${SITE}/images/the-gruvs-app-launch-preview.jpg`;
 

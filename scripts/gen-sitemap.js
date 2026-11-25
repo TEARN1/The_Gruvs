@@ -26,8 +26,8 @@ const STATIC = [
     changefreq: 'daily',
     priority: '1.0',
     images: [
-      { loc: `${SITE}/icon-512.png`, title: 'The Gruvs App Icon', caption: 'Official App Icon' },
-      { loc: `${SITE}/logo.png`, title: 'The Gruvs Brand Logo', caption: 'Official Logo' },
+      { loc: `${SITE}/icon-512.png`, title: 'The Gruvs App Icon', caption: 'The Gruvs app icon' },
+      { loc: `${SITE}/logo.png`, title: 'The Gruvs Brand Logo', caption: 'The Gruvs logo' },
       { loc: `${SITE}/images/the-gruvs-app-launch-preview.jpg`, title: 'The Gruvs Mobile Platform', caption: 'Live Vibe Mapping and Discovery' },
       { loc: `${SITE}/images/the-resident-crew-preview.jpg`, title: 'The Resident Crew Ecosystem', caption: 'Accommodation Near Event Venues' },
       { loc: `${SITE}/images/excellency-academy-preview.jpg`, title: 'Excellency Academy Ecosystem', caption: 'Student Life and Community' },
@@ -38,7 +38,7 @@ const STATIC = [
       { loc: `${SITE}/images/advertising/05-the-gruvs-desktop-portal-hero.png`, title: 'The Gruvs Desktop Portal', caption: 'Desktop Discovery Hero' },
       { loc: `${SITE}/images/advertising/06-the-gruvs-services-marketplace.png`, title: 'The Gruvs Services Marketplace', caption: '28 Event Hustler Categories' },
       { loc: `${SITE}/images/advertising/07-the-gruvs-founder-ecosystem.png`, title: 'The Gruvs Founder Ecosystem', caption: 'Connected TEARN Ventures Ecosystem' },
-      { loc: `${SITE}/images/advertising/ad-the-resident-x-the-gruvs.png`, title: 'The Resident Crew x The Gruvs', caption: 'Official Cross-Platform Banner' },
+      { loc: `${SITE}/images/advertising/ad-the-resident-x-the-gruvs.png`, title: 'The Resident Crew x The Gruvs', caption: 'The Resident Crew and The Gruvs' },
       { loc: `${SITE}/images/advertising/ad-excellency-academy-x-the-gruvs.png`, title: 'Excellency Academy x The Gruvs', caption: 'Student Vibe Passport Banner' },
     ],
   },
@@ -47,7 +47,7 @@ const STATIC = [
     changefreq: 'weekly',
     priority: '0.95',
     images: [
-      { loc: `${SITE}/images/asemahle-nkwali-ceo-the-gruvs.jpg`, title: 'Asemahle "TEARN" Nkwali Founder & CEO', caption: 'Official Executive Portrait' },
+      { loc: `${SITE}/images/asemahle-nkwali-ceo-the-gruvs.jpg`, title: 'Asemahle "TEARN" Nkwali Founder & CEO', caption: 'Portrait of Asemahle Nkwali' },
       { loc: `${SITE}/images/asemahle-nkwali-founder-keynote.jpg`, title: 'Asemahle "TEARN" Nkwali Keynote', caption: 'South African Event Technology Address' },
       { loc: `${SITE}/images/the-gruvs-app-launch-preview.jpg`, title: 'The Gruvs Mobile Platform', caption: 'Live Vibe Mapping and Discovery' },
     ],
