@@ -5,36 +5,9 @@
   <link>https://thegruvs.com/</link>
   <description>Live upcoming nightlife, festivals, music, and cultural events across South Africa.</description>
   <language>en-za</language>
-  <lastBuildDate>Mon, 23 Nov 2026 15:19:09 GMT</lastBuildDate>
+  <lastBuildDate>Fri, 27 Nov 2026 18:34:47 GMT</lastBuildDate>
   <atom:link href="https://thegruvs.com/feed.xml" rel="self" type="application/rss+xml" />
   
-    <item>
-      <title><![CDATA[Proteas v Bangladesh — 2nd Test]]></title>
-      <link>https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/proteas-v-bangladesh-2nd-test-supersport-park-centurion-369f9e90-c4be-4a23-8f99-51f44f77b9b8</guid>
-      <pubDate>Mon, 23 Nov 2026 15:16:59 GMT</pubDate>
-      <description><![CDATA[South Africa v Bangladesh, second Test (World Test Championship). Five days, 23–27 November.]]></description>
-      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
-      <category>sport</category>
-    </item>
-    <item>
-      <title><![CDATA[German Country Club Christmas Market]]></title>
-      <link>https://thegruvs.com/events/german-country-club-christmas-market-german-country-club-johannesburg-605def80-af38-4450-891e-a40f22223e76</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/german-country-club-christmas-market-german-country-club-johannesburg-605def80-af38-4450-891e-a40f22223e76</guid>
-      <pubDate>Mon, 23 Nov 2026 15:16:59 GMT</pubDate>
-      <description><![CDATA[Family Christmas market at the German Country Club, Paulshof. Sourced from joburg.co.za's 2026 Christmas market guide.]]></description>
-      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
-      <category>market</category>
-    </item>
-    <item>
-      <title><![CDATA[Kasi Restaurants Expo & Summit]]></title>
-      <link>https://thegruvs.com/events/kasi-restaurants-expo-and-summit-letsheng-mall-sebokeng-9e52dc78-6815-4b50-8710-95abf8e46e6c</link>
-      <guid isPermaLink="true">https://thegruvs.com/events/kasi-restaurants-expo-and-summit-letsheng-mall-sebokeng-9e52dc78-6815-4b50-8710-95abf8e46e6c</guid>
-      <pubDate>Mon, 23 Nov 2026 15:16:59 GMT</pubDate>
-      <description><![CDATA[Township restaurant industry expo and summit at Letsheng Mall, Sebokeng.]]></description>
-      <enclosure url="https://cdn2.allevents.in/thumbs/thumb6906facc52d55.jpg" type="image/jpeg" />
-      <category>food</category>
-    </item>
     <item>
       <title><![CDATA[Nickel Christmas Market]]></title>
       <link>https://thegruvs.com/events/nickel-christmas-market-nickel-market-pretoria-58a16b85-15a0-467d-a498-51db278f53c2</link>
@@ -421,6 +394,33 @@
       <description><![CDATA[Unlocking high-growth township entrepreneurship, spaza shop point-of-sale digitization, last-mile logistics, and micro-loan financing. Featuring Gauteng economic development leaders and micro-grant announcements for 500+ local founders.]]></description>
       <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
       <category>biz</category>
+    </item>
+    <item>
+      <title><![CDATA[Brooks Campus Run: Summer Race]]></title>
+      <link>https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/brooks-campus-run-summer-race-the-campus-sandton-8d367874-6159-45dd-b93e-0db56788ddd1</guid>
+      <pubDate>Mon, 23 Nov 2026 15:16:59 GMT</pubDate>
+      <description><![CDATA[Summer road race at The Campus, Bryanston.]]></description>
+      <enclosure url="https://cdn-az.allevents.in/events8/banners/a11d1e7886e9264767ba00b6bc8f8053175004fe674cf51c77dec47d8b540573-rimg-w1200-h628-dcf8f8f8-gmir?v=1787602769" type="image/jpeg" />
+      <category>sport</category>
+    </item>
+    <item>
+      <title><![CDATA[Altitude Beach Dezemba Fest]]></title>
+      <link>https://thegruvs.com/events/altitude-beach-dezemba-fest-altitude-beach-johannesburg-ce770e88-47ee-492e-9cfb-284fdfbb9550</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/altitude-beach-dezemba-fest-altitude-beach-johannesburg-ce770e88-47ee-492e-9cfb-284fdfbb9550</guid>
+      <pubDate>Mon, 23 Nov 2026 15:16:59 GMT</pubDate>
+      <description><![CDATA[Fourways turns into the ultimate summer oasis. Pool party vibes, live percussionists, top amapiano and hip-hop spinners, luxury daybeds, and illuminated evening swimming.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>music</category>
+    </item>
+    <item>
+      <title><![CDATA[Proteas v Bangladesh — 3rd ODI]]></title>
+      <link>https://thegruvs.com/events/proteas-v-bangladesh-3rd-odi-newlands-cricket-ground-cape-town-8ce10fc2-c7cc-4c50-bdcc-a9473ad13194</link>
+      <guid isPermaLink="true">https://thegruvs.com/events/proteas-v-bangladesh-3rd-odi-newlands-cricket-ground-cape-town-8ce10fc2-c7cc-4c50-bdcc-a9473ad13194</guid>
+      <pubDate>Mon, 23 Nov 2026 15:16:59 GMT</pubDate>
+      <description><![CDATA[South Africa v Bangladesh, third ODI. Start time to be confirmed.]]></description>
+      <enclosure url="https://thegruvs.com/og-default.jpg" type="image/jpeg" />
+      <category>sport</category>
     </item>
 </channel>
 </rss>

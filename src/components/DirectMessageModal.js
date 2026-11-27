@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, Modal, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform,
+  StyleSheet, KeyboardAvoidingView, Platform, Keyboard,
   ActivityIndicator, Animated, Alert, Linking, DeviceEventEmitter,
 } from 'react-native';
 import { SmartImage } from './SmartImage';
@@ -246,6 +246,9 @@ const sec = StyleSheet.create({
   price: { fontSize: 11, fontWeight: '900' },
 });
 
+const isLocalDev = Platform.OS === 'web' && typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
 export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipient, onNavigateToEvent, initialMessage = '', embedded = false }) => {
   // In embedded (split-pane) mode there is no Modal to intercept back — the
   // parent screen owns the hardware-back behaviour, so skip the hook.
@@ -447,6 +450,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
   };
 
   const flatRef = useRef(null);
+  const inputRef = useRef(null);
   const channelRef = useRef(null);
   const presenceRef = useRef(null);
   const broadcastRef = useRef(null);
@@ -459,7 +463,17 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
 
   // ── Fetch messages + determine request status ────────────────────────────────
   const fetchMessages = useCallback(async () => {
-    if (!user || !recipient) return;
+    if (!user) {
+      if (isLocalDev && recipient) {
+        setMessages([
+          { id: 'demo-m1', sender_id: recipient.id, recipient_id: 'demo_guest_user_id', body: `Hey! Are you heading to the Gruv tonight?`, created_at: new Date(Date.now() - 1000 * 60 * 18).toISOString() },
+          { id: 'demo-m2', sender_id: 'demo_guest_user_id', recipient_id: recipient.id, body: `Yeah, checking out the vibe on The Gruvs!`, created_at: new Date(Date.now() - 1000 * 60 * 12).toISOString() },
+          { id: 'demo-m3', sender_id: recipient.id, recipient_id: 'demo_guest_user_id', body: `Awesome, see you there! Let's link up at the stage 🔥`, created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString() },
+        ]);
+      }
+      return;
+    }
+    if (!recipient) return;
     const msgs = await MessageManager.fetchThread(user.id, recipient.id);
     const filtered = msgs.filter(m => !m.deleted_at);
     const next = filtered.length > MAX_MESSAGES ? filtered.slice(filtered.length - MAX_MESSAGES) : filtered;
@@ -653,10 +667,20 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
     // skeleton, which made messages flicker and "disappear".
   }, [visible, user?.id, recipient?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom on new messages and when soft keyboard appears
   useEffect(() => {
     if (messages.length > 0) setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 80);
   }, [messages.length]);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
+      }
+    );
+    return () => showSub.remove();
+  }, []);
 
   // ── Typing broadcast ──────────────────────────────────────────────────────────
   const broadcastTyping = useCallback(async (isTypingNow) => {
@@ -674,7 +698,25 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
   // ── Send message — optimistic + broadcast for near-instant delivery ──────────
   const handleSend = async () => {
     const trimmed = body.trim();
-    if (!trimmed || !user || !recipient || sending) return;
+    if (!trimmed || (!user && !isLocalDev) || !recipient || sending) return;
+
+    if (!user) {
+      // Local dev preview / test mode send: append optimistic bubble with sound FX
+      const now = new Date().toISOString();
+      const mockMsg = {
+        id: 'demo-msg-' + Date.now(),
+        sender_id: 'demo_guest_user_id',
+        recipient_id: recipient.id,
+        body: trimmed,
+        message_type: 'text',
+        created_at: now,
+        delivered_at: now,
+      };
+      setMessages(prev => [...prev, mockMsg]);
+      setBody('');
+      SoundFX.play('messageSent');
+      return;
+    }
 
     const parentId = replyingTo?.id || null;
     setSending(true);
@@ -986,7 +1028,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
 
   // ── Render message bubble ─────────────────────────────────────────────────────
   const renderItem = useCallback(({ item, index }) => {
-    const isMine = item.sender_id === user?.id;
+    const isMine = item.sender_id === (user?.id || 'demo_guest_user_id');
     const showDate = index === 0 || fmtDate(item.created_at) !== fmtDate(messages[index - 1]?.created_at);
     const isSelected = selectedMsgId === item.id;
 
@@ -1013,7 +1055,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
               />
             </TouchableOpacity>
           )}
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, alignItems: isMine ? 'flex-end' : 'flex-start' }}>
             <AnimatedChatBubble
               isMine={isMine}
               isSelected={isSelected}
@@ -1309,8 +1351,8 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
     <>
       <KeyboardAvoidingView
         style={[dm.root, { backgroundColor: bg }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={embedded ? 0 : insets.top}
+        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? (embedded ? 0 : 20) : 0}
       >
         {/* Header */}
         <View style={[dm.header, { borderBottomColor: `${primary}18`, paddingTop: embedded ? 14 : insets.top + 10 }]}>
@@ -1436,10 +1478,15 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
             data={messages}
             keyExtractor={m => m.id}
             renderItem={renderItem}
-            contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: 12, paddingVertical: 14 }}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            onContentSizeChange={() => {
+              if (messages.length > 0) flatRef.current?.scrollToEnd({ animated: false });
+            }}
             ListEmptyComponent={
-              <View style={{ alignItems: 'center', paddingVertical: 40, gap: 12 }}>
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 }}>
                 <Feather name="message-circle" size={44} color={muted} style={{ opacity: 0.4 }} />
                 <Text style={{ color: muted, fontSize: 14, fontWeight: '700' }}>
                   {requestStatus === 'pending' ? 'Message sent. Waiting for them to accept...' : 'Start the conversation'}
@@ -1541,7 +1588,7 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
               <TouchableOpacity
                 style={[dm.attachBtn, { backgroundColor: `${primary}15` }]}
                 onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                disabled={inputLocked || requestStatus === 'incoming_request' || mediaLoading}
+                disabled={inputLocked || mediaLoading}
               >
                 {mediaLoading
                   ? <ActivityIndicator size="small" color={primary} />
@@ -1549,20 +1596,25 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
                 }
               </TouchableOpacity>
               <TextInput
+                ref={inputRef}
                 style={[dm.input, { color: textColor, backgroundColor: `${bg}cc`, borderWidth: 1, borderColor: `${primary}18`, opacity: inputLocked ? 0.5 : 1 }]}
                 placeholder={
                   inputLocked
                     ? 'Waiting for them to accept...'
                     : requestStatus === 'incoming_request'
-                      ? 'Accept to reply...'
+                      ? 'Type a reply to accept...'
                       : 'Message...'
                 }
                 placeholderTextColor={muted}
                 value={body}
                 onChangeText={handleTextChange}
+                onFocus={() => {
+                  if (requestStatus === 'incoming_request') handleAccept();
+                  setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 120);
+                }}
                 multiline
                 maxLength={2000}
-                editable={!inputLocked && requestStatus !== 'incoming_request'}
+                editable={!inputLocked}
                 returnKeyType="default"
               />
               <TouchableOpacity
@@ -1781,7 +1833,13 @@ export const DirectMessageModal = ({ visible, onClose, recipient: initialRecipie
   if (embedded) return <View style={[dm.root, { flex: 1, backgroundColor: bg }]}>{inner}</View>;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle={Platform.OS === 'ios' ? 'fullScreen' : 'overFullScreen'}
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
       <View style={{ flex: 1, backgroundColor: bg, alignItems: 'center' }}>
         <View style={{ flex: 1, width: '100%', maxWidth: 680 }}>
           {inner}
@@ -1801,9 +1859,9 @@ const dm = StyleSheet.create({
   headerName: { fontSize: 15, fontWeight: '800' },
   headerSub: { fontSize: 11, fontWeight: '600', marginTop: 2 },
   bubble: { marginBottom: 6 },
-  bubbleMine: { alignSelf: 'flex-end', alignItems: 'flex-end', paddingRight: 16 },
-  bubbleTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start', paddingLeft: 16 },
-  bubbleInner: { maxWidth: '78%', borderRadius: 18, padding: 12 },
+  bubbleMine: { alignSelf: 'flex-end', alignItems: 'flex-end', marginVertical: 3, maxWidth: '85%' },
+  bubbleTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start', marginVertical: 3, maxWidth: '85%' },
+  bubbleInner: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, minWidth: 44, maxWidth: '100%' },
   bodyText: { fontSize: 14, lineHeight: 20 },
   timeText: { fontSize: 10, marginTop: 2 },
   reactionBubble: { position: 'absolute', bottom: -12, right: 6, flexDirection: 'row', gap: 3, alignItems: 'center' },

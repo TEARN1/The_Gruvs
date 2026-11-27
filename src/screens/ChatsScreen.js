@@ -133,6 +133,65 @@ const cs = StyleSheet.create({
 
 const CONVO_ROW_HEIGHT = 79; // paddingVertical 14*2 + avatar 50 + 1 border
 
+const isLocalDev = Platform.OS === 'web' && typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+const MOCK_TEST_USER = {
+  id: 'demo_guest_user_id',
+  email: 'guest@thegruvs.test',
+  username: 'test_viber',
+  display_name: 'Test Viber',
+  user_metadata: { username: 'test_viber' },
+};
+
+const MOCK_DEMO_CONVOS = [
+  {
+    id: 'demo-c1',
+    body: 'Are you heading to SuperSport Park tonight?',
+    created_at: new Date(Date.now() - 1000 * 60 * 14).toISOString(),
+    recipient_id: 'demo_guest_user_id',
+    sender_id: 'viber_thabo',
+    read_at: null,
+    partner: {
+      id: 'viber_thabo',
+      username: 'thabo_grooves',
+      display_name: 'Thabo M.',
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      is_online: true,
+    },
+  },
+  {
+    id: 'demo-c2',
+    body: 'Lock in before 10 PM, VIP tables are filling up fast 🔥',
+    created_at: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
+    recipient_id: 'demo_guest_user_id',
+    sender_id: 'viber_zanele',
+    read_at: new Date().toISOString(),
+    partner: {
+      id: 'viber_zanele',
+      username: 'zanele_vibes',
+      display_name: 'Zanele K.',
+      avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
+      is_online: true,
+    },
+  },
+  {
+    id: 'demo-c3',
+    body: 'Shot! See you at the main stage for the second set.',
+    created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+    recipient_id: 'viber_karabo',
+    sender_id: 'demo_guest_user_id',
+    read_at: new Date().toISOString(),
+    partner: {
+      id: 'viber_karabo',
+      username: 'karabo_dj',
+      display_name: 'Karabo Beats',
+      avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
+      is_online: false,
+    },
+  },
+];
+
 // ── Main ChatsScreen ──────────────────────────────────────────────────────────
 export const ChatsScreen = ({ onAuthRequired }) => {
   const { currentTheme }  = useTheme();
@@ -144,8 +203,12 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   const muted     = currentTheme?.textMuted  || 'rgba(255,255,255,0.5)';
   const surface   = currentTheme?.surface    || "#1a1f21";
 
+  // Allow instant testing and preview on localhost without auth blocking
+  const [testMode, setTestMode] = useState(isLocalDev);
+  const activeUser = user || (testMode ? MOCK_TEST_USER : null);
+
   const [pageMode,    setPageMode]    = useState('chats'); // 'chats' | 'crew'
-  const [convos,      setConvos]      = useState([]);
+  const [convos,      setConvos]      = useState(testMode && !user ? MOCK_DEMO_CONVOS : []);
   const [loading,     setLoading]     = useState(false);
   const [refreshing,  setRefreshing]  = useState(false);
   const [search,      setSearch]      = useState('');
@@ -189,7 +252,14 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   }, [CONVOS_CACHE_KEY]);
 
   const fetchConvos = useCallback(async (isRefresh = false) => {
-    if (!user) { setConvos([]); return; }
+    if (!user) {
+      if (testMode) {
+        setConvos(MOCK_DEMO_CONVOS);
+      } else {
+        setConvos([]);
+      }
+      return;
+    }
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
       const data = await MessageManager.getConversations(user.id);
@@ -204,7 +274,7 @@ export const ChatsScreen = ({ onAuthRequired }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, CONVOS_CACHE_KEY]);
+  }, [user, testMode, CONVOS_CACHE_KEY]);
 
   useEffect(() => {
     fetchConvos();
@@ -222,15 +292,15 @@ export const ChatsScreen = ({ onAuthRequired }) => {
   [convos, search]);
 
   const pendingCount = useMemo(
-    () => convos.filter(c => c.is_request && !c.request_accepted && c.recipient_id === user?.id).length,
-    [convos, user?.id],
+    () => convos.filter(c => c.is_request && !c.request_accepted && c.recipient_id === activeUser?.id).length,
+    [convos, activeUser?.id],
   );
 
   const renderConvoRow = useCallback(({ item, index }) => (
     <ConvoRow
       item={item}
       index={index}
-      userId={user.id}
+      userId={activeUser?.id}
       primary={primary}
       textColor={textColor}
       muted={muted}
@@ -238,9 +308,9 @@ export const ChatsScreen = ({ onAuthRequired }) => {
       isActive={isWide && activeConvo?.id === item.partner?.id}
       onPress={() => setActiveConvo(item.partner)}
     />
-  ), [user?.id, primary, textColor, muted, surface, isWide, activeConvo?.id]);
+  ), [activeUser?.id, primary, textColor, muted, surface, isWide, activeConvo?.id]);
 
-  if (!user) {
+  if (!activeUser) {
     return (
       <SafeAreaView style={[ch.screen, { backgroundColor: bg }]}>
         <View style={ch.unauthWrap}>
@@ -252,6 +322,16 @@ export const ChatsScreen = ({ onAuthRequired }) => {
               <Text style={{ color: '#000', fontWeight: '900', fontSize: 14 }}>Sign In</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity
+            style={[ch.testModeBtn, { borderColor: `${primary}50`, backgroundColor: `${primary}15` }]}
+            onPress={() => {
+              setTestMode(true);
+              setConvos(MOCK_DEMO_CONVOS);
+            }}
+          >
+            <Feather name="play-circle" size={15} color={primary} />
+            <Text style={[ch.testModeText, { color: primary }]}>Preview & Test Linked Up (Demo Mode)</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -261,6 +341,23 @@ export const ChatsScreen = ({ onAuthRequired }) => {
     <ErrorBoundary label="Chats">
     <SafeAreaView style={[ch.screen, { backgroundColor: bg }]}>
       <LiquidBackground intensity={0.7} />
+      {/* Dev / Test Mode Indicator */}
+      {testMode && !user && (
+        <View style={[ch.devBanner, { backgroundColor: `${primary}15`, borderColor: `${primary}35` }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+            <Feather name="code" size={13} color={primary} />
+            <Text style={[ch.devBannerTitle, { color: primary }]}>TEST & PREVIEW MODE</Text>
+            <Text style={[ch.devBannerSub, { color: muted }]}>Sign-in gate unlocked for local testing</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setTestMode(false)}
+            style={[ch.devBannerBtn, { borderColor: `${primary}50` }]}
+          >
+            <Text style={{ color: primary, fontSize: 11, fontWeight: '800' }}>Show Sign-In Gate</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Header */}
       <View style={ch.header}>
         <Text style={[ch.title, { color: primary }]}>LINKED UP</Text>
@@ -448,6 +545,12 @@ const ch = StyleSheet.create({
   unauthTitle:  { fontSize: 18, fontWeight: '900' },
   unauthSub:    { fontSize: 14, textAlign: 'center', lineHeight: 20 },
   signInBtn:    { paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14, marginTop: 8 },
+  testModeBtn:  { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, marginTop: 10 },
+  testModeText: { fontSize: 13, fontWeight: '800' },
+  devBanner:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8, marginHorizontal: 16, marginTop: 8, borderRadius: 12, borderWidth: 1, gap: 8 },
+  devBannerTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  devBannerSub: { fontSize: 11 },
+  devBannerBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
   segWrap:      { flexDirection: 'row', borderBottomWidth: 1 },
   segBtn:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 },
   segLabel:     { fontSize: 13, fontWeight: '800' },

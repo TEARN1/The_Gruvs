@@ -479,14 +479,6 @@
     </image:image>
   </url>
   <url>
-    <loc>https://thegruvs.com/events/kasi-restaurants-expo-and-summit-letsheng-mall-sebokeng-9e52dc78-6815-4b50-8710-95abf8e46e6c</loc>
-    <image:image>
-      <image:loc>https://cdn2.allevents.in/thumbs/thumb6906facc52d55.jpg</image:loc>
-      <image:title>Kasi Restaurants Expo &amp; Summit</image:title>
-      <image:caption>Letsheng Mall · Sebokeng · food</image:caption>
-    </image:image>
-  </url>
-  <url>
     <loc>https://thegruvs.com/events/leadership-in-aviation-and-travel-workshop-lat-2-6-december-2026-adc01bfc-08a7-44b0-9ce7-574549947450</loc>
     <image:image>
       <image:loc>https://cdn-az.allevents.in/events7/banners/4910f6384ddaf6ca4c168ac6ed8aab54319094cfc87392567f6919a0b550fa94-rimg-w1200-h800-dc081808-gmir?v=1788455003</image:loc>
@@ -764,14 +756,6 @@
       <image:loc>https://cdn-az.allevents.in/events4/banners/17cf18dcc225c7693f7e3a47bc3eed0200d9445564df9c71d4a743a297f51936-rimg-w796-h517-dc18b898-gmir?v=1793951268</image:loc>
       <image:title>ZA Wit Open Day</image:title>
       <image:caption>20 Oxford Office Park, 3 Bauhinia Street, 0167 Centurion, South Africa · Centurion · Entrepreneurship &amp; Business</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/share/event/9e52dc78-6815-4b50-8710-95abf8e46e6c</loc>
-    <image:image>
-      <image:loc>https://cdn2.allevents.in/thumbs/thumb6906facc52d55.jpg</image:loc>
-      <image:title>Kasi Restaurants Expo &amp; Summit</image:title>
-      <image:caption>Letsheng Mall · Sebokeng · food</image:caption>
     </image:image>
   </url>
   <url>
@@ -1423,6 +1407,22 @@
     </image:image>
   </url>
   <url>
+    <loc>https://thegruvs.com/profile/dorramkilwa</loc>
+    <image:image>
+      <image:loc>https://lh3.googleusercontent.com/a/ACg8ocIwX3voGBL0X61vG71Sg7xF93_kc2am3vGjJQokW53wJhk0bYq7=s96-c</image:loc>
+      <image:title>Dorra Mkilwa</image:title>
+      <image:caption>@dorramkilwa on The Gruvs</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://thegruvs.com/profile/thegruvs</loc>
+    <image:image>
+      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/avatar_1779117952962.png</image:loc>
+      <image:title>The Gruvs</image:title>
+      <image:caption>@thegruvs on The Gruvs</image:caption>
+    </image:image>
+  </url>
+  <url>
     <loc>https://thegruvs.com/profile/sinomercy</loc>
     <image:image>
       <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/7a138d94-9ed4-471e-9044-7a699d5767f3/avatar_1782814366043.jpg</image:loc>
@@ -1452,14 +1452,6 @@
       <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/285af35d-4102-4445-a9dd-0bf3f6015b48/avatar_1784309786562.jpg</image:loc>
       <image:title>Nia</image:title>
       <image:caption>@Nia on The Gruvs</image:caption>
-    </image:image>
-  </url>
-  <url>
-    <loc>https://thegruvs.com/profile/thegruvs</loc>
-    <image:image>
-      <image:loc>https://feevvddvrjmfbhffccbf.supabase.co/storage/v1/object/public/avatars/a1b2ea24-a0b9-450c-9a59-3ba7bbc5224c/avatar_1779117952962.png</image:loc>
-      <image:title>The Gruvs</image:title>
-      <image:caption>@thegruvs on The Gruvs</image:caption>
     </image:image>
   </url>
   <url>

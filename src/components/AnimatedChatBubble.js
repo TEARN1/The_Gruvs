@@ -122,9 +122,11 @@ export function AnimatedChatBubble({
     <Animated.View
       style={[
         styles.root,
-        // Hug the sender's edge. With only maxWidth set, the bubble started
-        // at the left and stopped at 85%, so "mine" floated mid-screen.
-        { alignSelf: isMine ? 'flex-end' : 'flex-start' },
+        // Hug the sender's edge firmly on both axes.
+        {
+          alignSelf: isMine ? 'flex-end' : 'flex-start',
+          alignItems: isMine ? 'flex-end' : 'flex-start',
+        },
         style,
         {
           opacity: opacityAnim,
@@ -154,11 +156,12 @@ export function AnimatedChatBubble({
         onPressOut={handlePressOut}
         onPress={handlePress}
         onLongPress={onLongPress}
-        style={[styles.touchWrap]}
+        style={[styles.touchWrap, { alignItems: isMine ? 'flex-end' : 'flex-start' }]}
       >
         <Animated.View
           style={[
             styles.bubbleContainer,
+            { alignItems: isMine ? 'flex-end' : 'flex-start' },
             // Same corners as the bubble inside (tail at the bottom on the
             // sender's side). The old top-tail + rounded-bottom clip shape, with
             // overflow hidden, sliced off the inner bubble's corner — and the
